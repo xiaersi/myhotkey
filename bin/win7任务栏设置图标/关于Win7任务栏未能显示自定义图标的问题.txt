@@ -1,0 +1,33 @@
+我们可以在AHK文件中通过以下命令设置自定义图标：
+Menu TRAY, Icon,  %icofile%, , %Flag%
+
+该命令将更新AHK窗口图标、任务栏图标以及托盘图标。
+
+然而在Window7操作系统中，该命令无法更换任务栏图标，
+原因是操作系统做了限制，只需修改一下注册表即可，方法如下：
+
+
+//---
+-----------------------------------------------------------------------
+
+; Give each instance of AutoHotkey.exe its own button:
+RegWrite, REG_SZ, HKEY_CLASSES_ROOT, Applications\AutoHotkey.exe, IsHostApp
+
+
+执行文件见本目录：RegWrite_IsHostApp.ahk
+
+//---------------------------------------------------------------------------
+
+还原设置命令如下：
+
+; To undo it:
+RegDelete, HKEY_CLASSES_ROOT, Applications\AutoHotkey.exe, IsHostApp
+
+
+
+//---------------------------------------------------------------------------
+
+; If you're confident that the Applications\AutoHotkey.exe key didn't exist, this will do:
+; 如果你确信注册表中没有autoHotkey的注册项，则需要增加之。
+
+RegDelete, HKEY_CLASSES_ROOT, Applications\AutoHotkey.exe

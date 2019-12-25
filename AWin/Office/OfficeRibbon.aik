@@ -1,0 +1,21 @@
+
+#ifwinactive ahk_class Framework::CFrame
+!F3::
+	WinGetActiveTitle var_title
+	if ¡ÆIsOneNote(var_title)
+	{
+		send ^!g
+	}
+	return
+
+
+
+#ifwinactive
+
+
+¡ÆIsOneNote(var_title)
+{
+	ifinstring var_title, - Microsoft OneNote
+		return true
+	return false
+}

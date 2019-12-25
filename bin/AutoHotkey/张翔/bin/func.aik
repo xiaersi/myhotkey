@@ -1,0 +1,181 @@
+﻿SeachXlsFile( dir_, pattern_ )
+{
+	FileList =  ; Initialize to be blank.
+	Loop, %dir_%\*%pattern_%*.xls
+	{
+		if A_LoopFileName =
+			continue
+
+		FileList = %FileList%%A_LoopFileName%`n
+	}
+
+	Loop, %dir_%\*%pattern_%*.xlsx
+	{
+		if A_LoopFileName =
+			continue
+
+		FileList = %FileList%%A_LoopFileName%`n
+	}
+	return FileList
+}
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+SelectFile( dir_, pattern_, prompt_ )
+{
+	g_filecount := 0
+	FileList =  ; Initialize to be blank.
+	Loop, %dir_%\*%pattern_%*.xls
+	{
+		if A_LoopFileName =
+			continue
+
+		g_filecount++
+		FileList = %FileList%%A_LoopFileName%`n
+	}
+
+
+	if g_filecount <= 1
+	{
+		Loop, %dir_%\*%pattern_%*.xlsx
+		{
+			if A_LoopFileName =
+				continue
+
+			g_filecount++
+			FileList = %FileList%%A_LoopFileName%`n
+		}
+	}
+	;; 如果bak目录下只有一个Excel文档，则视为模板文档
+	if g_filecount = 1
+	{
+		Loop, parse, FileList, `n
+		{
+			if A_LoopField =  ; Ignore the blank item at the end of the list.
+				continue
+			
+			tempfile = %dir_%\%A_LoopField%
+			break
+		}
+	}
+	;; 如果bak目录下只有多个Excel文档，则需要选择一个
+	else if g_filecount > 1
+	{
+		FileSelectFile, tempfile, , %dir_%,  %prompt_%, Excel (*%pattern_%*.xls; *%pattern_%*.xlsx)
+		if ErrorLevel
+			return 	
+	}
+	;; 如果bak目录下没有个Excel文档，则需要退出
+	else 
+	{
+		return 
+	}
+
+	return tempfile
+}
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+WriteLog(text_, bMsgbox=false)
+{
+	local var_temp
+	if regexmatch( text_, "^[-=#@;]" )
+		var_temp = `r`n%text_%  ;; 以-=#@;开头的，视为分隔行，不用添加日志日期
+	else
+		var_temp = `r`n[%a_yyyy%-%a_mm%-%a_dd% %a_hour%:%a_min%:%a_sec%]: %text_%
+
+	fileappend %var_temp%, %g_bakdir%\log.txt
+
+	if bMsgbox
+		msgbox %text_%
+}
+
+
+;; 读写ini文件
+read_ini(Filename_, Section_, Key_, Default_ = "")
+{
+	IniRead var_temp, %Filename_%, %Section_%, %Key_% ;, %Default_%
+	if ( var_temp == "ERROR" )
+	{
+		var_temp := Default_
+
+		msgbox read_ini(%Filename_%`, %Section_%`, %Key_%`, %Default_%)
+		;; 如果相关配置，则以默认值新增之
+		write_ini(Filename_, Section_, Key_, var_temp)
+	}
+	Return var_temp
+}
+
+; write_ini() 向指定的ini文件中写入一个key的值，
+; isAsk指定如果已经存在key时，是否要询问用户替换？false 表示直接替换
+write_ini(Filename_, Section_, Key_, Value_, isAsk = false )
+{
+	if isAsk
+	{
+		var_read := read_ini( Filename_, Section_, Key_, "" )
+		if var_read <>
+		{
+			prompt = %Filename_%文件的%Section_%节中，`n%Key_%已经存在，要替换吗 ？
+			msgbox 4, 重复, %prompt%
+			ifmsgbox no
+			{
+				return false
+			}
+		}
+	}
+	IniWrite, %Value_%, %Filename_%, %Section_%, %Key_%
+	return true
+}
+
+
+;; 将"年月日"格式的日期格式化为"yyyy-m-d"
+GetFormatDate(date_)
+{
+	var_date := date_
+	FoundPos := RegExMatch(date_, "\d+" , v_yyyy, 1)
+	if v_yyyy =
+		return var_date
+	
+	FoundPos := RegExMatch(date_, "\d+" , v_mm, FoundPos + strlen(v_yyyy))
+	if ( v_mm < 1 || v_mm > 12 )
+		return var_date
+
+
+	FoundPos := RegExMatch(date_, "\d+" , v_dd, FoundPos + strlen(v_mm))
+	if ( v_dd < 1 || v_dd > 31 )
+		return var_date
+
+	v_mm := 1 * v_mm
+	v_dd := 1 * v_dd
+	var_date = %v_yyyy%-%v_mm%-%v_dd%
+	return var_date
+}
+
+GetXlCellValue( file_, range_ )
+{
+	ifnotexist %file_%
+		return
+	if range_ =
+		return
+
+	Xl := ComObjCreate("Excel.Application")
+	Xl.Workbooks.Open(file_) ;open an existing file
+	cell := Xl.Range( range_ ).Value
+	Xl.Workbooks.Close()
+	return cell
+}
+
+
+;; 将整型的工号如(123)补充为6位(000123)
+UserID2String( id_ )
+{
+	len := strlen(id_)
+	if ( len > 0 && len < 6 )
+	{
+		loops := 6 - len
+		loop %loops%
+			var_temp = %var_temp%0
+		id_ = %var_temp%%id_%
+	}
+	return id_
+}

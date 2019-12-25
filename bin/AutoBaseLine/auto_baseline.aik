@@ -1,0 +1,761 @@
+; #include TrotoiseCommand.aik
+
+【项目】:
+	Gui, Submit , noHide
+	GuiControl, , _product, |
+	gosub 【产品模块控件清空】
+	gosub 【清空所有系统模块控件】
+	if _project <>
+	{
+
+		SetTimer, 【延时初始化产品控件】, 50
+	}
+	return
+
+
+
+【添加项目】:
+	Gui, Submit , noHide
+	IniRead, _project, %g_inifile%, ., PROJECT_LIST,%A_Space%
+	InputBox, _project , 项目列表, 请编辑项目列表，以`"|`"进行分隔。, , 300, 120, , , , , %_project%
+	if ErrorLevel
+		return
+
+	IniWrite, %_project%, %g_inifile%, ., PROJECT_LIST
+	GuiControl, , _project, |
+	GuiControl, , _product, |
+	gosub 【产品模块控件清空】
+	gosub 【清空所有系统模块控件】
+	GuiControl, , _project, %_project%	
+	return
+
+【系统模块】:
+	Gui, Submit , noHide
+	_sysmodule := _syslist
+	GuiControl, , _sysmodule, %_syslist%
+	gosub 【切换系统模块】
+	if _patten <>
+		gosub 【生成完整路径】
+	return
+
+
+【延时初始化产品控件】:
+	ReadProjectInfo(_project)
+	;IniRead, _buildnum_uat, %g_inifile%, %_project%, UAT_BUILD,%A_Space%
+	GuiControl, , _buildnum_uat, %_buildnum_uat%
+	GuiControl, , _buildnum_total, %_buildnum_total%
+	GuiControl, , _buildnum_thunk, %_buildnum_thunk%
+	GuiControl, , _project_patten, %_project_patten%
+
+	IniRead, _product, %g_inifile%, %_project%, PRODUCT_LIST, %A_Space%
+	GuiControl, , _buildnum_uat, %_buildnum_uat%
+
+	GuiControl, , _product, %_product%
+
+;	msgbox %last_product% := ReadLastProduct(%_project%)
+	if last_product <>
+	{
+		GuiControl, ChooseString, _product,  %last_product%
+		;GuiControl, , _project,  %last_product%
+		gosub 【产品模块】
+	}
+	SetTimer, 【延时初始化产品控件】, off
+	return 
+
+【产品模块】:
+	Gui, Submit , noHide
+	gosub 【产品模块控件清空】
+	_patten=  
+	_buildnum= 
+	_devpath= 
+	_frompath= 
+	_syslist=
+	_warpath=
+	_productpath=
+	GuiControl, , _syslist, |
+	sleep 100
+	ReadProductInfo(_product)
+	GuiControl, , _patten,  %_patten%
+	GuiControl, ,  _buildnum, %_buildnum%
+	GuiControl, , _devpath, %_devpath%
+	GuiControl, , _frompath, %_frompath%
+	GuiControl, , _syslist, %_syslist%
+	GuiControl, , _warpath, %_warpath%
+	GuiControl, , _productpath, %_productpath%
+	return
+
+【产品模块控件清空】:
+	GuiControl, , _patten,  
+	GuiControl, ,  _buildnum, 
+	GuiControl, , _devpath, 
+	GuiControl, , _frompath, 
+	GuiControl, , _topath,
+	return
+
+【添加产品模块】:
+	Gui, Submit , noHide
+	if _project =
+	{
+		MSGBOX 请选择项目！
+		return
+	}
+	IniRead, _product, %g_inifile%, %_project%, PRODUCT_LIST,%A_Space%
+	InputBox, _product , 产品模块列表, 请编辑产品模块列表，以`"|`"进行分隔。, , 300, 120, , , , , %_product%
+	if ErrorLevel
+		return
+
+	IniWrite, %_product%, %g_inifile%, %_project%, PRODUCT_LIST
+	GuiControl, , _product, |
+	gosub 【产品模块控件清空】
+	gosub 【清空所有系统模块控件】
+	GuiControl, , _product, %_product%
+	return
+
+
+【添加系统模块】:
+	Gui, Submit , noHide
+	if _project =
+	{
+		tooltip 添加系统模块失败：请选择项目！
+		SetTimer, RemoveToolTip, 1000
+		return
+	}
+	if _product =
+	{	
+		tooltip 添加系统模块失败：请选择产品模块！
+		SetTimer, RemoveToolTip, 1000
+		return
+	}
+	IniRead, var_syslist, %g_inifile%, %_project%, %_product%_syslist, |
+	InputBox, var_syslist , 添加系统模块, 请为项目[%_project%].[%_product%] 编辑系统模块列表:, , 350, 120, , , , , %var_syslist%
+	if ErrorLevel
+		return
+
+	IniWrite, %var_syslist%, %g_inifile%, %_project%, %_product%_syslist
+	GuiControl, , _syslist, |
+	gosub 【清空所有系统模块控件】
+	GuiControl, , _syslist, %var_syslist%
+	return
+
+【生成PATTEN】:
+	Gui, Submit , noHide
+	if _patten =
+	{
+		msgbox 请输入Patten!
+		return
+	}
+	if _buildnum =
+	{
+		msgbox 请输入Build次数。
+		return
+	}
+	if _buildnum is not number
+	{
+		msgbox 请检查输入的Build次数是否为数字？
+		return
+	}
+	XXX =	;; 格式化的Build次数
+	FoundPos := RegExMatch(_patten, "#+" , XXX )
+	if not FoundPos
+	{
+		msgbox PATTEN[%_patten%] 缺少“#”符号。
+		return
+	}
+
+	XXXlen := StrLen(XXX)
+	len := strLen(_buildnum)
+	if ( XXXlen < len )
+	{
+		msgbox Build次数超过长度 %XXXlen%。
+		return
+	}
+	xxx := _buildnum
+	if ( XXXlen > len )
+	{
+		len := XXXlen - len
+		loop %len%
+		{
+			xxx = 0%xxx%
+		}
+	}
+	var_patten =
+	var_patten := RegExReplace(_patten, "#+" , xxx) 
+	sit_patten = %var_patten%_sit_%_project_patten%
+	uat_patten = %var_patten%_uat_%_project_patten%
+	war_patten = %var_patten%_uat_%_project_patten%
+	if _buildnum_thunk <= 1
+		trunk_patten = trunk_uat_%_project_patten%
+	else if _buildnum_thunk < 10
+		trunk_patten = trunk_uat_%_project_patten%_0%_buildnum_thunk%
+	else
+		trunk_patten = trunk_uat_%_project_patten%_%_buildnum_thunk%
+	return
+
+【生成基线路径】:
+	if _radio_uat
+	{
+		_frompath = %_productpath%%g_sit_path%/%sit_patten%
+		_topath = %_productpath%%g_uat_path%/%uat_patten%
+	}
+	else if _radio_thunk
+	{
+		_frompath =  %_productpath%%g_trunk_path%
+		_topath =  %_productpath%%g_uat_path%/%trunk_patten%
+	}
+	else if _radio_war
+	{
+		_frompath = %_warpath%%g_warsit_path%/%_project_patten%
+		_topath = %_warpath%%g_waruat_path%/%uat_patten%
+	}
+	else if _radio_sit
+	{
+		_frompath = %_devpath%
+		_topath = %_productpath%%g_sit_path%/%sit_patten%
+	}
+	else
+	{
+		_frompath = %_productpath%%g_sit_path%/%sit_patten%
+		_topath = %_productpath%%g_sit_path%/%sit_patten%
+	}
+	GuiControl, , _frompath, %_frompath%
+	GuiControl, , _topath, %_topath%
+	return
+
+【生成完整路径】:
+	gosub 【生成PATTEN】
+	gosub 【生成基线路径】
+	/*
+	if ( var_patten != "" && var_patten != _patten )
+	{
+		_topath = %_basepath%/%_sysDevPath%
+		GuiControl,,_topath, %_topath%
+	}
+	*/
+	return
+
+
+【增加项目Build总数】:
+	gui submit, nohide
+	if _buildnum_total =
+		_buildnum_total := 1
+	else 
+		_buildnum_total ++
+	guicontrol , , _buildnum_total, %_buildnum_total%
+	return
+
+
+【增加项目UATBuild总数】:
+	gui submit, nohide
+	if _buildnum_uat =
+		_buildnum_uat := 1
+	else 
+		_buildnum_uat ++
+	guicontrol , , _buildnum_uat, %_buildnum_uat%
+	return
+
+【增加项目ThunkBuild总数】:
+	gui submit, nohide
+	if _buildnum_thunk =
+		_buildnum_thunk := 1
+	else 
+		_buildnum_thunk ++
+	guicontrol , , _buildnum_thunk, %_buildnum_thunk%
+	return
+
+【增加Build次数】:
+	gui submit, nohide
+	if _buildnum =
+		_buildnum := 1
+	else 
+		_buildnum ++
+	guicontrol , , _buildnum, %_buildnum%
+	return
+
+
+【BuildNum】:
+	Gui, Submit , noHide
+	if _buildnum <>
+	{
+		gosub 【生成完整路径】
+	}
+	return
+
+【patten】:
+	Gui, Submit , noHide
+	if _patten <>
+	{
+		gosub 【生成完整路径】
+	}
+	return
+
+
+【查看SVN日志】:
+	Gui, Submit , noHide
+	if _topath <>
+	{
+		;msgbox _topath:%_topath%
+		svn_log(_topath)
+	}
+	return
+
+【切换系统模块】:
+	_SysKey =
+	_SysName =
+	_sysDevPath =
+	_SysSitPath =
+	_topath =
+	ReadSysModule(_sysmodule)
+	_topath = 
+	GuiControl, , _SysKey, %_SysKey%
+	GuiControl, , _SysName, %_SysName%
+	GuiControl, , _sysDevPath, %_sysDevPath%
+	GuiControl, , _SysSitPath, %_SysSitPath%
+	;GuiControl, , _topath, %_topath%
+	if _patten <>
+		gosub 【生成完整路径】
+	return 
+
+
+【清空所有系统模块控件】:
+	_syslist =
+	GuiControl, , _syslist, |
+【清空系统模块控件_除树形控件】:	
+	_SysKey =
+	_SysName =
+	_sysDevPath =
+	_SysSitPath =
+	_topath =
+	_topath =  
+	_sysmodule =
+	GuiControl, , _SysKey, 
+	GuiControl, , _SysName, 
+	GuiControl, , _sysDevPath,
+	GuiControl, , _SysSitPath,
+	GuiControl, , _topath,
+	GuiControl, , _sysmodule,
+	return 	
+
+【保存配置】:
+	Gui, Submit , noHide
+	SaveProjectInfo(_project)
+	SaveProductInfo(_product)
+	SaveSysModule(_sysmodule)
+	tooltip 保存完毕
+	settimer, RemoveTooltip, 1000
+	return
+
+【SVN浏览产品开发路径】:
+	Gui, Submit , noHide
+	if _devpath <>
+	{
+		svn_view(_devpath)
+	}
+	return
+
+【SVN浏览产品基线路径】:
+	Gui, Submit , noHide
+	if _productpath <>
+	{
+		svn_view(_productpath)
+	}
+	return
+
+【SVN浏览产品War包路径】:
+	Gui, Submit , noHide
+	if _warpath <>
+	{
+		svn_view(_warpath)
+	}
+	return
+
+【SVN浏览产品SIT路径】:
+	Gui, Submit , noHide
+	if _frompath <>
+	{
+		svn_view(_frompath)
+		;svn_mkdir(_frompath)
+	}
+	return
+
+
+【完整路径事件】:
+	msgbox 【完整路径事件】
+	return
+
+
+getSitPath()
+{
+	global
+	re = %_productpath%%g_sit_path%/%sit_patten%
+	return re
+}
+
+【新建产品基线】:
+	Gui, Submit , noHide
+	if _devpath =
+	{
+		msgbox 请输入产品开发路径！
+		return
+	}
+	if _frompath =
+	{
+		msgbox 请输入产品From路径！
+		return
+	}
+	gosub 【生成PATTEN】
+	if ( var_patten != "" && var_patten != _patten )
+	{
+		var_sitpath := getSitPath()
+		msgtip =
+		(
+即将根据开发路径打基线，请确定路径是否正确：
+开发路径：%_devpath%
+基线路径：%var_sitpath%
+
+确定要新建产品基线吗？
+		)
+		MsgBox, 4, 新建产品基线, %msgtip%
+		IfMsgBox No
+			return
+
+		logmsg = [%_project%]第%_buildnum_total%次基线
+		svn_copy(_devpath, var_sitpath, logmsg)
+		SaveLastPatten(var_patten)
+	}
+	return
+
+【CopyTo】:
+
+	if _frompath =
+	{
+		msgbox 请输入产品From路径！
+		return
+	}
+	if _topath =
+	{
+		msgbox 没有生成 To 路径！
+		return
+	}
+	gosub 【生成PATTEN】
+	if ( var_patten != "" && var_patten != _patten )
+	{
+		var_sitpath := getSitPath()
+		msgtip =
+		(
+即将根据执行拷贝操作：
+FROM：%_frompath%
+TO：%_topath%
+
+确定要拷贝基线吗？
+		)
+		MsgBox, 4, CopyTo, %msgtip%
+		IfMsgBox No
+			return
+	
+		
+		if _radio_uat
+		{
+			logmsg = [%_project%]第%_buildnum_uat%次UAT基线
+		}
+		else if _radio_thunk
+		{
+			logmsg = [%_project%]第%_buildnum_thunk%次TRUNK基线
+		}
+		else if _radio_war
+		{
+			logmsg = [%_project%]第%_buildnum_uat%次UAT基线
+		}
+		else if _radio_sit
+		{
+			logmsg = [%_project%]第%_buildnum_total%次SIT基线
+		}
+		else
+		{
+			logmsg = [%_project%]第%_buildnum_total%次基线
+		}
+		
+		svn_copy(_frompath, _topath, logmsg)
+		SaveLastPatten(var_patten)
+	}
+	return	
+	return
+
+【复制产品基线】:
+	Gui, Submit , noHide
+	if _productpath =
+	{
+		msgbox 请输入产品基线路径！
+		return
+	}
+	last_patten := ReadLastPatten()
+	gosub 【生成PATTEN】
+	if ( var_patten != "" && var_patten != _patten )
+	{
+		var_sitpath := getSitPath()
+		msgtip =
+		(
+从已有的旧基线复制出新基线：
+新基线路径：%var_sitpath%
+旧基线路径：%_productpath%%g_sit_path%/？
+你可以修改旧基线路径的Patten，确定要复制基线吗？
+		)
+		InputBox, last_sitpath , 复制产品基线, %msgtip%, , , , , , , , %last_patten%
+		if ErrorLevel
+			return
+		if last_sitpath =
+			return
+		IfNotInString last_sitpath, http
+		{
+			last_sitpath = %_productpath%%g_sit_path%/%last_sitpath%
+		}
+		logmsg = [%_project%]第%_buildnum_total%次SIT基线
+		if svn_copy(last_sitpath, var_sitpath, logmsg)
+			SaveLastPatten(sit_patten)
+	} else {
+		msgbox 无法生成PATTEN！
+	}
+	return
+
+
+【当前系统基线】:
+	Gui, Submit , noHide
+	if _sysmodule =
+	{
+		msgbox 请选择系统模块！
+		return
+	}	
+	if _devpath =
+	{
+		msgbox 请输入产品开发路径！
+		return
+	}
+	if _productpath =
+	{
+		msgbox 请输入产品基线路径！
+		return
+	}
+	if _syssitpath =
+	{
+		msgbox 请输入系统基线路径！
+		return
+	}	
+
+	gosub 【生成PATTEN】
+	if ( var_patten != "" && var_patten != _patten )
+	{
+		var_devpath = %_devpath%/%_syssitpath%
+		var_sitpath := getSitPath()
+		var_sitpath = %var_sitpath%/%_syssitpath%
+		msgtip =
+		(
+为系统%_sysmodule%打基线（从开发目录拷贝到基线目录）：
+系统开发路径：%var_devpath%
+系统基线路径：%var_sitpath%
+
+确定要打基线吗？
+		)
+		MsgBox, 4, 当前系统基线, %msgtip%
+		IfMsgBox No
+			return
+		;; 先删除旧的基线目录
+		logmsg = [%_project%]第%_buildnum_total%次基线
+		svn_remove(var_sitpath)
+		WinWait Enter Log Message ahk_class #32770, , 3
+		if ErrorLevel
+			return
+		
+		WinActivate Enter Log Message ahk_class #32770
+		IfWinActive  Enter Log Message ahk_class #32770
+		{
+			clipboard = [%_project%]第%_buildnum_total%次基线, 先删除已经存在的目标路径。
+			send ^v
+		}
+
+		;; 从开发目录镜像到基线目录
+		WinWaitClose Enter Log Message ahk_class #32770
+		svn_copy(var_devpath, var_sitpath, logmsg)
+		;; SaveLastPatten(var_patten)
+	} else {
+		msgbox 无法生成PATTEN！
+	}
+	return
+
+
+ReadSysModule(_sysmodule)
+{
+	global
+	if _sysmodule <>
+	{
+		IniRead, _SysKey, %g_inifile%, .SYSTEM, %_sysmodule%_SysKey,%A_Space%
+		IniRead, _SysName, %g_inifile%, .SYSTEM, %_sysmodule%_SysName,%A_Space%
+		IniRead, _sysDevPath, %g_inifile%, .SYSTEM, %_sysmodule%_sysDevPath,%A_Space%
+		IniRead, _SysSitPath, %g_inifile%, .SYSTEM, %_sysmodule%_SysSitPath,%A_Space%
+	}
+}
+
+
+SaveSysModule(_sysmodule)
+{
+	global
+	if _sysmodule <>
+	{
+		IniWrite, %_SysKey%, %g_inifile%, .SYSTEM, %_sysmodule%_SysKey
+		IniWrite, %_SysName%, %g_inifile%, .SYSTEM, %_sysmodule%_SysName
+		IniWrite, %_sysDevPath%, %g_inifile%, .SYSTEM, %_sysmodule%_sysDevPath
+		IniWrite, %_SysSitPath%, %g_inifile%, .SYSTEM, %_sysmodule%_SysSitPath
+	}
+}
+
+
+ReadProductInfo(_product)
+{
+	global
+	if _product <>
+	{
+		IniRead, _patten, %g_inifile%, PRODUCT, %_product%_patten, b###
+		IniRead, _warpath, %g_inifile%, PRODUCT, %_product%_warpath, %A_Space%
+		IniRead, _productpath, %g_inifile%, PRODUCT, %_product%_productpath, %A_Space%
+		IniRead, _buildnum, %g_inifile%, %_project%, %_product%_buildnum,%A_Space%
+		IniRead, _devpath, %g_inifile%, %_project%, %_product%_devpath,%A_Space%
+	;;	IniRead, _sitpath, %g_inifile%, %_project%, %_product%_sitpath,%A_Space%
+		IniRead, _syslist, %g_inifile%, %_project%, %_product%_syslist, |	
+	}
+}
+
+
+
+SaveProductInfo(_product)
+{
+	global
+	if _product <>
+	{
+		if _project <>
+		{
+			IniWrite, %_buildnum%, %g_inifile%, %_project%, %_product%_buildnum
+			IniWrite, %_devpath%, %g_inifile%, %_project%, %_product%_devpath
+	;;		IniWrite, %_sitpath%, %g_inifile%, %_project%, %_product%_sitpath
+
+			write_ini(g_inifile, "PRODUCT", _product . "_patten", _patten, true )
+		;;	IniWrite, %_patten%, %g_inifile%, PRODUCT, %_product%_patten
+			StringRight, OutputVar, _warpath, 1
+			if OutputVar <> /
+			{
+				_warpath = %_warpath%/
+				GuiControl ,,_warpath,%_warpath%
+			}
+			write_ini(g_inifile, "PRODUCT", _product . "_warpath", _warpath, true )
+
+			StringRight, OutputVar, _productpath, 1
+			if OutputVar <> /
+			{
+				_productpath = %_productpath%/
+				GuiControl ,,_productpath,%_productpath%
+			}			
+			write_ini(g_inifile, "PRODUCT", _product . "_productpath", _productpath, true )
+		}
+	}
+}
+
+ReadProjectInfo(_project)
+{
+	global
+	if _project <>
+	{
+		IniRead, _buildnum_total, %g_inifile%, %_project%, BUILD,%A_Space%
+		IniRead, _buildnum_uat, %g_inifile%, %_project%, UAT_BUILD,%A_Space%
+		IniRead, _buildnum_thunk, %g_inifile%, %_project%, TRUNK_BUILD,%A_Space%
+		IniRead, _project_patten, %g_inifile%, %_project%, _PROJECT_PATTEN,%A_Space%
+		IniRead, last_project, %g_inifile%,. , LAST_PROJECT,%A_Space%
+		IniRead, last_product, %g_inifile%, %_project%, LAST_PRODUCT,%A_Space%
+	}
+}
+
+
+ReadLastProduct(_project)
+{
+	global g_inifile
+	if _project <>
+	{
+		IniRead, last_product, %g_inifile%, %_project%, LAST_PRODUCT,%A_Space%
+	}
+	return last_product
+}
+
+SaveProjectInfo(_project)
+{
+	global
+	if _project <>
+	{
+		IniWrite, %_buildnum_total%, %g_inifile%, %_project%, BUILD
+		IniWrite, %_buildnum_uat%, %g_inifile%, %_project%, UAT_BUILD
+		IniWrite, %_buildnum_thunk%, %g_inifile%, %_project%, TRUNK_BUILD
+		;IniWrite, %_project_patten%, %g_inifile%, %_project%, _PROJECT_PATTEN
+		write_ini(g_inifile, _project, "_PROJECT_PATTEN", _project_patten, true )
+		IniWrite, %_project%, %g_inifile%, ., LAST_PROJECT
+		IniWrite, %_product%, %g_inifile%, %_project%, LAST_PRODUCT
+	}
+}
+
+
+ReadLastPatten()
+{
+	local patten
+	if _product <>
+	{
+		if _project <>
+		{
+			IniRead, patten, %g_inifile%, %_project%, %_product%_last_patten, %A_Space%
+			return patten
+		}
+	}
+}
+
+
+SaveLastPatten(patten)
+{
+	global
+	if _product <>
+	{
+		if _project <>
+		{
+			IniWrite, %patten%, %g_inifile%, %_project%, %_product%_last_patten
+		}
+	}
+}
+
+【复制完整路径】:
+	Gui submit, nohide
+	clipboard := _topath
+	tooltip 【已复制】
+	SetTimer, RemoveToolTip, 800
+	return
+
+
+
+【选择SIT基线路径】:
+	GuiControl, Enable , CreateSysBaseLine
+	GuiControl, Enable , CopyProductBaseLine 
+	GuiControl, Enable , NewProductBaseLine
+	gosub 【生成完整路径】
+	return
+
+【选择UAT基线路径】:
+	GuiControl, Disable, CreateSysBaseLine
+	GuiControl, Disable, CopyProductBaseLine 
+	GuiControl, Disable, NewProductBaseLine
+	gosub 【生成完整路径】
+	return
+
+【选择THUNK基线路径】:
+	GuiControl, Disable, CreateSysBaseLine
+	GuiControl, Disable, CopyProductBaseLine 
+	GuiControl, Disable, NewProductBaseLine
+	gosub 【生成完整路径】
+	return
+
+【选择WAR基线路径】:
+	GuiControl, Disable, CreateSysBaseLine
+	GuiControl, Disable, CopyProductBaseLine 
+	GuiControl, Disable, NewProductBaseLine
+	gosub 【生成完整路径】
+	return

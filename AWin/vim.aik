@@ -1,0 +1,147 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#ifwinactive ahk_class Vim  ;; Vim 窗口
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#include ./inc/common.aik
+
+!i::
+::;esc::
+::`:esc::
+	send {esc 2}
+	return
+~^s::
+	sleep 100
+	send {esc 2}
+	return
+
+!x::send {esc 2}{right}x
+!r::send {esc 2}{right}r
+!`;::send {esc 2}`:
+!/::
+	send {esc 2}/
+	clipboard := myinput("查找", "请输入查找关键字：")
+	sleep 100
+	if clipboard <>
+	{	
+		send ^v
+	}
+	return
+
+<!h::send {esc 2}h
+<!j::send {esc 2}j
+<!k::send {esc 2}k
+<!l::send {esc 2}l
+!4::send {esc 2}$
+!0::send {esc 2}0
+<!v::send {esc 2}v
+<!n::send {esc 2}n
+
+<!u::send {esc 2}u
+
+!d::	; 向下滚动
+	send {esc 2}
+	send ^d
+	return
+!w::	; 选择光标所在单词
+	send {esc}{esc}viw
+	return
+
+^f::	; 查寻选中的单词
+	send ^c
+	sleep 100
+	if clipboard <>
+	{
+		send {esc 2}
+		send /
+		send ^v
+	}
+	return
+
+F3::
+^+f::	; 查寻选中的单词
+	WinGetActiveTitle, aTitle
+	InputBox, UserInput, 查找全部, 请输入要查找的内容, , 240, 120
+	if ErrorLevel
+	{
+		tooltip  CANCEL was pressed.
+		sleep 500
+		tooltip
+	}
+	else
+	{
+		winactivate %aTitle%
+		sleep 100
+		send :
+		sendinput {raw} lvimgrep /%UserInput%/ `% | lopen
+		send {enter}
+	}
+	return
+
+::mfun;::
+	clipboard = ∑
+	send ^v
+	return
+
+
+!g::
+	send {esc 2}
+	var_input := myinput("跳转", "请指定跳转的行数", "", 180) 
+	if var_input <>
+	{
+		send {esc}%var_input%
+		send +g
+	}
+	return
+
+
+!y::	;; 切换语法高亮显示
+	var_tip =
+	(	
+a	Ahk
+c	C++
+h	HTML
+j	Java
+s	JavaScript
+p	Jsp
+q	plsql
+t	Text
+x	XML
+	)
+	tooltip  %var_tip%
+	UserInput =
+	Input, UserInput, T5 L1 I, {enter}.{esc}{tab}
+	if UserInput <>
+		send {esc 3}:
+
+	if UserInput = a 
+		sendinput set syntax=autohotkey{enter}
+	else if UserInput = c
+		sendinput set syntax=cpp{enter}
+    else if UserInput = j
+		sendinput set syntax=java{enter}
+    else if UserInput = s
+		sendinput set syntax=javascript{enter}
+    else if UserInput = p
+		sendinput set syntax=jsp{enter}
+    else if UserInput = q
+		sendinput set syntax=plsql{enter}
+	else if UserInput = h
+		sendinput set syntax=html{enter}
+	else if UserInput = t
+		sendinput set syntax=text{enter}
+	else if UserInput = x
+		sendinput set syntax=xml{enter}
+
+	send {esc 2}
+	tooltip
+	return
+
+::`;Del`^M::
+	sleep 100
+	send {esc 2}
+	send `:`%s/`^M//g
+	send {enter}
+	return
+
+
+	
+#ifwinactive

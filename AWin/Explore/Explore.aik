@@ -1,0 +1,68 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; windows XP :: 资源管理器
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#ifwinactive  ahk_class ExploreWClass
+
+	
+Appskey::	
+!m::
++Rbutton::
+	var_file := ∑获取根目录()
+	var_file = %var_file%\bin\explore\ExploreMenu.ahk
+	run_ahk( var_file )
+	return
+
+
++F2::
+	∑进入重命名状态并选择文件名()
+	return
+
+
+	
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 我的电脑
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#ifwinactive ahk_class CabinetWClass
+
+Appskey::
+!m::
++Rbutton::
+	var_file := ∑获取根目录()
+	var_file = %var_file%\bin\explore\ExploreMenu.ahk
+	run_ahk( var_file )
+	return
+
+	
+	
++F2::
+	∑进入重命名状态并选择文件名()
+	return
+
+#ifwinactive
+
+
+
+∑进入重命名状态并选择文件名()
+{
+	clipboard =
+	send {f2}
+	sleep 100
+	send ^c
+	clipwait 1, 1
+	if clipboard =
+		return
+	var_clip := clipboard
+	tooltip 已经复制文件名：%var_clip%
+	ifinstring var_clip, .
+	{
+		StringGetPos var_pos, var_clip, . , R
+		var_leftstep := strlen( var_clip ) - var_pos
+		send {left %var_leftstep%}
+		send {shift down}{home}{shift up}
+	}
+	sleep 500
+	tooltip
+	return
+}
+
+

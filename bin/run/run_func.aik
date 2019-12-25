@@ -1,0 +1,983 @@
+;#include .\inc\common.aik
+
+DecodeInteger( p_type, p_address, p_offset, p_hex=true )
+{
+   old_FormatInteger := A_FormatInteger
+
+   if ( p_hex )
+      SetFormat, Integer, hex
+   else
+      SetFormat, Integer, dec
+
+   sign := InStr( p_type, "u", false )^1
+
+   StringRight, size, p_type, 1
+
+   loop, %size%
+      value += ( *( ( p_address+p_offset )+( A_Index-1 ) ) << ( 8*( A_Index-1 ) ) )
+
+   if ( sign and size <= 4 and *( p_address+p_offset+( size-1 ) ) & 0x80 )
+      value := -( ( ~value+1 ) & ( ( 2**( 8*size ) )-1 ) )
+
+   SetFormat, Integer, %old_FormatInteger%
+
+   return, value
+}
+
+
+WM_ACTIVATE()
+{
+	global
+	if not g_bAutoExit
+		return
+
+	IfWinNotActive %g_wintitle%
+	{
+		gui, submit, hide
+		SetTimer 【退出程序】, 500
+	}
+	return
+}
+
+
+
+ReadRecentArray( ArrayName, cmdType )
+{
+	Local var_temp
+	if ArrayName =
+		return false
+	if cmdType =
+		return false
+	var_temp 	:= ReadTempIni( "run", cmdType, "" )
+	if var_temp <>
+	{
+		StringSplit %ArrayName%, var_temp, |
+;listvars
+;msgbox ReadRecentArray( %ArrayName%, %cmdType% )
+	}
+	return true
+}
+
+WriteRecentArray( ArrayName, cmdType )
+{
+	Local var_temp, loops, var_buf
+	if ArrayName =
+		return false
+	if cmdType =
+		return false
+
+	loops := %ArrayName%0
+	if loops <= 0
+		return false
+	loop %loops%
+	{
+		var_temp := %ArrayName%%a_index%
+		if var_buf <>
+			var_buf = %var_buf%|
+		var_buf = %var_buf%%var_temp%
+	}
+	if var_buf <>
+	{
+		WriteTempIni( "run", cmdType, var_buf )
+		return true
+	}
+	return false
+}
+
+InsertRecentArray( ArrayName, strText )
+{
+	Local var_temp, findpos, loops, idx0, idx1
+	if ArrayName =
+		return false
+	if strText =
+		return false
+
+	findpos := 0
+	loops := %ArrayName%0
+	loop %loops%
+	{
+		if ( %ArrayName%%a_index% == strText )
+		{
+			findpos := a_index
+			break
+		}
+	}
+	if findpos = 1
+	{
+		return true
+	}
+	if findpos > 1
+	{
+		loops := findpos - 1
+	}
+	else
+	{
+		loops := %ArrayName%0
+		if ( loops < g_MaxRecentNum )
+		{
+            %ArrayName%0++              ;; 当最近记录条数小于最大值时，允许新插入一条记录
+		}
+		findpos := %ArrayName%0
+	}
+
+	loop %loops%
+	{
+		idx0 := findpos - a_index
+		idx1 := idx0 + 1
+		%ArrayName%%idx1% := %ArrayName%%idx0%
+		var_temp := %ArrayName%%idx0%
+;		msgbox %ArrayName%%idx1% := %ArrayName%%idx0% = %var_temp%
+	}
+	%ArrayName%1 := strText
+;listvars
+;msgbox %ArrayName%0=[%loops%]  findpos=[%findpos%}
+	return true
+}
+
+∑为编辑框设置并选择新文本( var_wintitle, var_edit, var_oldstr, var_newstr )
+{
+	global g_bAutoSearch
+	if var_newstr =
+		return
+	if ( var_newstr == var_oldstr )
+		return
+
+	;; 如果系统闲置时间小于150毫秒，意味着用户正在输入内容，取消自动赋值操作，以免干扰用户的正常输入
+	if A_TimeIdle < 150
+		return
+
+	;; 自动给编辑框赋值
+	if ( InStr( var_newstr, var_oldstr ) == 1 )
+	{
+		var_start := strlen( var_oldstr )
+		var_end := strlen( var_newstr )
+		g_bAutoSearch := false
+		ControlFocus, %var_edit%, %var_wintitle%
+		ControlSetText, %var_edit%, %var_newstr%, %var_wintitle%
+		sendmessage, 177, var_start, var_end, %var_edit%, %var_wintitle%
+	}
+}
+
+;; 从数组file_keyArray中查找keyName，找到对应的file_ValueArray的值 file
+;; 如果指定了打开程序exeFile, 则用该程序打开 file，否则直接run %file%
+FindRunFileArray( exeFile, keyName )
+{
+	Local var_pos, var_file
+	var_pos := SearchArray( "file_keyArray", keyName )
+	if var_pos <>
+	{
+		var_file := file_ValueArray%var_pos%
+		ifExist %var_file%
+		{
+			ifExist %exeFile%
+			{
+				var_file = %exeFile% %var_file%
+			}
+	;		msgbox FindRunFileArray(%var_file%)
+			if ( myrun( var_file ) )
+				return true
+		}
+	}
+	return false
+}
+
+∑自动调整ListView的高度( items )
+{
+	Local lv_header_h, lv_row_h, lv_h, y1, y2
+	; LVM_GETHEADER
+	SendMessage, 0x1000+31, 0, 0, SysListView321, ahk_id %hGui%
+	WinGetPos,,,, lv_header_h, ahk_id %ErrorLevel%
+
+	VarSetCapacity( rect, 16, 0 )
+
+	; LVM_GETITEMRECT
+	;   LVIR_BOUNDS
+	SendMessage, 0x1000+14, 0, &rect, SysListView321, ahk_id %hGui%
+
+	y1 := DecodeInteger( "int4", &rect, 4 )
+	y2 := DecodeInteger( "int4", &rect, 12 )
+	lv_row_h := y2 - y1
+	lv_h := 2 + lv_header_h + ( lv_row_h * items ) + 30
+
+	if ( lv_h > 270 )
+		lv_h = 270
+
+	GuiControl, Move, SysListView321, h%lv_h%
+	LV_ModifyCol(VALUEFIELD)
+	LV_ModifyCol(MEMOFIELD)
+}
+
+AddSecArrays( _sec, _key, _value, _memo, _index )
+{
+	Local idx, var_temp, var_count
+	if _sec =
+		return false
+	if ( _key == "" && _value == "" )
+		return false
+	idx 		:= %_sec%_keyArray0
+	var_temp	:= %_sec%_valueArray0
+	if ( var_temp > idx )
+		idx := var_temp
+	var_temp 	:= %_sec%_MemoArray0
+	if ( var_temp > idx )
+		idx := var_temp
+
+	if ( _index > 0 && _index < idx )
+	{
+		var_count := idx
+		idx := _index
+	}
+	else
+	{
+		idx ++
+		var_count := idx
+	}
+
+	if _key <>
+	{
+		%_sec%_keyArray%idx% := _key
+		%_sec%_keyArray0 := var_count
+	}
+	if _value <>
+	{
+		%_sec%_valueArray%idx% := _value
+		%_sec%_valueArray0 := var_count
+	}
+	if _memo <>
+	{
+		%_sec%_MemoArray%idx% := _memo
+		%_sec%_MemoArray0 := var_count
+	}
+
+	return true
+}
+
+
+
+∑显示目录下的文件( _dir )
+{
+	Global g_FiltExt
+	Global g_FolderSection
+	Global _KeyListView
+	items := 0
+	LV_Delete()
+	path = %_dir%\*.*
+	FileList =  ; Initialize to be blank.
+	Loop, %path%
+	{
+		ifInString A_LoopFileExt, ~
+			Continue
+		if A_LoopFileExt in %g_FiltExt%
+			Continue
+	    FileList = %FileList%%A_LoopFileName%`n
+	}
+
+	Sort, FileList, R  ; The R option sorts in reverse order. See Sort for other options.
+	Loop, parse, FileList, `n
+	{
+	    if A_LoopField =  ; Ignore the blank item at the end of the list.
+	        continue
+	    var_temp = %_dir%\%A_LoopField%
+	    var_row := LV_Add( "",  A_LoopField, g_FolderSection, var_temp )
+	    items++
+	}
+	if items > 0
+	{
+		∑自动调整ListView的高度( items )
+		GuiControl, Show, _KeyListView
+	}
+	else
+	{
+		GuiControl, hide, _KeyListView
+	}
+}
+
+
+EnableBox( bEnable )
+{
+	Global
+	if bEnable
+	{
+		g_bAutoExit := false
+		WinSet AlwaysOnTop, off, ahk_id %hGui%
+	}
+	else
+	{
+		g_bAutoExit := true
+		WinSet AlwaysOnTop, On, ahk_id %hGui%
+	}
+}
+
+∑查找并显示最近命令( cmdType, cmdName )
+{
+	Local var_sec, var_temp, ArrayName, ArrayKey,ArrayMemo, num, var_row, var_key, var_index, var_memo, var_FontColor
+	if cmdType =
+		return false
+
+	var_sec = $%cmdType%$
+	ArrayName = %var_sec%_ValueArray
+	ArrayKey = %var_sec%_KeyArray
+	ArrayMemo = %var_sec%_MemoArray
+	num := %ArrayName%0
+	if num <= 0
+	{
+		GuiControl, Hide, _KeyListView
+		return false
+	}
+	LV_Delete()
+	if cmdName =
+	{
+		if num > 0
+		{
+			loop %num%
+			{
+				var_temp := %ArrayName%%a_index%
+				var_key := %ArrayKey%%a_index%
+				if var_key =
+				{
+					var_key = %a_index%  %var_temp%
+				}
+				var_memo := %ArrayMemo%%a_index%
+
+				;; 如果 var_key 绝对路径，则只取文件名
+				ifInString var_key, `:\
+				{
+					SplitPath var_key, var_key
+				}
+				var_row := LV_Add( "", var_key , var_sec,  var_temp, var_memo )
+				LVA_SetCell( "_KeyListView", var_row, KEYFIELD, "", var_FontColor )
+			}
+		;	GuiControl, Show, _KeyListView
+			∑自动调整ListView的高度( num )
+			GuiControl, Show, _KeyListView
+		}
+		else
+		{
+			GuiControl, Hide, _KeyListView
+		}
+	}
+	else if ( ∑数组搜索排序( ArrayName, "TempOutArray", "TempIndexArray", cmdName ) )
+	{
+		if TempOutArray0 > 0
+		{
+			loop %TempOutArray0%
+			{
+				var_temp := TempOutArray%a_index%
+				var_index := TempIndexArray%a_index%
+				var_key := %ArrayKey%%var_index%
+				if var_key =
+				{
+					var_key = %a_index%  %var_temp%
+				}
+				;; 如果 var_key 绝对路径，则只取文件名
+				ifInString var_key, `:\
+				{
+					SplitPath var_key, var_key
+				}
+				var_memo := %ArrayMemo%%var_index%
+				var_row := LV_Add( "",  var_key, var_sec,  var_temp, var_memo )
+				LVA_SetCell( "_KeyListView", var_row, KEYFIELD, "", var_FontColor )
+			}
+			∑自动调整ListView的高度( TempOutArray0 )
+			GuiControl, Show, _KeyListView
+		}
+		else
+		{
+			GuiControl, Hide, _KeyListView
+		}
+	}
+	else
+	{
+		GuiControl, Hide, _KeyListView
+	}
+	GuiControl, +Redraw, _KeyListView
+}
+
+
+;; 只搜索Variable或var分节下定义的命令
+∑查找用户输入并显示( var_search, _bVariableOnly = false )
+{
+	Local var_sec, var_temp, var_memo, var_row
+	Local iconIndex
+	Local keyIndex, keyName, keyValue, keyPath, loops, idx, var_instr
+
+	;; 如果搜索关键字与上一次搜索相同，则无须更新，退出函数
+	if ( g_PreSearch == var_search && _bVariableOnly == false )
+		return
+
+	g_PreSearch := var_search
+
+	;; 空的搜索关键字不在本函数内处理，退出
+	if var_search =
+	{
+		GuiControl, Hide, _KeyListView
+		return
+	}
+
+
+	items := 0
+	LV_Delete()
+
+	ArraySearchOut = ArraySearchOut
+	ArraySearchIndex = ArraySearchIndex
+
+	ClearArrayWithIndex( ArraySearchOut )
+	ClearArray( ArraySearchIndex )
+
+	;; 从所有Section
+	LOOP parse, g_Sections, `,
+	{
+		if a_LOOPField =
+			CONTINUE
+
+		if a_LoopField not in %g_SearchSections%
+			CONTINUE
+
+		var_sec 	:= a_LOOPField
+		var_temp 	:= g_seckeys_%a_LOOPField%
+		ArraySearch = %var_sec%_keyArray
+
+		;; 如果输入的内容是varible类型的命令（后面输入了空格），则只搜索Variable或var分节下的命令
+		if ( _bVariableOnly && var_sec <> "variable" && var_sec <> "var" )
+		{
+			Continue
+		}
+
+		IfNotInString var_temp, %var_search%
+		{
+			CONTINUE
+		}
+		loops := %ArraySearch%0
+		if loops <= 0
+			CONTINUE
+
+		loop %Loops%
+		{
+			idx := a_index
+			var_temp := %ArraySearch%%idx%
+			if var_temp =
+				continue
+			var_instr := instr( var_temp, var_search )
+			if var_instr = 0
+			{
+				continue 				;; 不符合搜索条件的记录过滤掉
+			}
+			var_memo = %idx%|%var_sec%
+			InsertSortArrayWidthIndex( ArraySearchOut, var_temp, var_instr, ArraySearchIndex, var_memo ) ;; array.aik
+		}
+	}
+
+	Loop %ArraySearchOut0%
+	{
+       	var_memo 	:= %ArraySearchIndex%%a_Index% 	;; 查找到的内容在ArraySearch中的序号
+       	StringSplit, OutputArray, var_memo, |
+		keyIndex 	:= OutputArray1
+		var_sec  	:= OutputArray2
+		if keyIndex =
+			Continue
+		if var_sec =
+            Continue
+
+		keyName 	:= %ArraySearchOut%%a_Index%
+		keyValue 	:= %var_sec%_valueArray%keyIndex%
+
+		var_FontColor =
+		if var_sec = file
+			var_FontColor = 0088DD
+		else if var_sec = variable
+			var_FontColor = red
+		else if var_sec = var
+			var_FontColor = Blue
+		else if var_sec = send
+			var_FontColor = 9900FF
+		else if var_sec = cmd
+			var_FontColor = Fuchsia
+
+		if var_sec = file
+			keyPath := %var_sec%_pathArray%keyIndex%
+		else
+			keyPath = %var_sec%_valueArray%keyIndex%
+
+		if keyName =
+			CONTINUE
+		if keyValue =
+			CONTINUE
+
+		IfInString keyName, %var_search%
+		{
+			items++
+			;; 向Listview 添加一行数据
+			var_row := LV_Add( "",  keyName, var_sec,  keyValue, keyPath )
+
+			;; 为新添加的行，设置文本颜色
+			LVA_SetCell( "_KeyListView", var_row, KEYFIELD, "", var_FontColor )
+
+			;; 为新添加的行，设置图标
+			if var_sec = var
+			{
+				LVA_SetSubItemImage( "_KeyListView", var_row, 0, g_iconLT )
+			}
+			else if var_sec = file
+			{
+				;; 从file_iconArray数组中获取对应的图标编号
+				iconIndex := file_iconArray%keyIndex%
+
+				;; 如果file_iconArray数组中尚未保存了图标的编号，则尝试寻找
+				if iconIndex < 1
+				{
+                    ifInString keyValue, \\ ;; 远程目录使用远程图标
+					{
+						iconIndex := g_iconRemote
+					}
+					else
+					{
+						iconIndex := g_iconDef
+
+						;; 在 file_iconArray 数组中没有找到图标，则尝试在g_icon_%ext%_中查找
+						var_ext := file_ExtArray%keyIndex%
+						if var_ext contains ~, ,*,?,`n
+							iconIndex := g_iconUnkown
+                        else IfEqual var_ext, $Dir$ 	 ;; 目录使用文件夹图标
+							iconIndex := g_iconFolder
+                        else IfEqual var_ext, $NoExt$   ;; 没有扩展名，则使用空白的默认图标
+							iconIndex := g_iconDef
+						else if var_ext in bmp,jpg,gif,png,tif
+                            iconIndex := g_iconPic       ;; 图片使用图像图标
+						else if var_ext = $Web$
+                            iconIndex := g_iconWeb       ;; 网站使用IE图标
+						else if var_ext <>
+						{
+                            if g_icon_%var_ext%_ > 0    ;; 如果有扩展名，则直接使用该扩展名对应的图标
+								iconIndex := g_icon_%var_ext%_
+							else
+								iconIndex := AddFileArrayIcon( hLVIL, "file_valueArray", "file_extArray", "file_iconArray", keyIndex)
+						}
+						else
+						{
+							iconIndex := AddFileArrayIcon( hLVIL, "file_valueArray", "file_extArray", "file_iconArray", keyIndex)
+							var_ext := file_extArray%keyIndex%
+							if ( iconIndex > 0  && var_ext != "" )
+							{
+								var_value := keyValue . "|" . file_extArray%keyIndex%
+								write_ini( g_inifile, "file", keyName, var_value )
+							}
+						}
+					}
+				}
+				LVA_SetSubItemImage( "_KeyListView", var_row, 0, iconIndex )
+			}
+		}
+	}
+	;; 排序完毕，清理排序使用的内存
+	ClearArrayWithIndex( ArraySearchOut )
+	ClearArray( ArraySearchIndex )
+
+	;; 自动调整ListView的高度，以适应行数
+	if ( items > 0 )
+	{
+		if g_bAutoFit
+		{
+			if items > 0
+                settimer 【延时自动填充KeyName】, 150     ;; 延时填充，防止干扰用户输入
+			else
+				settimer 【延时自动填充KeyName】, off
+		}
+		else
+		{
+			g_bAutoFit := true
+		}
+		∑自动调整ListView的高度( items )
+		GuiControl, Show, _KeyListView
+	}
+	else
+	{
+		GuiControl, Hide, _KeyListView
+	}
+	GuiControl, +Redraw, _KeyListView
+}
+
+
+
+∑初始化全局变量()
+{
+	Local var_temp, var_sec, ArrayName, RecentList
+	;; 获得用户自定义类型
+	g_CustomCmdType := read_Ini( g_inifile, "设置", "CustomCmdType", "" )
+	StringReplace g_CustomCmdType, g_CustomCmdType, |, `,
+	if g_CustomCmdType =
+	{
+		Write_Ini( g_inifile, "设置", "CustomCmdType", "ue,eme", false )
+		g_CustomCmdType = ue,eme
+	}
+
+	;; 从配置文件中读取最近的列表
+	RecentList = %g_LoadCmdType%,%g_CustomCmdType%
+	loop parse, RecentList, `,
+	{
+		if a_loopfield =
+			continue
+
+		var_sec 	:= a_loopfield
+		if var_sec <>
+		{
+			ArrayName = $%var_sec%$_ValueArray
+			ReadRecentArray( ArrayName, var_sec )
+		}
+	}
+
+	;; 获得搜索显示的分类
+	g_SearchSections := read_Ini( g_inifile, "设置", "SearchSec", "" )
+	if g_SearchSections =
+	{
+		g_SearchSections = File,Send,variable,var
+		write_Ini( g_inifile, "设置", "SearchSec", g_SearchSections, false )
+	}
+
+	;; 手工初始化一些数组
+	∑InitSecArrays()
+
+	;; 在Image目录下随机寻找背景图片
+	var_temp = %a_scriptdir%\Images\*.*
+	loop %var_temp%
+	{
+	    if a_LoopFileExt in jpg,jpeg,bmp,gif,png
+	    {
+	    	AppendArray("BackGroundArray", A_LoopFileName ) ;; 将所有的图片文件名，添加到BackGroundArray数组中
+	    }
+	}
+	if BackGroundArray0 > 0
+	{
+        Random, var_temp , 1, %BackGroundArray0%    	;; 得到随机序号 var_temp
+		var_temp := BackGroundArray%var_temp%			;; 根据随机序号，得到背景图片的文件名
+		g_BackGround = %a_scriptdir%\Images\%var_temp%	;; 组合目录与文件名，得到完整的背景图片路径 g_BackGround
+	}
+}
+
+
+
+LoadIniFile()
+{
+	Local name, dir, ext, name_no_ext, cur_sec, key, value, var_temp
+	Local var_inibak, var_sec, var_LOOP, var_index, var_Contents, var_char, var_line, var_key, varPos
+
+	;; 清空ini文件的缓存数组
+	LOOP parse, g_Sections, `,
+	{
+		if a_LOOPField =
+			CONTINUE
+		var_sec := a_LOOPField
+		var_LOOP := %var_sec%_keyArray0
+		LOOP %var_LOOP%
+		{
+			%var_sec%_keyArray%a_Index% =
+			%var_sec%_valueArray%a_Index% =
+		}
+		%var_sec%_keyArray0 =
+		%var_sec%_valueArray0 =
+		if var_sec = file
+		{
+			LOOP %var_LOOP%
+			{
+				file_ExtArray%var_index% =
+				file_PathArray%var_index% =
+				file_IconArray%var_index% =
+			}
+			file_ExtArray0 =
+			file_PathArray0 =
+		}
+		g_seckeys_%a_LOOPField% =
+	}
+
+	;; 加载配置文件内容
+	FileRead, var_Contents, %g_inifile%
+	if ErrorLevel
+	{
+		msgbox 读取ini文件失败！`n`n%g_inifile%
+		var_Contents =
+		ExitApp
+	}
+
+	;; 备份文件内容
+	if  var_Contents <>
+	{
+		SplitPath, g_INIFILE, name, dir, ext, name_no_ext
+		var_inibak =
+		if dir <>
+			var_inibak = %dir%\
+
+		var_inibak = %var_inibak%%name_no_ext%.~%ext%
+		IfExist %var_inibak%
+			FileDelete %var_inibak%
+		FileCopy, %g_INIFILE%, %var_inibak%, 1
+	}
+
+	;; 按行解析文件数据，并且按Section保存为数组
+	StringReplace var_Contents, var_Contents, `r, , All
+	LOOP, parse, var_Contents, `n
+	{
+		if a_LOOPField =
+			CONTINUE
+
+		var_line := a_LOOPField
+		var_pos := get_first_char(var_line, var_char)
+ 		If ( var_char == "[" )
+		{
+			IfInString var_line, ]
+			{
+				cur_sec := StrMid2Sub( var_line, "[", "]" )
+				StrTrim(cur_sec)
+
+				if cur_sec =
+					CONTINUE
+
+				if cur_sec in %g_NotLoadSec%
+				{
+					Continue
+				}
+				;; 如果第一次找到这个cur_sec, 则将g_seckeys_%cur_sec%清空
+				if( ∑Find字符串队列(g_Sections, cur_sec, ",") <= 0 )
+				{
+					g_seckeys_%cur_sec% =
+				}
+				∑连接字符串(g_Sections, cur_sec, ",")
+				%cur_sec%_keyArray0 := 0
+				%cur_sec%_valueArray0 = %cur_sec%
+			}
+			CONTINUE
+		}
+		if cur_sec in %g_NotLoadSec%
+		{
+            Continue                    ;; 过滤掉一些Setion，如【设置】，【Setting】
+		}
+		else if cur_sec <>
+		{
+			StringGetPos, varPos, var_line, =
+			if not errorlevel
+			{
+				stringleft var_key, var_line, varPos
+				StrTrim(var_key)
+				if var_key =
+					CONTINUE
+
+				IfInString g_seckeys_%cur_sec%, %var_key%
+				{
+					if ( ∑Find字符串队列(g_seckeys_%cur_sec%, var_key, ",") > 0 )
+					{
+						CONTINUE	; 在cur_sec中已经包含了var_key, 跳过当前行
+					}
+				}
+				∑连接字符串( g_seckeys_%cur_sec%, var_key, ",")
+
+				;; add 2010.12.31 将ini数据保存到数组
+				%cur_sec%_keyArray0 ++
+				var_index := %cur_sec%_keyArray0
+				%cur_sec%_keyArray%var_index% := var_key
+				stringmid var_value, var_line, varPos + 2
+				if cur_sec = file
+				{
+					ClearArray( "TempArray" )
+					StringSplit, TempArray, var_value, |
+					If TempArray2 = 0
+						TempArray2 =
+					file_valueArray%var_index% := TempArray1
+					file_ExtArray%var_index% := TempArray2
+					file_PathArray%var_index% := TempArray3
+				}
+				else
+				{
+					%cur_sec%_valueArray%var_index% := var_value
+				}
+			}
+		}
+		var_temp := g_seckeys_%cur_sec%
+	}
+    var_Contents =                      ;; 清空内存
+    Loop %icon_KeyArray0%
+    {
+    	Key := icon_KeyArray%a_index%
+    	Value := icon_ValueArray%a_index%
+
+    	if Key <>
+    	{
+    		if Value <>
+    		{
+    			if ( NewIconList( hLVIL, Key, Value ) <= 0 )
+    			{
+    				;; 如果扩展名关联的程序不存在，则删除该扩展名
+    				ifNotExist %value%
+    					del_ini( g_inifile, "icon", key, false )
+    			}
+    		}
+    	}
+    }
+}
+
+;; 我的运行窗口中，手工初始化一些数组
+∑InitSecArrays()
+{
+	global
+	;; 设置ahk类型的ListView列表
+	AddSecArrays( "$ahk$", "help", "ahk help", "autohotkey.chm", 0 )
+	AddSecArrays( "$ahk$", "root", "ahk \", "myhotkey的根目录", 0 )
+	AddSecArrays( "$ahk$", "root", "ahk root", "myhotkey的根目录", 0 )
+	AddSecArrays( "$ahk$", "WorkingDir", "ahk work", a_workingdir, 0 )
+	AddSecArrays( "$ahk$", "工作目录", "ahk this", a_workingdir, 0 )
+	AddSecArrays( "$ahk$", "spy", "ahk spy", "运行 AutoIt3 Window Spy", 0 )
+	AddSecArrays( "$ahk$", "UpDate", "ahk update", "Check for Updates", 0 )
+	AddSecArrays( "$ahk$", "2Exe", "ahk 2Exe", "Convert .ahk to .exe", 0 )
+	AddSecArrays( "$ahk$", "launchy.ini", 	"ahk launchy.ini", "", 0 )
+	AddSecArrays( "$ahk$", "temp.ini", 		"ahk temp.ini", "", 0 )
+	AddSecArrays( "$ahk$", "systime", "ahk systime", "设置系统时间的工具", 0 )
+	AddSecArrays( "$ahk$", "IP地址", "ahk IP", A_IPAddress1, 0 )
+	AddSecArrays( "$ahk$", "RegExTitle.ahk", "ahk RegExTitle.ahk", "类似MyHotKey.ahk的热键文件，但标题的匹配模式采用正则表达式", 0 )
+	AddSecArrays( "$ahk$", "日志查看器", "ahk logview", ".\bin\文本文件处理\日志查看器.ahk", 0 )
+	AddSecArrays( "$ahk$", "正则表达式测试", "ahk RegTest", ".\bin\SysTools\正则表达式测试.ahk", 0 )
+	AddSecArrays( "$ahk$", "多屏幕", "ahk DeskMore", ".\bin\多屏幕切换\DesktopSwitch.ahk", 0 )
+	AddSecArrays( "$ahk$", "查看窗口信息的小工具", "ahk wInfo", ".\bin\SysTools\查看窗口信息.ahk", 0 )
+
+	var_temp = %a_year%/%a_mm%/%a_dd% %a_hour%:%a_min%:%a_sec%
+	AddSecArrays( "$ahk$", a_yyyy . "/" . a_mm . "/" . a_dd, "ahk Now", var_temp, 0 )
+
+	AddSecArrays( "$ahk$", ".\bin\", 		"ahk bin", "", 0 )
+	AddSecArrays( "$ahk$", ".\users\", 		"ahk users", "", 0 )
+	AddSecArrays( "$ahk$", ".\learn\", 		"ahk learn", "", 0 )
+	AddSecArrays( "$ahk$", ".\SubUI\", 		"ahk SubUI", "", 0 )
+	AddSecArrays( "$ahk$", ".\bin\run\", 	"ahk run", "", 0 )
+	AddSecArrays( "$ahk$", ".\bin\try\", 	"ahk try", "", 0 )
+	AddSecArrays( "$ahk$", ".\bin\dict\", 	"ahk dict", "", 0 )
+	AddSecArrays( "$ahk$", ".\bin\doxgen\", "ahk doxgen", "", 0 )
+	AddSecArrays( "$ahk$", ".\bin\joy\", 	"ahk joy", "", 0 )
+	AddSecArrays( "$ahk$", ".\bin\explore\", "ahk explore", "", 0 )
+	AddSecArrays( "$ahk$", ".\bin\readmode\", "ahk readmode", "", 0 )
+
+	if not a_IsCompiled
+	{
+	AddSecArrays( "$ahk$", ".\inc\", 		"ahk inc", "", 0 )
+	AddSecArrays( "$ahk$", ".\lib\", 		"ahk lib", "", 0 )
+	AddSecArrays( "$ahk$", ".\AWin", "ahk awin", "各种窗口的热键文件", 0 )
+	AddSecArrays( "$ahk$", "myhotkey.ahk", 	"ahk myhotkey.ahk", "", 0 )
+	}
+
+	;; 帮助
+	AddSecArrays( "$help$", "?", "简要帮助", "命令以?或help 开头，将显示本窗口，提示简要帮助！", 0 )
+	AddSecArrays( "$help$", "#", "运行命令", "查看及执行Windows运行窗口命令", 0 )
+	AddSecArrays( "$help$", "`;", "Run", "命令以分号开头，可直接Run后面的命令，相当于Windows运行窗口！", 0 )
+	AddSecArrays( "$help$", "=", "计算器", "命令以等号开头，变身计算器，可输入表达式进行计算！", 0 )
+	AddSecArrays( "$help$", "<", "脚本运行", "命令以<开头，则将后面的命令写入Ahk文件，然后运行之！", 0 )
+	AddSecArrays( "$help$", "ahk", "Myhotkey有关的命令", "打开AutoHotkey相关的文件，打开MyHotkey相关目录或脚本文件", 0 )
+	AddSecArrays( "$help$", "add", "添加新命令", "通过弹出添加配置的窗口，向配置文件添加新命令。", 0 )
+	AddSecArrays( "$help$", "vim", "用 vim 打开", "用VIM文件编辑器打开后面指定的文本文件。", 0 )
+	AddSecArrays( "$help$", "F2", "编辑配置文件", "F2用默认文本编辑器，打开编辑当前使用的配置文件！", 0 )
+	AddSecArrays( "$help$", "[ 或 ]", "在列表中选择上/下一条命令", "", 0 )
+	AddSecArrays( "$help$", "中键拖动窗口", "可以使用鼠标中键拖动窗口。", "", 0 )
+	AddSecArrays( "$help$", "在线帮助", "在线帮助", "", 0 )
+	AddSecArrays( "$help$", "作者", "陈建平", "teshorse@hotmail.com|http://blog.csdn.net/teshorse", 0 )
+	/*
+	g_RecentCmd 	:= ReadTempIni( "run", "recent", "" )
+	g_RecentCalc 	:= ReadTempIni( "run", "calc", "" )
+	g_RecentWeb		:= ReadTempIni( "run", "web", "" )
+	g_RecentScript	:= ReadTempIni( "run", "Script", "" )
+	g_RecentVar		:= ReadTempIni( "run", "variable", "" )
+	g_RecentRunDirect := ReadTempIni( "run", "rundirect", "" )
+	*/
+	;; # start windows 运行窗口的命令
+	AddSecArrays( "$start$", "我的电脑", "MyPc", ":::{20d04fe0-3aea-1069-a2d8-08002b30309d}", 0 )
+	AddSecArrays( "$start$", "回收站", "HSZ", ":::{645ff040-5081-101b-9f08-00aa002f954e}", 0 )
+
+	AddSecArrays( "$start$", "检查windows版本", "winver", "", 0 )
+	AddSecArrays( "$start$", "打开windows管理体系结构(wmi)", "wmimgmt.msc", "", 0 )
+	AddSecArrays( "$start$", "windows更新程序", "wupdmgr", "", 0 )
+	;AddSecArrays( "$start$", "windows脚本宿主设置", "w脚本", "", 0 )
+	AddSecArrays( "$start$", "写字板", "write", "", 0 )
+	AddSecArrays( "$start$", "系统信息", "winmsd", "", 0 )
+	AddSecArrays( "$start$", "扫描仪和照相机向导", "wiaacmgr", "", 0 )
+	AddSecArrays( "$start$", "xp自带局域网聊天", "winchat", "", 0 )
+	AddSecArrays( "$start$", "显示内存使用情况", "mem.exe", "", 0 )
+	AddSecArrays( "$start$", "启动", "msconfig", "", 0 )
+	AddSecArrays( "$start$", "系统配置实用程序", "msconfig.exe", "", 0 )
+	AddSecArrays( "$start$", "简易widnows media player", "mplayer2", "", 0 )
+	AddSecArrays( "$start$", "画图板", "mspaint", "", 0 )
+	AddSecArrays( "$start$", "远程桌面连接", "mstsc", "", 0 )
+	AddSecArrays( "$start$", "媒体播放机", "mplayer2", "", 0 )
+	AddSecArrays( "$start$", "放大镜实用程序", "magnify", "", 0 )
+	AddSecArrays( "$start$", "打开控制台", "mmc", "", 0 )
+	AddSecArrays( "$start$", "同步命令", "mobsync", "", 0 )
+	AddSecArrays( "$start$", "检查directx信息", "dxdiag", "", 0 )
+	AddSecArrays( "$start$", "系统医生", "drwtsn32", "", 0 )
+	AddSecArrays( "$start$", "设备管理器", "devmgmt.msc", "", 0 )
+	AddSecArrays( "$start$", "磁盘碎片整理程序", "dfrg.msc", "", 0 )
+	AddSecArrays( "$start$", "磁盘管理实用程序", "diskmgmt.msc", "", 0 )
+	AddSecArrays( "$start$", "打开系统组件服务", "dcomcnfg", "", 0 )
+	AddSecArrays( "$start$", "打开dde共享设置", "ddeshare", "", 0 )
+	AddSecArrays( "$start$", "dvd播放器", "dvdplay", "", 0 )
+	AddSecArrays( "$start$", "ip地址侦测器", "nslookup", "", 0 )
+	AddSecArrays( "$start$", "停止信使服务", "net stop messenger", "", 0 )
+	AddSecArrays( "$start$", "开始信使服务", "net start messenger", "", 0 )
+	AddSecArrays( "$start$", "打开记事本", "notepad", "", 0 )
+	AddSecArrays( "$start$", "网络管理的工具向导", "nslookup", "", 0 )
+	AddSecArrays( "$start$", "系统备份和还原", "ntbackup", "", 0 )
+	AddSecArrays( "$start$", "屏幕“讲述人”", "narrator", "", 0 )
+	AddSecArrays( "$start$", "移动存储管理器", "ntmsmgr.msc", "", 0 )
+	AddSecArrays( "$start$", "移动存储管理员操作请求", "ntmsoprq.msc", "", 0 )
+	AddSecArrays( "$start$", "an (tc)命令检查接口", "netstat", "", 0 )
+	AddSecArrays( "$start$", "创建一个公文包", "syncapp", "", 0 )
+	AddSecArrays( "$start$", "系统配置编辑器", "sysedit", "", 0 )
+	AddSecArrays( "$start$", "文件签名验证程序", "sigverif", "", 0 )
+	AddSecArrays( "$start$", "录音机", "sndrec32", "", 0 )
+	AddSecArrays( "$start$", "创建共享文件夹", "shrpubw", "", 0 )
+	AddSecArrays( "$start$", "本地安全策略", "secpol.msc", "", 0 )
+	AddSecArrays( "$start$", "系统加密，一旦加密就不能解开，保护windows xp系统的双重密码", "syskey", "", 0 )
+	AddSecArrays( "$start$", "本地服务设置", "services.msc", "", 0 )
+	AddSecArrays( "$start$", "音量控制程序", "sndvol32", "", 0 )
+	AddSecArrays( "$start$", "系统文件检查器", "sfc.exe", "", 0 )
+	AddSecArrays( "$start$", "windows文件保护(扫描错误并复原)", "sfc /scannow", "", 0 )
+	AddSecArrays( "$start$", "60秒倒计时关机命令", "tsshutdn", "", 0 )
+	AddSecArrays( "$start$", "xp简介（安装完成后出现的漫游xp程序）", "tourstart", "", 0 )
+	AddSecArrays( "$start$", "任务管理器 （2000／xp／2003）", "taskmgr", "", 0 )
+	AddSecArrays( "$start$", "事件查看器", "eventvwr", "", 0 )
+	AddSecArrays( "$start$", "造字程序", "eudcedit", "", 0 )
+	AddSecArrays( "$start$", "打开资源管理器", "explorer", "", 0 )
+	AddSecArrays( "$start$", "对象包装程序", "packager", "", 0 )
+	AddSecArrays( "$start$", "计算机性能监测程序", "perfmon.msc", "", 0 )
+	AddSecArrays( "$start$", "程序管理器", "progman", "", 0 )
+	AddSecArrays( "$start$", "注册表", "regedit.exe", "", 0 )
+	AddSecArrays( "$start$", "组策略结果集", "rsop.msc", "", 0 )
+	AddSecArrays( "$start$", "注册表编辑器", "regedt32", "", 0 )
+	AddSecArrays( "$start$", "p 15秒关机", "rononce", "", 0 )
+	AddSecArrays( "$start$", "停止dll文件运行", "regsvr32 /u *.dll", "", 0 )
+	AddSecArrays( "$start$", "取消zip支持", "regsvr32 /u zipfldr.dll", "", 0 )
+	AddSecArrays( "$start$", "cmd命令提示符", "cmd.exe", "", 0 )
+	AddSecArrays( "$start$", "chkdsk磁盘检查", "chkdsk.exe", "", 0 )
+	AddSecArrays( "$start$", "证书管理实用程序", "certmgr.msc", "", 0 )
+	AddSecArrays( "$start$", "启动计算器", "calc", "", 0 )
+	AddSecArrays( "$start$", "启动字符映射表", "charmap", "", 0 )
+	AddSecArrays( "$start$", "sql server 客户端网络实用程序", "cliconfg", "", 0 )
+	AddSecArrays( "$start$", "剪贴板查看器", "clipbrd", "", 0 )
+	AddSecArrays( "$start$", "启动netmeeting", "conf", "", 0 )
+	AddSecArrays( "$start$", "计算机管理", "compmgmt.msc", "", 0 )
+	AddSecArrays( "$start$", "垃圾整理", "cleanmgr", "", 0 )
+	AddSecArrays( "$start$", "索引服务程序", "ciadv.msc", "", 0 )
+	AddSecArrays( "$start$", "打开屏幕键盘", "osk", "", 0 )
+	AddSecArrays( "$start$", "odbc数据源管理器", "odbcad32", "", 0 )
+	AddSecArrays( "$start$", "检查xp是否激活", "oobe/msoobe /a", "", 0 )
+	AddSecArrays( "$start$", "本机用户和组", "lusrmgr.msc", "", 0 )
+	AddSecArrays( "$start$", "注销命令", "logoff", "", 0 )
+	AddSecArrays( "$start$", "木马捆绑工具，系统自带", "iexpress", "", 0 )
+	AddSecArrays( "$start$", "共享文件夹管理器", "fsmgmt.msc", "", 0 )
+	AddSecArrays( "$start$", "辅助工具管理器", "utilman", "", 0 )
+	AddSecArrays( "$start$", "组策略", "gpedit.msc", "", 0 )
+
+
+	g_helplist = ?在线帮助|?-----------------------------------
+	g_helplist = %g_helplist%|?【?】开头显示简要帮助
+	g_helplist = %g_helplist%|?【`;】开头变身“运行”窗口，直接Run系统命令
+	g_helplist = %g_helplist%|?【=】开头变身超级计算器
+	g_helplist = %g_helplist%|?【<】开头直接作为脚本运行
+	g_helplist = %g_helplist%|? 命令::变量 表示包含变量的命令
+	g_helplist = %g_helplist%|? 等号结束将内容复制到剪贴板【=】
+	g_helplist = %g_helplist%|? F4 用默认文本编辑器打开配置文件
+	g_helplist = %g_helplist%|?-----------------------------------
+	g_helplist = %g_helplist%|?作者：teshorse@hotmail.com|
+
+}
+

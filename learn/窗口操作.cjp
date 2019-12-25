@@ -1,0 +1,36 @@
+
+[1] 如何使用PID, 使得可以关闭之前打开的窗口, 比如我要打开c:\test.txt 并选择是否关闭之, 则可以如下操作
+	Run, NotePad c:\test.txt, , , ThisPID
+	WinWait, ahk_pid %ThisPID%
+	;// 这里的ahk_pid表明跟在后面的变量是进程ID
+	WinGet, ThisID, ID, ahk_pid %ThisPID%
+	;// ThisID将保存获得的窗口句柄 
+	msgbox 4, 关闭窗口, 关闭刚打开的窗口? `n ahk_pid=[%ThisPID%] ThisID= [%ThisID%]
+	ifmsgbox yes
+	{
+	winclose ahk_id %ThisID%
+	}
+
+[2] 鼠标位置, 光标位置
+	得到当前鼠标位置: MouseGetPos, [OutputVarX, OutputVarY, OutputVarWin, OutputVarControl, 1|2|3] 
+	将鼠标移动到指定位置: MouseMove, X, Y [, Speed, R]
+	当前光标位置: A_CaretX, A_CaretY
+
+	注意: MouseGetPos 和 Click 之类用到的位置, 都是相对活动窗口的位置
+	要得到屏幕的位置以及点击整个屏幕的某个位置, 
+	则需要 CoordMode, Mouse, Screen
+
+[3] 得到当前窗口的PID: 	WinGet, active_id, ID, A
+
+[4] 关于组Group, 
+	(1) 可以用GroupAdd, GroupName [, WinTitle, WinText, Label, ExcludeTitle, ExcludeText]
+	将一些窗口加到GroupName, 也可添加 ahk_class , 这样就将同一class的所有窗口添加到了GroupName
+	(2) 接下来可以通过GroupActivate, GroupName [, R]
+	来切换GroupName里的各个窗口, 就像按Alt+Tab效果一样, 只是窗口限制在GroupName里
+	(3) 也可用GroupDeactivate, GroupName [, R] 切换出GroupName, 即激活非GroupName里的窗口
+
+	用途实例:
+	将CS类添加到g_CSGroup中
+		GroupAdd, g_CSGroup, ahk_class Valve001
+	在CS窗口之间切换 GroupActivate, g_CSGroup
+	切换到CS窗口之外 GroupDeactivate, g_CSGroup

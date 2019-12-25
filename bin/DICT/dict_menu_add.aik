@@ -1,0 +1,87 @@
+
+;;---创建菜单栏--------------------------------------------------------------
+Menu, FileMenu, Add, &Open   打开字典         CTRL+O, MenuFileOpen
+Menu, FileMenu, Add, &Reload 重新加载字典 , 			【重新加载字典】
+Menu, FileMenu, Add, &Edit   用文本编辑器打开 CTRL+E, 	【用文本编辑器打开】
+Menu, FileMenu, Add,
+Menu, FileMenu, Add, E&xit     退出程序       ESC, GuiClose
+
+Menu, CopyMenu, Add,复制搜索框(&1)    , 【复制搜索框】
+Menu, CopyMenu, Add,复制分类框(&2)    , 【复制分类框】
+Menu, CopyMenu, Add,复制KeyValue(&3)  , 【复制KeyValue】
+Menu, CopyMenu, Add,
+Menu, CopyMenu, Add, 复制并粘贴(&P)    Ctrl+S, 【复制按钮】
+Menu, CopyMenu, Add, 插入并关闭(&I)    Ctrl+I, 【插入按钮】
+Menu, CopyMenu, Add,
+Menu, CopyMenu, Add, 批量增加          Alt+C, 【批量增加按钮】
+
+Menu, ClearMenu, Add, 清空搜索框(&1)      ,【清空搜索框】
+Menu, ClearMenu, Add, 清空分类框(&2)      ,【清空分类框】
+Menu, ClearMenu, Add, 清空KeyValue(&3)    ,【清空KeyValue】
+Menu, ClearMenu, Add,
+Menu, ClearMenu, Add, 清空所有编辑框(&A)    F4, 【清空所有编辑框】
+
+
+Menu, HelpMenu, Add, 操作说明(&1), 【操作说明】
+Menu, HelpMenu, Add, 快捷键说明(&2), 【快捷键说明】
+Menu, HelpMenu, Add, 注意事项(&3), 【注意事项】
+Menu, HelpMenu, Add, 加亮说明(&4), 【配色说明】
+Menu, HelpMenu, Add,
+Menu, HelpMenu, Add, 更新说明(&9), 【帮助更新说明】
+Menu, HelpMenu, Add, 关于 (&0),  【关于】
+
+Menu, FavoriteMenu, Add, 添加收藏(&A),【添加收藏】
+Menu, FavoriteMenu, Add, 管理收藏(&M), 【管理收藏】
+Menu, FavoriteMenu, Add, 刷新列表(&R), 【刷新收藏列表】
+Menu, FavoriteMenu, Add,
+if g_FAVORITE <>
+{
+	LOOP parse, g_FAVORITE, |
+	{
+		if a_LOOPField =
+			CONTINUE
+		if ( a_Index < 10 )
+			var_temp = `&%a_Index%
+		else
+			var_temp = %a_Index%
+		var_temp = %var_temp%) %a_LOOPField%
+		Menu, FavoriteMenu, Add, %var_temp%, 【打开收藏】
+	}
+}
+
+Menu, MyMenuBar, Add, &File, :FileMenu
+Menu, MyMenuBar, Add, &Copy, :CopyMenu
+Menu, MyMenuBar, Add, C&Lear, :ClearMenu
+Menu, MyMenuBar, Add, Fa&vorite, :FavoriteMenu
+Menu, MyMenuBar, Add, &Help, :HelpMenu
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; 右键点击ListView列表时, 弹出右键菜单
+Menu, MyContextMenu, Add, 查看(&V), 【右键查看】
+Menu, MyContextMenu, Add, 修改(&E), 【右键修改】
+Menu, MyContextMenu, Add, 删除(&D), 【右键删除】
+Menu, MyContextMenu, Add, 插入(&I), 【右键插入】
+Menu, MyContextMenu, Add, 添加(&A), 【右键添加】
+Menu, MyContextMenu, Add, 重命名或连接(&N), 【右键修改单词名称】
+Menu, MyContextMenu, Add,
+Menu, MyContextMenu, Add, Run(&R), 【右键运行】
+Menu, MyContextMenu, Add, 复制(&C), 【右键复制】
+Menu, MyContextMenu, Add, 复制粘贴(&P), 【右键复制并粘贴】
+
+;Menu, MyContextMenu, Default, 修改(&E)
+
+
+
+;Menu, ClipToDictMenu, Add, &4 复制到搜索框, 【粘贴到飞扬小字典指定编辑框】
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 在其他窗口按下Win+Alt+C键复制选中内容并弹出此菜单，
+;; 指定要将复制的内容粘贴到飞扬小字典中的哪个编辑框
+Menu, ClipToDictMenu, Add, &1 复制到搜索框, 【粘贴到飞扬小字典指定编辑框】
+Menu, ClipToDictMenu, Add, &2 复制到keyValue框, 【粘贴到飞扬小字典指定编辑框】
+Menu, ClipToDictMenu, Add, &3 复制作为注释, 【粘贴到飞扬小字典指定编辑框】

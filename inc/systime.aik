@@ -1,0 +1,95 @@
+;#include .\inc\tip.aik
+
+; 更换系统时间
+ChangeSystemDate(datetoset)
+{
+	char = -
+	formattime,toSet,%datetoset%,yyyy%char%MM%char%dd 
+	runwait %comspec% /c date %toSet%,,hide, 
+	; 使用示例: ChangeSystemDate(20090913) 将系统时间设置为2009年9月13日
+}
+
+SetSystemTime(YYYYMMDDHHMISS)
+; Sets the system clock to the specified date and time.
+; Caller must ensure that the incoming parameter is a valid date-time stamp
+; (local time, not UTC). Returns non-zero upon success and zero otherwise.
+{
+    ; Convert the parameter from local time to UTC for use with SetSystemTime().
+    UTC_Delta -= %A_NowUTC%, Seconds  ; Seconds is more accurate due to rounding issue.
+    UTC_Delta := Round(-UTC_Delta/60)  ; Round to nearest minute to ensure accuracy.
+    YYYYMMDDHHMISS += %UTC_Delta%, Minutes  ; Apply offset to convert to UTC.
+
+    VarSetCapacity(SystemTime, 16, 0)  ; This struct consists of 8 UShorts (i.e. 8*2=16).
+
+    StringLeft, Int, YYYYMMDDHHMISS, 4    ; YYYY (year)
+    NumPut(Int, SystemTime, 0, 2)
+    StringMid, Int, YYYYMMDDHHMISS, 5, 2  ; MM (month of year, 1-12)
+    NumPut(Int, SystemTime, 2, 2)
+    StringMid, Int, YYYYMMDDHHMISS, 7, 2  ; DD (day of month)
+    NumPut(Int, SystemTime, 6, 2)
+    StringMid, Int, YYYYMMDDHHMISS, 9, 2  ; HH (hour in 24-hour time)
+    NumPut(Int, SystemTime, 8, 2)
+    StringMid, Int, YYYYMMDDHHMISS, 11, 2 ; MI (minute)
+    NumPut(Int, SystemTime, 10, 2)
+    StringMid, Int, YYYYMMDDHHMISS, 13, 2 ; SS (second)
+    NumPut(Int, SystemTime, 12, 2)
+
+    return DllCall("SetSystemTime", UInt, &SystemTime)
+}
+
+SetSystemYear(var_year)
+{
+	if ( var_year != a_yyyy)
+	{
+		var_tip = SetSysYear(%var_year%)
+		tooltip7( var_tip )
+		var_temp = %var_year%%a_mm%%a_dd%%a_hour%%a_min%%a_sec%
+		SetSystemTime(var_temp)
+	}
+}
+
+SetSysDate( var_year, var_mon, var_day )
+{
+	var_date = %var_year%%var_mon%%var_day%
+	if var_date is not time
+	{
+		msgbox SetSystemDate( %var_year%, %var_mon%, %var_day% ) 给定的时间格式不对，设置系统日期失败！
+		return false
+	}
+	if ( var_year != a_yyyy || var_mon != a_mm || var_day != a_dd )
+	{
+		var_tip = SetSystemDate(%var_date%)
+		tooltip7( var_tip )
+		var_temp = %var_year%%var_mon%%var_day%%a_hour%%a_min%%a_sec%
+		SetSystemTime(var_temp)
+		return true
+	}
+	return false
+}
+
+SetSysTime( var_hour, var_minute, var_second )
+{
+	if var_hour not between  0 and 23
+		return false
+	if var_minute  not between 0 and 59
+		return false
+	if var_second  not between 0 and 59
+		return false
+
+	var_tip = SetSysTime( %var_hour%`, %var_minute%`, %var_second%)
+	tooltip7( var_tip )
+	var_temp = %a_yyyy%%a_mm%%a_dd%%var_hour%%var_minute%%var_second%
+	SetSystemTime(var_temp)
+	return true
+}
+
+;::ssy8::
+;	SetSystemYear(2008)
+;	return
+;::ssy9::
+;	SetSystemYear(2009)
+;	return
+;
+;::ssyy::
+;	setsystemtime(2009021720312512)
+;	return

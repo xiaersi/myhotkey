@@ -1,0 +1,194 @@
+; #include .\inc\common.aik
+#include .\AWin\game\cs_common.aik
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; CS1.5客户端
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#ifwinactive ahk_class Half-Life
+g_b_ctrl_w = 0		; 标记, 将Q键变成Ctrl+W, 这样方便魏隐隐身行走
+F1::
+	if (g_b_ctrl_w)  
+		g_b_ctrl_w = 0
+	else 
+		g_b_ctrl_w = 1
+	return
+; 使所有的CS窗口非激活
+
+!w::
+	send {ctrl down}{w down}
+	keywait w 
+	send {w up}{ctrl up}
+	return
+!esc::
+F4::
+	if not g_TrayWndGroup
+	{
+	GroupAdd, g_TrayWndGroup, ahk_class Shell_TrayWnd
+	}
+	GroupActivate, g_TrayWndGroup
+	return 
+	
+;; 连接本机
+!F1::
+	send ``
+	sleep 300
+	IniRead, var_port, temp.ini, cs15, local_port, Error
+	if var_port = "Error"
+	{
+		var_port := MyInput("输入端口号", "connect 127.0.0.1:[你要输入的值]", "27016")
+		IniWrite, %var_port%, temp.ini, cs15, local_port
+	}
+	sendinput connect 127.0.0.1:%var_port%
+	Sleep 100
+	send {enter}
+	return
+
+!F2::
+::``test::
+	sleep 100
+	var_temp := "connect 121.14.144.172:"
+	sendinput %var_temp%
+
+	var_temp := read_ini("temp.ini", "cs15", "temp_port", "27016")
+	var_port := MyInput("输入端口号", "connect 121.14.144.172:[你要输入的值]", var_temp)
+	sendinput %var_port%
+	IniWrite, %var_port%, temp.ini, cs15, temp_port
+;	send {enter}
+	return
+
+; 连接本地CS服务器
+::conthis::
+::connectthis::
+::``this::
+	sleep 100
+	var_temp := "connect 127.0.0.1:"
+	sendinput %var_temp%
+	var_temp := read_ini("temp.ini", "cs15", "local_port", "27026")
+	var_port := MyInput("输入端口号", "connect 127.0.0.1:[你要输入的值]", var_temp)
+	sleep 100
+	sendinput %var_port%
+	IniWrite, %var_port%, temp.ini, cs15, local_port
+;	send {enter}
+	return
+	
+
+F6::	
+^tab::	; 切换到CS服务器窗口
+	if not g_CSSGroup
+	{
+	GroupAdd, g_CSSGroup, Console ahk_class ConsoleWindowClass
+	}
+	GroupActivate, g_CSSGroup
+	return
+	
+
+	
+; 测试
+f9::
+	send y
+	sleep 100
+	send test{enter}
+	return
+	
+	
+; 将窗口移动到左上角
+#!numpad7::
+	WinGetActiveStats,title_ActiveWindow,var_width,var_height,var_x,var_y
+	winmove,%title_ActiveWindow%,,0,0
+	return
+	
+; 将窗口移动到左边之外
+#!numpad4::
+	WinGetActiveStats,title_ActiveWindow,var_width,var_height,var_x,var_y
+	winmove,%title_ActiveWindow%,,-200,0
+	return
+	
+; 将窗口移动到右下角
+#!numpad3::
+	WinGetActiveStats,title_ActiveWindow,var_width,var_height,var_x,var_y
+	winmove,%title_ActiveWindow%,,500,260
+	return
+	
+; 右上角
+#!numpad9::
+	WinGetActiveStats,title_ActiveWindow,var_width,var_height,var_x,var_y
+	winmove,%title_ActiveWindow%,,500,0
+	return
+
+; 左下角 
+#!numpad1::
+	WinGetActiveStats,title_ActiveWindow,var_width,var_height,var_x,var_y
+	winmove,%title_ActiveWindow%,,0,260
+	return
+
+!2::
+	if not g_CSGroup
+	{
+	GroupAdd, g_CSGroup, ahk_class Half-Life
+	}
+	GroupActivate, g_CSGroup
+	sleep 500
+	GroupActivate, g_CSGroup
+	return
+!1::
+	if not g_CSGroup
+	{
+	GroupAdd, g_CSGroup, ahk_class Half-Life
+	}
+	GroupActivate, g_CSGroup
+	return
+	
+;;------ 以下使用数字键为测试Amxx时使用 ----------------------------------
+;; 模拟输入t1~t5 以调用 MyTest1()~MyTest5()
+NUMPAD1::
+	send y
+	sleep 100
+	send t1{enter}
+	return
+
+NUMPAD2::
+	send y
+	sleep 100
+	send t2{enter}
+	return
+
+NUMPAD3::
+	send y
+	sleep 100
+	send t3{enter}
+	return
+
+NUMPAD4::
+	send y
+	sleep 100
+	send t4{enter}
+	return
+
+NUMPAD5::
+	send y
+	sleep 100
+	send t5{enter}
+	return
+	
+!F4::	; 退出cs1.5, 同时关闭自动弹出的窗口
+	send ``
+	sleep 500
+	send quit{enter}
+	winwait 个人战绩信息 - Mozilla Firefox ahk_class MozillaUIWindowClass,,5
+	winclose 个人战绩信息 - Mozilla Firefox ahk_class MozillaUIWindowClass
+	return 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#ifwinexist ahk_class Half-Life
+#!NUMPAD5::
+	if not g_CSGroup
+	{
+	GroupAdd, g_CSGroup, ahk_class Half-Life
+	}
+	GroupActivate, g_CSGroup
+	tooltip7("激活CS1.5窗口")
+	return
+	
+#ifwinexist
+

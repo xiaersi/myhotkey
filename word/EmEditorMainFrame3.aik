@@ -1,0 +1,298 @@
+
+#IfWinActive ahk_class  EmEditorMainFrame3
+:R:amxLoopAlive::	;{/*遍历CS中所有活着的玩家*/
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	clipboard=`tnew alive_players[32], playerCount, i, playerID`r`n`tget_players(alive_players, playerCount, "ac")`r`n`tfor (i=0`; i<playerCount`; i++) `r`n`t{`r`n`t`tplayerID = alive_players[i] `r`n`t`t`r`n`t}
+	sleep 200
+	sendevent,^v
+	Clipboard = %oldclipboard%
+	return ;}
+
+:R:amxMenuAct::	;{/*amxx 菜单命令实现函数*/
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	varstring=public $clip$(id, key)`r`n{`r`n`tswitch (key)`r`n`t{`r`n`t`tcase 0: `r`n`t`t`t{`r`n`t`t`t`t`r`n`t`t`t}`r`n`t`tcase 1: `r`n`t`t`t{`r`n`t`t`t`t`r`n`t`t`t}`r`n`t`tcase 2:`r`n`t`t`t{`r`n`t`t`t`t`r`n`t`t`t}`r`n`t`tcase 3: `r`n`t`t`t{`r`n`t`t`t`t`r`n`t`t`t}`r`n`t`tcase 4: `r`n`t`t`t{`r`n`t`t`t`t`r`n`t`t`t}`r`n`t`tcase 5:`r`n`t`t`t{`r`n`t`t`t`t`r`n`t`t`t}`r`n`t`tcase 6:`r`n`t`t`t{`r`n`t`t`t`t`r`n`t`t`t}`r`n`t`tdefault:`r`n`t`t`t{`r`n`t`t`t}`r`n`t} // switch`r`n}
+	StringGetPos, posVar, varstring, $clip$
+	if not errorlevel
+	{ 
+	sleep 200
+	InputBox, tempclipboard, 剪贴板, 可以修改剪贴板的内容,,,120,,,,,%clipboard%
+	StringReplace, varstring, varstring, $clip$, %tempclipboard%, All
+	}
+	clipboard:=varstring
+	sleep 200
+	sendevent,^v
+	Clipboard = %oldclipboard%
+	return ;}
+:R:amxLoopWeapon::	;{/*amxx 循环遍历一个玩家身上的武器*/
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	clipboard=`tnew i, cur_wpn_id`r`n`tnew wpnarray[32], wpncount`r`n`tget_user_weapons(id , wpnarray, wpncount)`r`n`tfor (i=0`; i < wpncount`; ++i)`r`n`t{`r`n`t`tcur_wpn_id = wpnarray[i]`r`n`t`t`r`n`t}
+	sleep 200
+	sendevent,^v
+	Clipboard = %oldclipboard%
+	return ;}
+:R:amxIsOnline::	;{/*确保玩家在线且活着*/
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	clipboard=if (!is_user_connected(id) || !is_user_alive(id)) return
+	sleep 200
+	sendevent,^v
+	Clipboard = %oldclipboard%
+	return ;}
+
+:R:amxJoinTeam::	;{/*amxx, 玩家选择队伍时产生的事件*/
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	clipboard=register_logevent("event_joined_team",3,"1=joined team")`t`t`t`t// 选择队伍`r`npublic event_joined_team()`r`n{`r`n`tnew Arg1[64],Arg2[64]`r`n`tread_logargv(0,Arg1,63) // [L] Arg0: 11618397<1><4294967295><> `r`n`tread_logargv(2,Arg2,63) // [L] Arg2: CT `r`n}
+	sleep 200
+	sendevent,^v
+	Clipboard = %oldclipboard%
+	return ;}
+:R:amxRemoveTask::	;{/*amxx 移除task*/
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	varstring=if ( task_exists($clip$) )`t`tremove_task($clip$)
+	StringGetPos, posVar, varstring, $clip$
+	if not errorlevel
+	{ 
+	sleep 200
+	InputBox, tempclipboard, 剪贴板, 可以修改剪贴板的内容,,,120,,,,,%clipboard%
+	StringReplace, varstring, varstring, $clip$, %tempclipboard%, All
+	}
+	clipboard:=varstring
+	sleep 200
+	sendevent,^v
+	Clipboard = %oldclipboard%
+	return ;}
+:R:amxcurweapon::	;{/*切换武器的消息*/
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	clipboard=register_event("CurWeapon","event_curweapon", "be", "1=1")`r`npublic event_curweapon(id)`r`n{`r`n`tnew weaponid   = read_data(2)`r`n`tnew weaponclip = read_data(3)`r`n`t`r`n}
+	sleep 200
+	sendevent,^v
+	Clipboard = %oldclipboard%
+	return ;}
+:R:curweaponevent::	;{/*amxx  curweapon事件*/
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	clipboard=register_event("CurWeapon","event_curweapon", "be", "1=1")`r`npublic event_curweapon(id)`r`n{`r`n`tnew weaponid   = read_data(2)`r`n`tnew weaponclip = read_data(3)`r`n`t`r`n}
+	sleep 200
+	sendevent,^v
+	Clipboard = %oldclipboard%
+	return ;}
+:R:spawnevent::	;{/*amxx ResetHud event, 重生消息*/
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	clipboard=register_event("ResetHUD", "event_player_spawn", "be")`r`n`r`npublic event_player_spawn(id)`r`n{`r`n`tremove_task(id)`r`n`tset_task(2.0, "player_spawned", id)`r`n}`r`npublic player_spawned(id)`r`n{`r`n`tif (is_user_alive(id))`r`n`t{`r`n`t`r`n`t}`r`n}
+	sleep 200
+	sendevent,^v
+	Clipboard = %oldclipboard%
+	return ;}
+:R:amxspawn::	;{/*amxx 重生消息*/
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	clipboard=register_event("ResetHUD", "event_player_spawn", "be")`r`n`r`npublic event_player_spawn(id)`r`n{`r`n`tremove_task(id)`r`n`tset_task(2.0, "player_spawned", id)`r`n}`r`npublic player_spawned(id)`r`n{`r`n`tif (is_user_alive(id))`r`n`t{`r`n`t`r`n`t}`r`n}
+	sleep 200
+	sendevent,^v
+	Clipboard = %oldclipboard%
+	return ;}
+:R:amxJoinT::	;{/*amxx 加入土匪的消息*/
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	clipboard=register_logevent("event_joined_T",3,"1=joined team", "2=TERRORIST")`t`r`npublic event_joined_T()`r`n{`r`n`tnew Arg1[64], idstr[8]`r`n`tread_logargv(0,Arg1,63) // [L] Arg0: 11618397<1><4294967295><> `r`n`t`r`n`tnew pos1 = strfind(Arg1, "<")`r`n`tnew pos2 = strfind(Arg1, ">")`r`n`tif ((pos2 - pos1) >= 1)`r`n`t{`r`n`t`tadd(idstr, 7, Arg1[pos1 + 1], pos2 - pos1 - 1)`r`n`t`tnew id = str_to_num(idstr)`r`n`r`n`t}`r`n}
+	sleep 200
+	sendevent,^v
+	Clipboard = %oldclipboard%
+	return ;}}}
+	
+:R:amxJoinCT::	;{/*amxx 加入警察的消息*/
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	clipboard=register_logevent("event_joined_CT",3,"1=joined team", "2=CT")`r`npublic event_joined_CT()`r`n{`r`n`tnew Arg1[64], idstr[8]`r`n`tread_logargv(0,Arg1,63) // [L] Arg0: 11618397<1><4294967295><> `r`n`tnew pos1 = strfind(Arg1, "<")`r`n`tnew pos2 = strfind(Arg1, ">")`r`n`tif ((pos2 - pos1) >= 1)`r`n`t{`r`n`t`tadd(idstr, 7, Arg1[pos1 + 1], pos2 - pos1 - 1)`r`n`t`tnew id = str_to_num(idstr)`r`n`r`n`t}`r`n}
+	sleep 200
+	sendevent,^v
+	Clipboard = %oldclipboard%
+	return ;}
+:R:amxmenu::	;{/*amxx 创建一个菜单*/
+	sleep 200
+	tempclipboard1 := MyInput("菜单名称","指定菜单的注册名", clipboard)
+	sleep 200
+	varInputbox1 := MyInput("定义菜单关键字","菜单关键字作用: show_关键字_menu() act_关键字_menu()", "xxx")
+	varTemp = register_menucmd( register_menuid ("%tempclipboard1%"), 1023, "act_%varInputbox1%_menu")`r`npublic show_%varInputbox1%_menu(id)`r`n{`r`n`tnew menuBody[256]`r`n`tnew nLen = 0`r`n`tnew keys = 1<<0|1<<1|1<<9`r`n`tnLen = format( menuBody, 255, "%tempclipboard1%^n" )`r`n`tnLen += format( menuBody[nLen], 255-nLen, "^n\w1. xxx")`r`n`tnLen += format( menuBody[nLen], 255-nLen, "^n2. xxx")`r`n`t`r`n`tnLen += format( menuBody[nLen], 255-nLen, "^n^n\r0. Exit" )`r`n`tshow_menu( id, keys, menuBody, -1 , "%tempclipboard1%")`r`n}`r`npublic act_%varInputbox1%_menu(id, key)`r`n{`r`n`tswitch(key)`r`n`t{`r`n`t`tcase 0:`t`t{`t`t// 1键`r`n`t`t}`r`n`t`tcase 1:`t`t{`t`t// 2键`r`n`t`t}`r`n`t`tcase 2:`t`t{`t`t// 3键`r`n`t`t}`r`n`t`tcase 3:`t`t{`t`t// 4键`r`n`t`t}`r`n`t`tdefault:`t`t{`t`t// 其他`r`n`t`t}`r`n`t}`r`n}
+	sendbyclip(varTemp)
+	return ;}
+
+
+:R:amxRestart::	;{/*amxx 刷新服务器*/
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	clipboard=register_event("TextMsg", "event_round_restart", "a", "2=#Game_will_restart_in")`r`npublic event_round_restart(id)`r`n{`r`n`t`r`n}
+	sleep 200
+	sendevent,^v
+	Clipboard = %oldclipboard%
+	return ;}
+:R:amxdeath::	;{/*amxx 死亡消息*/
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	clipboard=register_event("DeathMsg","event_death","a")`r`npublic event_death()`r`n{`r`n//`tnew killerID = read_data(1)  `r`n`tnew VictimID = read_data(2)   `r`n`t`r`n}
+	sleep 200
+	sendevent,^v
+	Clipboard = %oldclipboard%
+	return ;}
+:R:amxSetTask::	;{/*amxx 先移除之前的任务, 再set_task一个*/
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	varstring=`tif ( task_exists($clip$) )`t{`r`n`t`tremove_task($clip$)`r`n`t}`r`n`tset_task(1.0, "", $clip$)
+	StringGetPos, posVar, varstring, $clip$
+	if not errorlevel
+	{ 
+	sleep 200
+	InputBox, tempclipboard, 剪贴板, 可以修改剪贴板的内容,,,120,,,,,%clipboard%
+	StringReplace, varstring, varstring, $clip$, %tempclipboard%, All
+	}
+	clipboard:=varstring
+	sleep 200
+	sendevent,^v
+	Clipboard = %oldclipboard%
+	return ;}
+:R:amxRoundEnd::	;{/*amxx Round End 消息*/
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	clipboard=register_event( "SendAudio", "event_round_end", "a", "2=`%!MRAD_terwin", "2=`%!MRAD_ctwin", "2=`%!MRAD_rounddraw" )`r`npublic event_round_end() `r`n{`r`n`t`r`n}
+	sleep 200
+	sendevent,^v
+	Clipboard = %oldclipboard%
+	return ;}
+:R:amxWatch::	;{/*死亡后, 观察其他玩家的消息*/
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	clipboard=register_event("StatusValue", "event_watch_info", "b", "1=2") `;`r`npublic event_watch_info(id) `r`n{`r`n`t// 如果玩家不是观察者且没有死, 则退出, 即只有当玩家死了或者是观察者时, 才可以进行观察`r`n`tnew team = get_user_team(id)`;`r`n`tif ( 3!=team && is_user_alive(id) || !is_user_connected(id) ) {`r`n`t`treturn`;`r`n`t}`r`n} 
+	sleep 200
+	sendevent,^v
+	Clipboard = %oldclipboard%
+	return ;}
+:R:amxRoundBegin::	;{/*amxx round begin*/
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	clipboard=register_event("HLTV", "event_round_begin", "a", "1=0", "2=0")`r`npublic event_round_begin(id)`r`n{`r`n`t`r`n}
+	sleep 200
+	sendevent,^v
+	Clipboard = %oldclipboard%
+	return ;}
+:R:amxFlashBang::	;{/*amxx 闪光弹效果*/
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	clipboard=register_event("ScreenFade","event_flashbang","be","4=255","5=255","6=255","7>199") `r`npublic event_flashbang(id) `t// 闪光弹效果`r`n{`r`n`t`r`n} 
+	sleep 200
+	sendevent,^v
+	Clipboard = %oldclipboard%
+	return ;}
+:R:amxMytest::	;{/*amxx 临时测试用的函数test/t1/t2/t3/t4/t5*/
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	clipboard=`tregister_clcmd("say test", "Mytest")`r`n`tregister_clcmd("say t1", "Mytest1")`r`n`tregister_clcmd("say t2", "Mytest2")`r`n`tregister_clcmd("say t3", "Mytest3")`r`n`tregister_clcmd("say t4", "Mytest4")`r`n`tregister_clcmd("say t5", "Mytest5")`r`n//------ 测试函数 ----------------------------------`r`npublic Mytest(id)`r`n{`r`n`t`r`n}`r`n`r`npublic Mytest1(id)`r`n{`r`n`t`r`n}`r`n`r`npublic Mytest2(id)`r`n{`r`n`t`r`n}`r`n`r`npublic Mytest3(id)`r`n{`r`n`t`r`n}`r`n`r`npublic Mytest4(id)`r`n{`r`n`t`r`n}`r`n`r`npublic Mytest5(id)`r`n{`r`n`t`r`n}
+	sleep 200
+	sendevent,^v
+	Clipboard = %oldclipboard%
+	return ;}
+
+:R:amxEnumTask::	;{/*amxx TASK 任务常量*/
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	clipboard=enum (+= 100)`r`n{`r`n`tTASK_1 = 100`t`t`t`t`t`t// `r`n`t,TASK_2`t`t`t`t`t`t`t// `r`n}
+	sleep 200
+	sendevent,^v
+	Clipboard = %oldclipboard%
+	return ;}
+:R:amxbind::	;{/*amxx 绑定按钮, 将需要绑定的命令复制到剪贴板, 将被给定的按钮用inputbox 指定*/
+	sleep 200
+	inputbox,varInputbox,输入,请输入变量...,,360,120
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	varstring=client_cmd(id, "bind ^"%varInputbox%^"$clip$")
+	StringGetPos, posVar, varstring, $clip$
+	if not errorlevel
+	{ 
+	sleep 200
+	InputBox, tempclipboard, 剪贴板, 可以修改剪贴板的内容,,,120,,,,,%clipboard%
+	StringReplace, varstring, varstring, $clip$, %tempclipboard%, All
+	}
+	clipboard:=varstring
+	sleep 200
+	sendevent,^v
+	Clipboard = %oldclipboard%
+	return ;}
+
+
+:R:useTempTxt::	;{/*临时使用temp.txt文件*/
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	clipboard=filedelete temp.txt`r`nfileappend `r`n(`r`n`r`n), temp.txt
+	sleep 200
+	sendevent,^v
+	Clipboard = %oldclipboard%
+	return ;}
+
+:R:amxRmTask::	;{/*amxx 移除现有任务*/
+	tempclipboard1 := MyInput("指定Task ID","请指定要删除的任务ID", clipboard)
+	varTemp = `tif ( task_exists(%tempclipboard1%) )`t{`r`n`t`tremove_task(%tempclipboard1%)`r`n`t}
+	sendbyclip(varTemp)
+	return ;}
+
+
+:R:#ifdElse::	;{/*amxx #if defined ... #else ... #endif*/
+	varInputbox1 := MyInput("Amxx预编辑if...else...","输入#if defined 宏名", "_DEBUG")
+	varTemp = #if defined %varInputbox1%`r`n`t`r`n#else`r`n`t`r`n#endif
+	sendbyclip(varTemp)
+	return ;}
+
+:R:#if!::	;{/*amxx #if ! defined $$ ...*/
+	varInputbox1 := MyInput("amxx预编译if","指定#if !defined 后的宏名", "_DEBUG")
+	varTemp = #if !defined %varInputbox1%`r`n`t`r`n#endif
+	sendbyclip(varTemp)
+	return ;}
+
+:R:amxoutline::	;{/*amxx 为大纲视图显示的注释*/
+	tempclipboard1 := MyInput("大纲视图注释","填写行注释内容,大纲视图可显示", clipboard)
+	varTemp = /*`t%tempclipboard1% -----------------------------------{`t`r`n}*/
+	sendbyclip(varTemp)
+	return ;}
+
+:R:amxlog::	;{/*在编写amxx代码时, 测试时用的临时log格式*/
+	if g_log_index = 
+	{
+		g_log_index = 0
+	}
+	tempclipboard1 := MyInput("amxx临时log","所在函数", clipboard)
+	varInputbox1 := MyInput("amxx临时log","log序号", g_log_index)
+	g_log_index := varInputbox1
+	varInputbox2 := MyInput("amxx临时log","log的具体内容", "Enter!")
+	varTemp = log_amx("%tempclipboard1%(%varInputbox1%)::^n   >>> %varInputbox2%")
+	sendbyclip(varTemp)
+	g_log_index++
+	return ;}
+
+
+:R:IfWinActive;::	;{/*ahk #IfWinActive*/
+	tempclipboard1 := MyInput("IfWinActive","指定活动窗口的标题", clipboard)
+	varTemp = #IfWinActive %tempclipboard1% `t`;{`r`n`;} #IfWinActive %tempclipboard1%
+	sendbyclip(varTemp)
+	return ;}
+
+
+:R:amxfreetime::	;{/*amxx 开局(冻结时间结束)*/
+	varTemp = register_logevent("logevent_round_start", 2, "1=Round_Start")`r`npublic logevent_round_start()`r`n{`r`n`t`r`n}
+	sendbyclip(varTemp)
+	return ;}}}}}}}}}}}}
+
+:R:[d];::	;{/*[%d]*/
+	varTemp = [`%d]
+	sendbyclip(varTemp)
+	return ;}}}}}}}}}}}}
+
+:R:[s];::	;{/*[%s]*/
+	varTemp = [`%s]
+	sendbyclip(varTemp)
+	return ;}}}}}}}}}}}}

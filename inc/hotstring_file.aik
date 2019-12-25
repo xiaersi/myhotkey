@@ -1,0 +1,783 @@
+; hotstring_add.aik 和 hotstring_file.aik 的作用是快速为一段文字定义HotKey
+; 并且自动将这个新的 HotString 写到指定的ahk 或 aik 文件中, 并且立刻生效
+; 程序会自动检查HotString是否重复, 有重复则询问用户是否替换之
+; 作者: 陈建平 
+
+#Include .\inc\common.aik
+#Include .\inc\tip.aik
+
+
+; 从文件的内容中查找Sec节中的HotKey
+get_active_title(TitleName_, ClassName_)
+{
+	var_return = `#IfWinActive %TitleName_% ahk_class %ClassName_%
+	return var_return
+}
+get_active_classtitle(ClassName_)
+{
+	var_return = `#IfWinActive ahk_class  %ClassName_%
+	return var_return
+}
+get_exist_title(TitleName_, ClassName_)
+{
+	var_return = `#IfWinExist %TitleName_% ahk_class  %ClassName_%
+	return var_return
+}
+get_exist_classtitle(ClassName_)
+{
+	var_return = `#IfWinExist ahk_class %ClassName_%
+	return var_return
+}
+hotkey_return_end()
+{
+	var_return = "return ;}"
+	return 
+}
+
+;; 根据所给的Class, 得到保存hotkey的文件名
+filename_by_class(ClassName_)
+{
+	if (ClassName_ = "")
+	{
+		var_return = General_Word.aik
+		return var_return
+	}
+	Hotstring := ClassName_
+	StringReplace, Hotstring, Hotstring, ``, , All  ; Do this replacement first to avoid interfering with the others below.
+	StringReplace, Hotstring, Hotstring, `n, , All
+	StringReplace, Hotstring, Hotstring, `r, `, All
+	StringReplace, Hotstring, Hotstring, `%, , All
+	StringReplace, Hotstring, Hotstring, %A_Tab%, , All
+	StringReplace, Hotstring, Hotstring, `;, _, All
+	StringReplace, Hotstring, Hotstring, \, _, All
+	StringReplace, Hotstring, Hotstring, /, _, All
+	StringReplace, Hotstring, Hotstring, *, _, All
+	StringReplace, Hotstring, Hotstring, >, _, All
+	StringReplace, Hotstring, Hotstring, <, _, All
+	StringReplace, Hotstring, Hotstring, :, _, All
+	StringReplace, Hotstring, Hotstring, |, _, All
+	StringReplace, Hotstring, Hotstring, ?, _, All
+	StringReplace, Hotstring, Hotstring, `", _, All
+	StringReplace, Hotstring, Hotstring, =, _, All
+	var_return = %Hotstring%.aik
+	return var_return
+}
+
+; 将文件名（不包括路径），写入到include.inc文件中
+add_filename_to_include(FileName_)
+{
+	IfNotExist .\Word
+	{
+		FileCreateDir, .\Word
+	}
+	dir_wordfile := read_ini("var.ini","Path",FileName_, "error")
+	if ( dir_wordfile =  "error" || dir_wordfile =  "" )
+	{
+		var_temp = 给定存储%FileName_% 的相对目录
+		dir_wordfile := MyInput("指定文件保存的相对路径",var_temp,".\Word")
+		write_ini("var.ini","Path",FileName_, dir_wordfile)
+	}
+	
+	; 将相对WordingDir的路径转换成相对脚本根目录的路径
+	WordRelaDir := ∑相对工作路径转相对根路径(dir_wordfile)
+
+	var_worddir := ∑相对工作路径转相对根路径(".\Word")		; var_worddir 保存 .\word 相对根目录的路径
+
+	; 检查是否已经存在include.ahk， 无则创建之
+	IfNotExist .\Word\include.ahk
+	{
+		str_buff = #include %var_worddir%\include.inc
+		AddString(str_buff, "#ifwinexist", true)
+		AddString(str_buff, "#ifwinactive", true)
+		FileAppend,%str_buff%, .\Word\include.ahk
+	}	
+	
+	; 检查是否已经存在include.inc， 无则创建之, 并将 #include .\inc\common.aik 写入之
+	IfNotExist .\Word\include.inc
+	{
+		str_buff = #include .\inc\common.aik
+		FileAppend,%str_buff%, .\Word\include.inc
+		Sleep 200
+	}	
+	; 准备好要写入include.inc的内容 IncludeLine
+	IncludeLine = #include %WordRelaDir%\%FileName_%
+
+	IfExist .\Word\include.inc  
+	{
+;		MsgBox include.inc 已经存在, 则查找将添加的文件是否已经include了, 无则添加之
+		Loop, read, .\Word\include.inc
+		{
+			if (A_LoopReadLine == IncludeLine)
+			{
+				return
+			}
+		}
+		fileappend `n%IncludeLine%, .\Word\include.inc
+	}
+	else 
+	{
+		MsgBox include.inc 不存在, 
+	}
+}
+
+; 功能实例: 
+; get_hotstring_key(":R:tes::teshorse ") = "tes"
+
+get_hotstring_key(byref Str_)
+{
+	TempStr = %Str_%
+	StringLeft, StrBegin, Str_, 3
+	if (":R:" == StrBegin)
+	{
+		StringMid , TempStr, Str_, 4
+;		msgbox get_hotstring_key() 找到了 :R: , TempStr := %TempStr%
+		TempPos := InStr(TempStr, "::")
+		if (TempPos>1)
+		{
+;			msgbox get_hotstring_key() 找到了:: ,  TempPos=%TempPos%
+			TempPos --
+			StringLeft KeyName, TempStr, TempPos
+			return KeyName
+		}
+	}
+;	msgbox get_hotstring_key(), 没有在以下文字中找到HotKey`n%Str_%
+	return ""
+}
+
+; 在文件内容中查找指定标题下的热键, 
+; 返回值如下: -1 出错, 0 没有查找到标题, 1 成功查找到了, >2 查找到了标题 但没有找到热键 返回的值是标题节结束行号
+find_hkline(byref _FileContent, Title_, HotKey_, byref _Begin, byref _End)
+{
+	global g_DebugBox_Modify_Hotstring
+	if (HotKey_ = "")
+	{
+	DebugBox("给定的参数Hotkey为空, 不能计算Hkline", "Modify_Hotstring", g_DebugBox_Modify_Hotstring)
+	return -1
+	}
+	IsFindTitle := false
+	IsFindKey := false
+	FindTitleCount := 0		; 第几次找到Title _
+	TitleEnd :=0
+	var_index := 0
+	
+	; Example #2: Read the lines inside a variable, one by one (similar to a file-reading loop).
+	; A file can be loaded into a variable via FileRead:
+	Loop, parse, _FileContent, `n, `r  ; Specifying `n prior to `r allows both Windows and Unix files to be parsed.
+	{
+		var_index := a_index
+		StringLeft, FirstChar, A_LoopField, 1
+		
+		if (FirstChar=="#")
+		{
+			if (IsFindKey)
+			{
+				if (IsFindTitle)
+				{
+					var_msg = 找到了%Title_%中的`n%HotKey_%, `n但该热键没有正常结束就进入下一个#Title
+					AddString_LineInfo(var_msg, A_LineFile, A_ThisFunc, A_LineNumber)
+					DebugBox(var_msg, "Modify_Hotstring", g_DebugBox_Modify_Hotstring)
+					_End := A_Index -1
+					if (_Begin >=1 and _Begin <= _End)
+					{
+						var_msg = : ) 成功地找到%Title_%中的`n%HotKey_%
+						AddString_LineInfo(var_msg, A_LineFile, A_ThisFunc, A_LineNumber)
+						DebugBox(var_msg, "Modify_Hotstring", g_DebugBox_Modify_Hotstring)
+						return 1
+					}
+					else 
+					{
+						var_msg =  : ( 查找%Title_%中的`n%HotKey_%失败, KeyBegin[%_Begin%], KeyEnd[%_End%]
+						AddString_LineInfo(var_msg, A_LineFile, A_ThisFunc, A_LineNumber)
+						DebugBox(var_msg, "Modify_Hotstring", g_DebugBox_Modify_Hotstring)
+						return -1
+					}
+					
+				}
+				else
+				{
+					msgbox 4, 查找出错, 已经查找到热键 却没查找标题 `n 是否继续往下查找 ?
+					ifmsgbox NO
+						return -1
+					ifmsgbox Yes
+					{
+					IsFindKey := false
+					}
+				}
+			}
+			
+			ifinstring, A_LoopField, %Title_%
+			{
+				IsFindTitle := true
+				FindTitleCount ++
+				var_msg = 找到了%Title_%
+				AddString_LineInfo(var_msg, A_LineFile, A_ThisFunc, A_LineNumber)
+				DebugBox(var_msg, "Modify_Hotstring", g_DebugBox_Modify_Hotstring)
+			}
+			else 
+			{
+				if (IsFindTitle)	; 标题所在节已经结束
+				{
+					TitleEnd := A_Index - 1
+				}
+				IsFindTitle := false
+			}
+		}
+		else if (FirstChar==";")
+		{
+			continue
+		}
+		else if (IsFindTitle )
+		{
+			StringLeft, TempStr, A_LoopField, 3
+			if (":R:" == TempStr)
+			{
+				; 在已经找到Title和HotKey的情况下, 再出现新的单词, 即意味着所找的HotKey已经结束
+				if (IsFindKey)
+				{
+					_End := A_Index - 1
+					if (_Begin >=1 and _Begin <= _End)
+					{
+						var_msg =  : ) 成功地找到%Title_%中的`n%HotKey_%
+						AddString_LineInfo(var_msg, A_LineFile, A_ThisFunc, A_LineNumber)
+						DebugBox(var_msg, "Modify_Hotstring", g_DebugBox_Modify_Hotstring)
+						return 1
+					}
+					else 
+					{
+						var_msg = : ( 查找%Title_%中的`n%HotKey_%失败, KeyBegin[%_Begin%], KeyEnd[%_End%]
+						AddString_LineInfo(var_msg, A_LineFile, A_ThisFunc, A_LineNumber)
+						DebugBox(var_msg, "Modify_Hotstring", g_DebugBox_Modify_Hotstring)
+						return -1
+					}
+				}
+				; 查找到了标题的情况下, 寻找HotKey
+				StringMid , TempStr, A_LoopField, 4
+				TempPos := InStr(TempStr, "::")
+				if (TempPos>1)
+				{
+					TempPos --
+					StringLeft KeyName, TempStr, TempPos
+					if (KeyName == HotKey_)
+					{
+					var_msg = c找到了%Title_%`n中的%HotKey_%为第%A_Index%行
+					AddString_LineInfo(var_msg, A_LineFile, A_ThisFunc, A_LineNumber)
+					DebugBox(var_msg, "Modify_Hotstring", g_DebugBox_Modify_Hotstring)
+					_Begin := A_Index
+					IsFindKey := true
+					}
+					else 
+					{
+						var_msg = f找到了%Title_%`n 但关键字%KeyName% != %HotKey_%
+						AddString_LineInfo(var_msg, A_LineFile, A_ThisFunc, A_LineNumber)
+						DebugBox(var_msg, "Modify_Hotstring", g_DebugBox_Modify_Hotstring)
+					}
+				}
+
+			}
+			else if (IsFindKey )
+			{
+				ReturnEnd := hotkey_return_end()
+				if (A_LoopField == ReturnEnd)
+				{
+					_End := A_Index
+					if (_Begin >=1 and _Begin <= _End)
+					{
+						var_msg = : ) 成功地找到%Title_%中的`n%HotKey_%
+						AddString_LineInfo(var_msg, A_LineFile, A_ThisFunc, A_LineNumber)
+						DebugBox(var_msg, "Modify_Hotstring", g_DebugBox_Modify_Hotstring)
+						return 1
+					}
+					else 
+					{
+						var_msg = : ( 查找%Title_%中的`n%HotKey_%失败, KeyBegin[%_Begin%], KeyEnd[%_End%]
+						AddString_LineInfo(var_msg, A_LineFile, A_ThisFunc, A_LineNumber)
+						DebugBox(var_msg, "Modify_Hotstring", g_DebugBox_Modify_Hotstring)
+						return -1
+					}
+				}
+			}	
+		}
+	 
+	}
+	; 已经找到Hotkey的起始行, 但还没找到Hotkey的结束行, 文件结束了, 则最后一行作为Hotkey的结束行, 其实这种情况不应该发生
+	if (IsFindKey)
+	{
+		_End := var_index
+		var_msg = 不应该发生的事情, 还没有找到Hotkey的结束行, 文件就已经结束了
+		AddString_LineInfo(var_msg, A_LineFile, A_ThisFunc, A_LineNumber)
+		DebugBox(var_msg, "Modify_Hotstring", g_DebugBox_Modify_Hotstring)
+		return 1
+	}
+	if (IsFindTitle)
+	{
+		TitleEnd := var_index
+		var_msg = 没有找到Hotkey, 找到Title_的起始行,`n 但没有找到Title_的结束行, 文件就已经结束了`n返回值TitleEnd=%TitleEnd%
+		AddString_LineInfo(var_msg, A_LineFile, A_ThisFunc, A_LineNumber)
+		DebugBox(var_msg, "Modify_Hotstring", g_DebugBox_Modify_Hotstring)
+		return TitleEnd
+	}
+	if (FindTitleCount > 0)
+	{
+		if (TitleEnd > 1)
+		{
+			var_msg = d找到了%Title_%`n但没有找到%HotKey_% `n 返回标题结束行号%TitleEnd%
+			AddString_LineInfo(var_msg, A_LineFile, A_ThisFunc, A_LineNumber)
+			DebugBox(var_msg, "Modify_Hotstring", g_DebugBox_Modify_Hotstring)
+			return TitleEnd 
+		}
+		else 
+		{
+			var_msg = H不应该出现的问题`n找到了%Title_%`n但没有找到%HotKey_% `n Title_的结束行不正确
+			AddString_LineInfo(var_msg, A_LineFile, A_ThisFunc, A_LineNumber)
+			DebugBox(var_msg, "Modify_Hotstring", g_DebugBox_Modify_Hotstring)
+			return -1
+		}
+	}
+	var_msg = 没有找到%Title_% IsFindTitle[%IsFindTitle%] TitleEnd[%TitleEnd%]
+	AddString_LineInfo(var_msg, A_LineFile, A_ThisFunc, A_LineNumber)
+	DebugBox(var_msg, "Modify_Hotstring", g_DebugBox_Modify_Hotstring)
+	return 0
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; 在找到Hotkey始末行之后, 再找到始末字符{Enter}所在的具体位置
+; 返回值: <0 表示出现错误, 1) 找到了目标Key, 2)表示没有找到目标, 但找到了Title 
+; 3)表示没有找到目标, 但找到Title, 且Title的结束行为文件的末行, 要添加HotString直接FileAppen到文件末尾即可
+find_hkpos(byref _FileContent, Title_, HotKey_, byref _BeginPos, byref _EndPos)
+{
+	global g_DebugBox_Modify_Hotstring
+	if (HotKey_ = "")
+	{
+	msgbox find_hkpos() 给定的参数Hotkey为空, 不能继续!
+	return -1
+	}
+	var_pos := 0
+	BeginLine := 0
+	EndLine := 0
+	var_find := find_hkline(_FileContent, Title_, HotKey_, BeginLine, EndLine)
+	
+
+	if (var_find==1 and BeginLine > 1 and BeginLine <= EndLine)
+	{
+	
+		loop 	; 循环查找文件内容中的回车符号
+		{
+			var_pos := InStr(_FileContent, "`n" , false, var_pos +1)
+			
+			; 如果第一次循环就没有找到回车, 说明没有回车结束符, 则退出
+			if (a_index == 1 && var_pos <= 0)
+			{
+				var_msg = error0:: 文件中没有回车符号
+				AddString_LineInfo(var_msg, A_LineFile, A_ThisFunc, A_LineNumber)
+				DebugBox(var_msg, "Modify_Hotstring", g_DebugBox_Modify_Hotstring)
+				return -1
+				break
+			}
+			if (BeginLine -1 == a_index)
+			{
+				_BeginPos := var_pos 
+			}
+			if (EndLine == a_index)
+			{
+				_EndPos := var_pos 
+				break ; 查找完毕
+			}
+		}
+		
+		if (_BeginPos > 0 )
+		{
+			if ( _EndPos = 0)
+			{
+				_EndPos := strlen(_FileContent)
+			}		
+			if ( _BeginPos <= _EndPos )
+			{
+				return 1
+			}
+			return -1
+		}
+		else 
+		{
+			var_msg = error1::成功找到了Hotkey, 但在计算具体位置时出错 `n BeginLine = %BeginLine% EndLine = %EndLine%  `n _BeginPos = %_BeginPos% _EndPos=%_EndPos%
+			AddString_LineInfo(var_msg, A_LineFile, A_ThisFunc, A_LineNumber)
+			DebugBox(var_msg, "Modify_Hotstring", g_DebugBox_Modify_Hotstring)
+			return -1
+		}
+	}
+	else if (var_find > 1)  ; 找到节, 但没有HotKey, 则可将新内容插入节的最后一行
+	{
+		var_pos := 0
+		var_lastpos:=-1
+
+		loop 
+		{
+			var_pos := InStr(_FileContent, "`n" , false, var_pos +1)
+			if (var_find = a_index)
+			{
+				_BeginPos := var_pos 
+				_EndPos := var_pos
+				if (var_pos <= 0)
+				{
+					var_msg = 进入了find_hkpos（4）节的末尾行在文件的最后一行！
+					AddString_LineInfo(var_msg, A_LineFile, A_ThisFunc, A_LineNumber)
+					DebugBox(var_msg, "Modify_Hotstring", g_DebugBox_Modify_Hotstring)
+					return 3
+				}
+				
+				return 2
+				break ; 查找完毕
+			}
+;			else 
+;			{
+;				stringmid var_msg, _FileContent, var_pos
+;				var_msg = a_index[%a_index%] 不等于 目标行[%var_find%], var_pos[%var_pos%]`n%var_msg%
+;				AddString_LineInfo(var_msg, A_LineFile, A_ThisFunc, A_LineNumber)
+;				DebugBox(var_msg, "Modify_Hotstring", g_DebugBox_Modify_Hotstring)
+;			}
+			
+			if (var_pos <= 0 )
+			{
+				break
+			}
+
+			var_lastpos := var_pos
+			
+		}
+		var_msg = error2::成功找到了节的末尾行, 但计算其具体位置时出错`n找到的目标行数为%var_find%
+		AddString_LineInfo(var_msg, A_LineFile, A_ThisFunc, A_LineNumber)
+		DebugBox(var_msg, "Modify_Hotstring", g_DebugBox_Modify_Hotstring)
+		return -2
+	}
+	
+
+	; 其他情况
+	return var_find
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; 查找文件Filename_中的Title_下的Hotkey_, 查找到则返回该Hotkey_的内容
+find_hkstring(byref FileContent_, Title_, HotKey_)
+{
+	BeginPos := 0
+	EndPos:=0
+	var_find := find_hkpos(FileContent_, Title_, HotKey_, BeginPos, EndPos)
+	BeginPos ++
+	if (var_find = 1)
+	{
+		if (BeginPos > 0 and BeginPos < EndPos)
+		{
+			var_return := FileContent_
+			stringleft var_return, var_return, EndPos
+			stringmid var_return, var_return, BeginPos
+;			msgbox [%BeginPos%, %EndPos%] `n %var_return%
+			
+			return var_return
+		}
+		else 
+		{
+;			msgbox find_hkstring() error1::显示文字出错 BeginPos[%BeginPos%] EndPos[%EndPos%]
+		}
+	}
+	else 
+	{
+;	msgbox find_hkstring() error2::没有找到%HotKey_%, find_result = [%var_find%]
+	}
+	
+	return ""
+}
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; 查找文件Filename_中的Title_下的Hotkey_, 将其修改为新的内容, 不存在则新增之
+; 添加HotString至hs_file文件的hs_sec节下, 如果已经存在该热键, 则替换之, 
+; @Filename_ 	文件名
+; @Title_		节名, 即#ifWinAcitve 之类的
+; @HotKey_ 	是热键的具体内容
+; @NewContent_ 更新的新内容
+
+replace_hkstring(Filename_, Title_, HotKey_, NewContent_)
+{
+	global g_DebugBox_Modify_Hotstring
+	if (HotKey_ = "")
+	{
+		msgbox replace_hkstring() 给定的参数Hotkey为空, 不能计算Hkline
+		return -1
+	}
+	fileread filecontent,  %Filename_%
+	BeginPos := 0
+	EndPos:=0
+	var_find := find_hkpos(filecontent, Title_, HotKey_, BeginPos, EndPos)
+	
+	if NewContent_ = 
+	{
+		if var_find <> 1
+		{
+			var_tip = 你想要删除的HotKey不存在!
+			AddString_LineInfo(var_tip, A_LineFile, A_Thisfunc, a_linenumber)
+			tooltip7(var_tip)
+			return
+		}
+	}
+	
+	IF (var_find == 3)	; 找到节的结束行为文件末尾行， 则将新内容添加到文件末尾即可
+	{
+		fileappend %NewContent_%, %Filename_%
+		if ErrorLevel 
+		{
+			msgbox replace_hkstring() error_-1:: 将新内容添加到文件末尾出错`nfileappend NewContent_, %Filename_%
+			return false
+		}
+		var_tip = HotString成功添加到{%Filename_%}末尾`n-------------------------
+		AddString(var_tip, Filename_, true)
+		AddString(var_tip, Title_, true)
+		AddString(var_tip, HotKey_, true)
+		tooltip7(var_tip)
+		return true
+	}
+	else if (var_find >= 1)
+	{
+		if (var_find = 1)	; 找到Hotkey, 提示已经存在, 是否要替换
+		{
+			if (BeginPos > 0 and BeginPos < EndPos)
+			{
+				var_return := filecontent
+				stringleft var_return, var_return, EndPos
+				stringmid var_return, var_return, BeginPos + 1
+				var_notepad = 你要添加的Hotkey已经存在`r`n {%Filename_%}[%Title_%]<%HotKey_%> `r`n`t在 [%BeginPos%, %EndPos%]行之间 
+				var_notepad = %var_notepad%`r`n---------------------------------------- 
+				var_notepad = %var_notepad%`r`n%var_return%`r`n
+				var_notepad = %var_notepad%`r`n要将其替换成下面的内容吗? (Yes)/(No)
+				var_notepad = %var_notepad%`r`n----------------------------------------
+				var_notepad = %var_notepad%`r`n%NewContent_%
+				filedelete temp.txt
+				fileappend %var_notepad%, temp.txt
+				var_notepad = 
+				var_return = 
+				run notepad temp.txt, ,max , var_pid
+				winwait ahk_pid %var_pid%, , 10
+				if not errorlevel
+				{
+					winget ThisWinID, ID, ahk_pid %var_pid%
+					sleep 500
+					msgbox 4, HotString 已经存在, 你想添加的HotString[%HotKey_%]已经存在`n是否要替换?
+					ifmsgbox No
+					{
+						filecontent =
+						winclose ahk_id %ThisWinID%
+						WinWaitClose  
+						filedelete temp.txt
+						return false
+					}
+					winclose ahk_id %ThisWinID%
+					WinWaitClose  
+					filedelete temp.txt
+				}
+			}
+			else 
+			{
+				msgbox replace_hkstring() error0::显示文字出错 BeginPos[%BeginPos%] EndPos[%EndPos%]
+			}
+		}
+		
+		filedelete %Filename_%
+		stringleft PreSubstr, filecontent, BeginPos
+		stringMid AnaSubstr, filecontent, EndPos
+		filecontent=
+		
+		fileappend %PreSubstr%, %Filename_%
+		if ErrorLevel 
+		{
+			msgbox replace_hkstring() error_1:: fileappend %PreSubstr%, %Filename_%
+			return false
+		}
+		fileappend %NewContent_%, %Filename_%
+		if ErrorLevel 
+		{
+			msgbox replace_hkstring() error_2:: fileappend NewContent_, %Filename_%
+			return false
+		}
+		fileappend %AnaSubstr%, %Filename_%
+		if ErrorLevel 
+		{
+			msgbox replace_hkstring() error_3:: fileappend %AnaSubstr%, %Filename_%
+			return false
+		}
+		var_tip = HotString添加成功
+		AddString(var_tip, Filename_, true)
+		AddString(var_tip, Title_, true)
+		AddString(var_tip, HotKey_, true)
+		tooltip7(var_tip)
+		
+		return true
+	}
+	else if (var_find = 0)
+	{
+		fileappend `n%Title_%, %Filename_%
+		if ErrorLevel 
+		{
+			msgbox replace_hkstring() error_4:: fileappend %AnaSubstr%, %Filename_%
+			return false
+		}
+		fileappend `n%NewContent_%, %Filename_%
+		if ErrorLevel 
+		{
+			msgbox replace_hkstring() error_5:: fileappend NewContent_, %Filename_%
+			return false
+		}
+		filecontent=
+		
+		var_tip = HotString添加成功
+		AddString(var_tip, Filename_, true)
+		AddString(var_tip, Title_, true)
+		AddString(var_tip, HotKey_, true)
+		tooltip7(var_tip)
+		
+		return true
+	}
+	
+	filecontent=
+	return false
+}
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 删除一个Hotkey
+delete_hkstring(Filename_, Title_, HotKey_)
+{
+	replace_hkstring(Filename_, Title_, HotKey_, "")
+}
+
+
+#ifwinactive ahk_class EmEditorMainFrame3
+::returnend;::
+	var_return := hotkey_return_end()
+	sendinput %var_return%
+	return
+#ifwinactive
+
+;; 将$input(title; prompt; defalut)$中的title, prompt, defalut分离出来, 返回值为defalut
+SplitInputTitleText(string, byref var_Title, byref var_Prompt)
+{
+	StringSplit, word_array, string, |, $
+	var_Title 	= `"%word_array1%`"
+	var_Prompt 	= `"%word_array2%`"
+	var_Default	= `"%word_array3%`"
+;	msgbox %string% ==> `ntitle = %var_title% `ntext = %var_Prompt% `ndefault = %var_default%
+	return var_Default
+}
+
+;; 检查字符串varString中是否有$clip$, $input$, $clip(title; text)$或 $input(title, text, default)$,
+;; 如果有$input$或$input(title, text, default)$, 则表明这是一个变量,需要通过inputbox来输入\
+;; 如果有$clip$或$clip(title, text)$, 同上, 只是InputBox的默认值由剪贴板给定而已
+CheckClipInputInString(byref varString)
+{
+	varTemp =
+	var_before = 
+	;; 先处理$clip$
+	ifinstring varString, $clip$
+	{ 
+		AddString(var_before, "		InputBox, tempclipboard, 剪贴板, 可以修改剪贴板的内容,,,120,,,,,%clipboard%", true)
+		; varString := StringReplaceAll(varString, "$clip$", "%tempclipboard%")
+		StringReplaceAll(varString, "$clip$", "%tempclipboard%")
+	}
+	
+	;; 处理$clip(title; text)
+	ifinstring varString, $clip(
+	{
+		var_temp 	:= StrMid2Sub(varString, "$clip(", ")$")
+		SplitInputTitleText(var_temp, var_title, var_text)
+		var_temp 	= $clip(%var_temp%)$
+		; varString 	:= 
+		StringReplaceAll(varString, var_temp, "%tempclipboard1%")
+		
+		AddString(var_before, "	", true)
+			var_temp = tempclipboard1 := MyInput(%var_title%,%var_text%, clipboard)
+			AddString(var_before, var_temp, false) 
+	}
+
+	;; 处理$input$
+	ifinstring varString, $input$
+	{ 
+		; varString := 
+		StringReplaceAll(varString, "$input$", "%varInputbox%")
+		AddString(var_before, "	inputbox,varInputbox,输入,请输入变量...,,360,120", true)
+	}
+	
+	;; 处理$input(title; text; default)$
+	loop 50
+	{
+		ifnotinstring varString, $input(
+		{
+			break
+		}
+		ifnotinstring varString, )$
+		{
+			break
+		}
+		var_temp 	:= StrMid2Sub(varString, "$input(", ")$")
+		var_default := SplitInputTitleText(var_temp, var_title, var_text)
+		
+		var_temp 		= $input(%var_temp%)$
+		var_replace 		= `%varInputbox%a_index%`%
+		;varString 		:= 
+		StringReplaceAll(varString, var_temp, var_replace)
+		
+		var_temp 		= varInputbox%a_index% := MyInput(%var_title%,%var_text%, %var_default%)
+		AddString(var_before, "	", true) 
+			AddString(var_before, var_temp, false) 
+			
+	}
+
+	;; 如果var_before不为空, 则说明形参varString中包含$clip$, $input$, 
+	;; $clip(title; text)$或 $input(title, text, default)$, 即对传入的参数varString作了修改
+	if var_before <>
+	{
+		varString = varTemp = %varString%
+		AddString(varString, "	sendbyclip(varTemp)", true)
+		varString = `r`n`tsleep 200 %var_before%`r`n`t%varString%
+		return true 
+	}
+	return false
+}
+
+
+/*
+StringReplace_input_old(varString)
+{
+	varTemp:=varString
+	varReturn =
+
+	StringGetPos, posVar, varString, $input$
+	if not errorlevel
+	{ 
+	StringReplace, varTemp, varTemp, $input$, `%varInputbox`%, All
+	varReturn = sleep 200`r`n`tinputbox`,varInputbox`,输入`,请输入变量...`,`,360`,120`r`n`t
+	}
+
+	StringGetPos, posVar, varString, $input1$
+	if not errorlevel
+	{ 
+	StringReplace, varTemp, varTemp, $input1$, `%varInputbox1`%, All
+	varReturn = %varReturn%sleep 100`r`n`tinputbox`,varInputbox1`,输入`,请输入变量1...`,`,360`,120`r`n`t
+	}
+
+	StringGetPos, posVar, varString, $input2$
+	if not errorlevel
+	{ 
+	StringReplace, varTemp, varTemp, $input2$, `%varinputbox2`%, All
+	varReturn = %varReturn%sleep 100`r`n`tinputbox`,varinputbox2`,输入`,请输入变量1...`,`,360`,120`r`n`t
+	}
+	StringGetPos, posVar, varString, $clip$
+	if not errorlevel
+	{ 
+	varReturn = %varReturn%tempclipboard:=clipboard`r`n`toldclipboard=`%ClipboardAll`%`r`n`tvarstring=%varTemp%`r`n`tStringGetPos, posVar, varString, $clip$`r`n`tif not errorlevel`r`n`t{ `r`n`tsleep 200`r`n`tInputBox, tempclipboard, 剪贴板, 可以修改剪贴板的内容,,,120,,,,,`%clipboard`%`r`n`tStringReplace, varString, varString, $clip$, `%tempclipboard`%, All`r`n`t}`r`n`tclipboard:=varString`r`n`tsleep 200`r`n`tsendevent`,^v`r`n`tClipboard = `%oldclipboard`%
+      }
+	else
+	{
+	varReturn = %varReturn%tempclipboard:=clipboard`r`n`toldclipboard=`%ClipboardAll`%`r`n`tclipboard=%varTemp%`r`n`tsleep 200`r`n`tsendevent`,^v`r`n`tClipboard = `%oldclipboard`%
+	}
+
+	; 段落后面加上 return
+	varReturn = %varReturn%`r`n`treturn `;END`r`n
+	return varReturn
+}
+*/

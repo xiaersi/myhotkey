@@ -1,0 +1,215 @@
+#ifwinactive
+#SingleInstance ignore
+;#include .\inc\functions.aik
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 	VC++2005.net
+#ifwinactive ahk_class wndclass_desked_gsk,MsoDockTop
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+#include .\AWin\VC\vcCommon.aik
+
+
+	
+#!f5::			;; 重新加载VS2005.ahk
+	tooltip 重新加载VS2005.ahk 
+	sleep 600
+	Reload
+	Return
+	
+::;f::	;; 全屏
+	send !+{enter}
+	return
+f4::	;查看解决方案窗口
+;	send ^!L
+	send ^w^s
+	return
+	
+#F8::	; 用EmEditor打开当前编辑的文件
+	ToolTip5("用EmEditor打开当前编辑的文件")
+	var_oldclip := Clipboard
+	Clipboard = 
+	Sleep 200
+	MouseClick Right
+	Sleep 200
+	Send f
+	Sleep 200
+#!f8::	; 用EmEditor打开复制在剪贴板中的文件
+	SplitPath Clipboard, OutFileName, OutDir, OutExtension, OutNameNoExt, OutDrive
+	if  (OutDir <> "" and OutExtension <> "")
+	{
+		iniread var_read, launchy.ini, file, emedit
+		var_emedit := substr(var_read,2)
+		run %var_emedit% `"%Clipboard%`"
+	}
+	Clipboard := var_oldclip
+	Return
+	
+~f4 & 1::
+#1::
+	send !vn1
+	return
+
+~f4 & 2::
+#2::
+	send ^w^e
+	return
+
+~f4 & 3::
+~f4 & 4::
+#3::
+	send ^w^o
+	return
+
+
+#4::
+	send ^w^s
+	return
+
+~f4 & 5::
+#5::
+	send ^w^c
+	return
+
+~f4 & 6::
+#6::
+	send ^w^p
+	return
+
+
+~f4 & rbutton::
+	send {rbutton}jr
+	return
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 全局搜索选中的文本
+#!f::
+	;oldclip := clipboard
+	;clipboard =
+	;send {ctrl down}c{ctrl up}
+	;sleep 100
+	send {ctrl down}{shift down}f{shift up}{ctrl up}
+	winwait 查找和替换 ahk_class VBFloatingPalette, , 4
+	if not ErrorLevel
+	{
+		sleep 100
+		;send {ctrl down}v{ctrl up}
+		;sleep 200
+	    send {tab}{pgup}{down 2}{enter}
+	}
+	;clipboard := oldclip
+	return 
+
+<#!i::	; 为类的成员函数添加定义
+	send {AppsKey}ei
+	keywait alt,U T1
+	if not ErrorLevel	; 1秒之内松开Alt, 将返回定义类的头文件,以便添加下一个成员函数的定义
+	{
+		send !o
+		sleep 100
+		send {down}
+	}
+	else
+	{
+		tooltip7("Alt+O 返回头文件") 
+	}
+	return
+	
+>#!c::	; 添加类的成员函数声明
+	send {AppsKey}ec
+	keywait alt,U T1
+	if not ErrorLevel	; 1秒之内松开Alt, 将返回源文件
+	{
+		send !o
+	}
+	else
+	{
+		tooltip7("Alt+O 返回源文件") 
+	}
+	return
+	
+;F1::
+;	IfWinNotExist ahk_class wndclass_desked_gsk, MSDN Online
+;	{
+;		run "C:\Program Files\Common Files\Microsoft Shared\Help 8\dexplore.exe" /helpcol ms-help://MS.MSDNQTR.v80.chs  /LaunchNamedUrlTopic DefaultPage
+;		WinWait ahk_class wndclass_desked_gsk, MSDN Online, 5
+;	}
+;
+;	IfWinExist ahk_class wndclass_desked_gsk, MSDN Online
+;	{
+;		Clipboard =
+;		Sleep 100
+;		send ^c
+;		ClipWait
+;		WinActivate ahk_class wndclass_desked_gsk, MSDN Online
+;		Sleep 200
+;		ControlSetText Edit1, %Clipboard%
+;		send {enter}
+;	}
+;	Return
+
+;;..帮助提示....................................
+#!/::
+	var_help =
+	var_help = %var_help%`n<#!i  >#!c`t生成成员函数的定义体/声明,并返回
+	var_help = %var_help%`n#1~3`t`t激活窗口(查找/错误/输出)
+	var_help = %var_help%`n#4  F4`t`t激活解决方案窗口
+	var_help = %var_help%`n#5~6`t`t激活窗口(类视图/属性)
+	var_help = %var_help%`n^.  != `t`t在行尾添加标点
+	var_help = %var_help%`n//add //end //del...`t添加特殊注释
+	var_help = %var_help%`n//endnamespace`t//switch  //fun
+	talkshow(var_help,"AHK - VS2005 - share")
+	return
+
+; 在VC中,查找和替换窗口
+#ifwinactive 查找和替换 ahk_class VBFloatingPalette, MsoDockTop
+f1::
+	controlclick x79 y35,A
+	sleep 100
+	controlFocus Edit3, A
+	send {pgup}
+	return 
+f2::
+	controlclick x79 y35,A
+	sleep 100
+	controlFocus Edit3, A
+	send {pgup}{down}
+	return 
+f3::
+	controlclick x79 y35,A
+	sleep 100
+	controlFocus Edit3, A
+	send {pgup}{down 2}
+	return 
+f4::
+	controlclick x79 y35,A
+	sleep 100
+	controlFocus Edit3, A
+	send {pgup}{down 3}
+	return 
+
+
+f5::
+	controlclick x171 y35,A
+	sleep 100
+	controlFocus ComboBox8, A
+	send {pgup}
+	return 
+f6::
+	controlclick x171 y35,A
+	sleep 100
+	controlFocus ComboBox8, A
+	send {pgup}{down}
+	return 
+f7::
+	controlclick x171 y35,A
+	sleep 100
+	controlFocus ComboBox8, A
+	send {pgup}{down 2}
+	return 
+f8::
+	controlclick x171 y35,A
+	sleep 100
+	controlFocus ComboBox8, A
+	send {pgup}{down 3}
+	return 
+#ifwinactive
+

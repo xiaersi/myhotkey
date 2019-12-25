@@ -1,0 +1,717 @@
+/**
+ *@file    xhotstring.aik
+ *@author  teshorse
+ *@date    2012.03.19
+ *@brief   用于管理myhotstring（飞扬个性输入）对应的xml文档
+ *
+ * 层次关系：
+ * <root><word><item><case>
+ * word name:  <root><word><key>
+ * item value: <root><word><item><text>
+ * item @TYPE: <root><word><item @TYPE>   ;; item的TYPE属性： 1:纯文本； 2:飞扬命令串； 3:xml命令串
+ * wintitle:   <root><word><item><case>
+ * @endchar:   <root><word><item><case ENDCHAR=2 >
+ * @winflag:   <root><word><item><case WINFLAG=1 >
+ *
+ * 变量说明：
+ * - wintitle = _$AllWindow$_ 代表该HotString适用于所有窗口
+ * - winflag ( 0:无 1:IfWinActive 2:IfWinExist -1:IfWinNotActive  -2:IfWinNotExist )
+ * - endchar ( 输入单词的结束符，用二进制位代表不同结束符, 0001=空格 0010=回车 0100=Tab键 )
+ */
+
+
+#Include ./inc/xml/xpath.aik
+#Include ./inc/Array.aik
+#include ./inc/common.aik
+#Include ./inc/string.aik
+
+LoadXString( ByRef _doc_, src_="" )
+{
+	if src_ =
+		src_ = XHotString.xml
+
+	;; 如果src_文件不存在，则创建一个默认文件
+	IfNotExist %src_%
+	{
+		FileAppend,
+(
+<?xml version="1.0" encoding="iso-8859-1"?>
+<root>
+	<_book>HotXString</_book>
+	<_cancel>{Escape}</_cancel>
+	<_autocomplete>{Escape},{Tab},{Enter},{Space},{,},{.},{;},{:},{Left},{Right}</_autocomplete>
+	<_ignore>{Tab},{Enter},{Space},;</_ignore>
+</root>
+<HotXString>
+    <word>
+	    <key>teshorse</key>
+	    <item TYPE="1">
+		    <text>http://blog.csdn.net/teshorse</text>
+	    </item>
+	    <item TYPE="1">
+		    <text>teshorse@gmail.com</text>
+		    <case ENDCHAR="1" WINFLAG="2">_$AllWindow$_</case>
+	    </item>
+    </word>
+    <word>
+	    <key>msn</key>
+	    <item>
+		    <text>teshorse@hotmail.com</text>
+	    </item>
+    </word>
+</HotXString>
+
+), %src_%
+	}
+	ret := xpath_load( _doc_, src_ )
+	GetXWordList( _doc_, true )
+	GetXCancelChars( _doc_, true )
+	GetXIgnoreChars( _doc_, true )
+	GetXAutocompleteChars( _doc_, true )
+	return ret
+}
+
+
+SaveXString( ByRef _doc_, src_="" )
+{
+	if src_ =
+		src_ = XHotString.xml
+
+	Return xpath_save( _doc_, src_ )
+}
+
+
+AddXString( ByRef _doc_, word_, item_, case_="", bAsk=True  )
+{
+;	Local step, n
+;	local title, winflag, endchar, ahkclass, itemtype
+
+	if word_ =
+		return false
+
+	if item_ =
+		return false
+
+	;; 分解case_条件
+	SplitXStringCase( case_, itemtype, endchar, winflag, ahkclass, title )
+
+	if title=
+		title = _$AllWindow$_
+
+	;; 检查 指定word_->item_是否存在，不存在则新建之
+	step = /HotXString/word[key=`"%word_%`"]/item[text=`"%item_%`"]/count()
+	if xpath( _doc_, step )<= 0
+	{
+		step = /HotXString/word[key=`"%word_%`"]/count()
+		if xpath( _doc_, step ) <= 0
+		{
+			step = /HotXString/word[+1]/key[+1]/text()
+			xpath( _doc_, step,  word_)
+            GetXWordList( _doc_, true )     ;; 更新所有的WordList
+		}
+		step = /HotXString/word[key=`"%word_%`"]/item[+1]/text[+1]/text()
+		xpath( _doc_, step,  item_)
+		if ( endchar=="" && winflag=="" && ahkclass == "" && title == "")
+		{
+			if itemtype <>
+			{
+				step = /HotXString/word[key=`"%word_%`"]/item[text=%item_%]/@TYPE/text()
+				xpath( _doc_, step, itemtype )
+			}
+			return true
+		}
+	}
+
+	;; 检查 指定word_->item_是否存在，不存在则新建失败，退出
+	step = /HotXString/word[key=`"%word_%`"]/item[text=`"%item_%`"]/count()
+	n := xpath( _doc_, step )
+	if n <= 0
+		return false
+
+	if n = 1
+	{
+		itemnode = /HotXString/word[key=`"%word_%`"]/item[text=`"%item_%`"]
+	}
+	Else
+	{
+		itemnode =
+
+		step = /HotXString/word[key=`"%word_%`"]/item/count()
+		n := xpath( _doc_, step )
+	}
+
+	;; 设置item
+	Loop %n%
+	{
+		if ( n > 1 || itemnode=="" )
+		{
+			itemnode = /HotXString/word[key=`"%word_%`"]/item[%A_Index%]
+
+			;; 检查当前item是否指定的item_
+			step = %itemnode%/text/text()
+			var_temp := xpath( _doc_, step )
+
+			if item_ <> %var_temp%
+				Continue ;; 跳过不同的item
+		}
+
+		;; 设置item @TYPE
+		if itemtype <>
+		{
+			step = %itemnode%/@TYPE/text()
+			var_temp := xpath( _doc_, step )
+			if var_temp =
+			{
+				xpath( _doc_, step, itemtype )
+			}
+			else if itemtype <> %var_temp%
+			{
+				var_prompt = 关键字[%word_%]当前item的@TYPE=%var_temp%，是否要更换为 %itemtype% ?
+				if YesNoBox( "更改item的TYPE属性", var_prompt )
+				{
+					xpath( _doc_, step, itemtype )
+				}
+			}
+		}
+
+		;; 查找并设置case_条件
+		step = %itemnode%/case/count()
+		nCase := xpath( _doc_, step )
+
+		;; 如果没有指定case条件，将删除现有的case_条件
+		if ( endchar=="" && winflag=="" && ahkclass == "" && title == "")
+		{
+			if nCase > 0
+			{
+				if bAsk
+				{
+					var_promt = 添加通用HotXString[%word_%]时，`n发现已经存在 %nCase% 条记录，`n若强制添加将会删除这些记录`n`n确定要继续添加 `"%word_%`" 吗？
+					MsgBox 4, 确认删除所有条件, %var_promt%
+					IfMsgBox No
+					{
+						Continue
+					}
+				}
+				;; 删除所有的case条件
+				Loop %nCase%
+				{
+					i := nCase - A_Index + 1
+					step = %itemnode%/case[%i%]/remove()
+					xpath( _doc_, step )
+				}
+			}
+			Continue
+		}
+		Else			;; 如果指定了case_条件，则修改case_条件
+		{
+			if nCase > 0
+			{
+				bFindWin := false
+				Loop %nCase%
+				{
+					i := nCase - A_Index + 1
+					;; 先检查窗口标题是否满足条件
+					step = %itemnode%/case[%i%]/text()
+					var_title := xpath( _doc_, step )
+					if ( var_title !="" && var_title !="_$AllWindow$_" && title != var_title )
+					{
+                        continue        ;; 窗口标题不满足条件，跳过此Case
+					}
+					;; 再检查窗口的ahk_class 是否满足条件
+					step = %itemnode%/case[%i%]/@AHKCLASS/text()
+					var_ahkclass := xpath( _doc_, step )
+					if ( var_ahkclass !="" && var_ahkclass != ahkclass )
+					{
+						continue        ;; 窗口的class不满足条件，跳过此Case
+					}
+
+					;; 至此，此case条件已经满足查询条件，直接修改此case之后属性之后即完成了AddXString操作
+					if endchar <>
+					{
+						step = %itemnode%/case[%i%]/@ENDCHAR/text()
+						var_endchar := xpath( _doc_, step )
+						var_endchar := bit_or( var_endchar, endchar )
+						xpath( _doc_, step, var_endchar )
+					}
+					if winflag <>
+					{
+						step = %itemnode%/case[%i%]/@WINFLAG/text()
+						xpath( _doc_, step, winflag )
+					}
+					bFindWin := True
+					Break
+				}
+				;; 如果指定窗口已经存在，则无须再添加一个case，直接修改本窗口所在case节点的属性
+				if bFindWin
+					Continue
+			}
+
+			;; 没有找到窗口对应的case，则新增一个case节点
+			step = %itemnode%/case[+1]/text()
+			xpath( _doc_, step, title )
+			nCase++
+			if ahkclass <>
+			{
+				step = %itemnode%/case[%nCase%]/@AHKCLASS/text()
+				xpath( _doc_, step, ahkclass )
+			}
+
+			if endchar <>
+			{
+				step = %itemnode%/case[%nCase%]/@ENDCHAR/text()
+				xpath( _doc_, step, endchar )
+			}
+			if winflag <>
+			{
+				step = %itemnode%/case[%nCase%]/@WINFLAG/text()
+				xpath( _doc_, step, winflag )
+			}
+		}
+	}
+	return true
+}
+
+
+
+DelXString( ByRef _doc_, word_, item_="", case_="" )
+{
+	local step, n
+	;; 检查word_是否存在，不存在是返回true
+	step = /HotXString/word[key=`"%word_%`"]/count()
+	if xpath( _doc_, step )<= 0
+		return true
+
+	;; 如果item_为空，则表示要删除word_下的所有item
+	if item_=
+	{
+
+        GetXWordList( _doc_, true )     ;; 更新Word列表
+	}
+	;; 检查word_中的item_是否存在，不存在则返回true (无需再删除)
+	step = /HotXString/word[key=`"%word_%`"]/item[text=`"%item_%`"]/count()
+	n := xpath( _doc_, step )<= 0
+	if n <= 0
+		return true
+
+}
+
+
+ModXString( ByRef _doc_, word_, item_, newitem_, wintitle_="", winflag_="", endchar_="" )
+{
+
+}
+
+;; 假设word_下的item_已经存在，判断该item是否满足case_指定的条件
+IsValidItem( ByRef _doc_, word_, item_, case_="", bCheckWindow=false )
+{
+	if case_ =
+		return true
+
+	SplitXStringCase( case_, itemtype, endchar, winflag, ahkclass, title )
+
+	itemnode = /HotXString/word[key=`"%word_%`"]/item[`"%item_%`"]
+
+	;; 检查item type是否符合要求
+	if itemtype <>
+	{
+		step = %itemnode%/@TYPE/text()
+		var_temp := xpath( _doc_, step )
+		if var_temp <>
+		{
+			if itemtype <> %var_temp%
+				return false
+		}
+		else ;; if @TYPE = ; 即item节点没有指明TYPE属性，则默认为1：TXT
+		{
+			if itemtype <> 1
+				return false
+		}
+	}
+
+
+	step = %itemnode%/case/count()
+	n := xpath( _doc_, step )
+	if n=0
+		return true
+
+	;; 遍历item的各case节点，检查是否满足条件
+	bFind := false
+	loop %n%
+	{
+        wintitle=                       ;; 当前case指定的窗口标题
+		var_winflag=
+		var_title=
+		var_ahkclass=
+
+		step = %itemnode%/case[%A_Index%]/@WINFLAG/Text()
+		var_winflag := xpath( _doc_, step )
+
+		step = %itemnode%/case[%A_Index%]/Text()
+		var_title := xpath( _doc_, step )
+
+		step = %itemnode%/case[%A_Index%]/@AHKCLASS/Text()
+		var_ahkclass := xpath( _doc_, step )
+
+		;; 获得当前case指定的窗口标题
+		if ( var_title !="" && var_title !=  "_$AllWindow$_" )
+		{
+			wintitle := var_title
+		}
+		if var_ahkclass <>
+		{
+			wintitle = %wintitle% ahk_class %var_ahkclass%
+		}
+
+		if var_winflag <>
+		{
+			;; 检查是否满足排除条件 当var_winflag < 0 时是排除条件, 会影响item下其他的case
+			if ( bCheckWindow && wintitle !="" )
+			{
+                if var_winflag = -2     ;; 当IfNotWinExist wintitle不成立时，整个item失效
+				{
+					IfWinExist %wintitle%
+						return false
+				}
+				else if var_winflag = -1 ;; 当IfNotWinActive wintitle不成立时，整个item失效
+				{
+					IfWinActive %wintitle%
+						Return false
+				}
+			}
+
+			if ( winflag != "" && winflag != var_winflag )
+				Continue
+		}
+
+		if ( var_title !="" && var_title !=  "_$AllWindow$_" )
+		{
+			wintitle := var_title
+			if ( title !="" && title != "_$AllWindow$_" )
+			{
+				if title <> %var_title%
+					Continue
+			}
+		}
+
+		if var_ahkclass <>
+		{
+			wintitle = %wintitle% ahk_class %var_ahkclass%
+			if ( ahkclass != "" && ahkclass != var_ahkclass )
+			{
+				Continue
+			}
+		}
+
+		if endchar <>
+		{
+			step = %itemnode%/case[%A_Index%]/@ENDCHAR/Text()
+			var_temp := xpath( _doc_, step )
+			if var_temp <>
+			{
+				if not bit_and( var_temp, endchar )
+					Continue
+			}
+		}
+
+		;; 能够运行至此，表明此case已经满足条件
+		if not bCheckWindow
+			return true
+		else
+			bFind := true ;; bCheckWindow=true时，需要继续检查item能否满足窗口排除条件
+	}
+
+	return bFind
+}
+
+FindXString( ByRef _doc_, word_, item_="", case_="", bCheckWindow=false )
+{
+	;; 在指定了item_的情况下
+	if item_<>
+	{
+		itemnode = /HotXString/word[key=`"%word_%`"]/item[text=`"%item_%`"]
+		step = %itemnode%/count()
+		if xpath( _doc_, step )
+		{
+			;; item无过滤条件
+			if case_=
+				return true
+
+			var_item = text=`"%item_%`"
+			Return IsValidItem( _doc_, word_, var_item, case_, bCheckWindow )
+		}
+		return false
+	}
+
+	;; 在没有指定 item_ 的情况下，即 item_==""
+	step = /HotXString/word[key=`"%word_%`"]/item/count()
+	m := xpath( _doc_, step )
+	if m <= 0
+		return false
+	else if case_=                          ;; item无过滤条件
+		return true
+
+	;; 遍历各word下item
+	loop %m%
+	{
+		itemnode = /HotXString/word[key=`"%word_%`"]/item[%A_Index%]
+
+		;; item是否有触发条件
+		step = %itemnode%/case/count()
+		n := xpath( _doc_, step )
+		if n=0
+			return true
+
+		if IsValidItem( _doc_, word_, A_Index, case_, bCheckWindow )
+			return true
+	}
+	return False
+}
+
+GetXString( ByRef _doc_, _reArray_, word_, item_="", case_="" )
+{
+	local var_temp, var_item, var_title, var_winflag, var_endchar, var_ahkclass, var_itemtype
+	local itemnode, itemtype, title, winflag, endchar, ahkclass
+	local step, m, n, bCase  ;; bCase 检查item是否满足case_条件
+
+	if _reArray_ =
+		_reArray_ = TempArray
+
+	if FindXString( _doc_, word_, item_, case_, true )
+	{
+		ClearArray( _reArray_ )
+
+		;; word_下有多少个item，若为0个，则返回0
+		step = /HotXString/word[key=`"%word_%`"]/item/count()
+		m := xpath( _doc_, step )
+		if m <= 0
+			return 0
+
+		;; 分解case_条件
+		SplitXStringCase( case_, itemtype, endchar, winflag, ahkclass, title )
+
+		;; 遍历各word下item
+		loop %m%
+		{
+			itemnode = /HotXString/word[key=`"%word_%`"]/item[%A_Index%]
+
+			;; 检查item的text内容是否满足条件
+			var_text=
+			step = %itemnode%/text/text()
+			var_text := xpath( _doc_, step )
+			if var_text =
+				Continue
+
+			StringReplace, var_text, var_text, &#44;, `, , All
+			if item_ <>
+			{
+				if item_ <> %var_text%
+					Continue          ;; 不满足 item_ 条件，跳过当前item节点
+			}
+
+			;; 检查item @Type 是否符合条件
+			step = %itemnode%/@TYPE/text()
+			var_itemtype := xpath( _doc_, step )
+			if ( itemtype != "" && var_itemtype!="" )
+			{
+				if itemtype <> %var_itemtype%
+					Continue
+			}
+
+			;;
+			bCase := true 				;; 先假定本item节点满足case_条件
+			var_title =
+			var_winflag=
+			var_endchar=
+			var_ahkclass=
+
+			;; 遍历item的各case节点，检查是否满足条件
+			step = %itemnode%/case/count()
+			n := xpath( _doc_, step )
+
+			loop %n%
+			{
+				bCase := true 				;; 先假定本item节点满足case_条件
+				var_title =
+				var_winflag=
+				var_endchar=
+				var_ahkclass=
+
+				if title <>
+				{
+					step = %itemnode%/case[%A_Index%]/Text()
+					var_title := xpath( _doc_, step )
+
+					if ( var_title !="" && var_title !="_$AllWindow$_" )
+					{
+					;	msgbox var_title = %var_title%`n`n不满足条件！
+						if title <> %var_title%
+						{
+							bCase := False
+							Continue
+						}
+					}
+
+				;	msgbox var_title = %var_title%`n`ntitle ok!
+				}
+				if ahkclass <>
+				{
+					step = %itemnode%/case[%A_Index%]/@AHKCLASS/Text()
+					var_ahkclass := xpath( _doc_, step )
+					if var_ahkclass <>
+					{
+						if ahkclass <> %var_ahkclass%
+							continue
+					}
+				}
+				if winflag <>
+				{
+					step = %itemnode%/case[%A_Index%]/@WINFLAG/Text()
+					var_winflag := xpath( _doc_, step )
+
+					if var_winflag <>
+					{
+						if winflag <> %var_winflag%
+						{
+							bCase := False
+							Continue
+						}
+					}
+				}
+				if endchar <>
+				{
+					step = %itemnode%/case[%A_Index%]/@ENDCHAR/text()
+					var_endchar := xpath( _doc_, step )
+					if var_endchar <>
+					{
+						if not bit_and( var_endchar, endchar )
+						{
+							bCase := False
+							Continue
+						}
+					}
+				}
+			}
+
+			;; 如果本item满足查询条件，则将本item内容添加到_reArray_数组返回
+			if bCase
+			{
+				;; 将case条件拼接成以|分隔的字符串，如：ENDCHAR:2|WINFLAG:1|WinTitle:无标题
+				var_temp := JoinXStringCase( var_itemtype, var_endchar, var_winflag, var_ahkclass, var_title )
+
+				;; 将case条件与item的text内容连接成一个字符串，以换行符`n作为连接字符
+				var_item = %var_temp%`n%var_text%
+
+				;; 将拼接好的字符串添加到数组之中
+				AppendArray( _reArray_, var_item )
+			}
+		}
+	}
+	;; 返回找到的item个数
+	var_temp := %_reArray_%0
+	return var_temp
+}
+
+;; 分解case_条件
+SplitXStringCase( case_, byref _itemtype_, byref _endchar_, ByRef _winflag_, ByRef _ahkclass_, ByRef _wintitle_ )
+{
+	_wintitle_=
+	_winflag_=
+	_endchar_=
+	_ahkclass_=
+	_itemtype_ =
+
+	loop parse, case_, |
+	{
+		if a_loopfield =
+			continue
+
+		if InStr( a_loopfield, "WinTitle:" )
+		{
+			_wintitle_ := SubStr( a_loopfield, 10 )
+		}
+		else if InStr( a_loopfield, "WinFlag:" )
+		{
+			_winflag_ := SubStr( a_loopfield, 9 )
+		}
+		else if InStr( a_loopfield, "EndChar:" )
+		{
+			_endchar_ := SubStr( a_loopfield, 9 )
+		}
+		else if Instr( a_loopfield, "AhkClass:" )
+		{
+			_ahkclass_ := SubStr( a_loopfield, 10 )
+		}
+		else if Instr( a_loopfield, "ItemType:" )
+		{
+			_itemtype_ := SubStr( a_loopfield, 10 )
+		}
+	}
+}
+
+;; 将case条件拼接成以|分隔的字符串，返回值如：ItemType:0|ENDCHAR:2|WINFLAG:1|WinTitle:无标题
+JoinXStringCase( itemtype_, endchar_, winflag_, ahkclass_, wintitle_ )
+{
+	var_ret=
+	if itemtype_<>
+		StrListAdd( var_ret,"ItemType:" . itemtype_, "|" )
+
+	if endchar_ <>
+		StrListAdd( var_ret,"EndChar:" . endchar_, "|" )
+
+	if winflag_ <>
+		StrListAdd( var_ret, "WinFlag:" . winflag_, "|" )
+
+	if ahkclass_ <>
+		StrListAdd( var_ret, "AhkClass:" . ahkclass_, "|" )
+
+	if wintitle_ <>
+		StrListAdd( var_ret, "WinTitle:" . wintitle_, "|" )
+
+	return var_ret
+}
+
+
+GetXCancelChars( ByRef _doc_, bForce=false )
+{
+	global g_XString_cancellist
+	if ( bForce || g_XString_cancellist=="" )
+	{
+		var_temp := xpath( _doc_, "/root/_cancel/text()" )
+		StringReplace g_XString_cancellist, var_temp, &#44`;, `,, all
+	}
+	return g_XString_cancellist
+}
+
+GetXIgnoreChars( ByRef _doc_, bForce=false )
+{
+	global g_XString_ignorelist
+	if ( bForce || g_XString_ignorelist=="" )
+	{
+		var_temp := xpath( _doc_, "/root/_ignore/text()" )
+		StringReplace g_XString_ignorelist, var_temp, &#44`;, `,, all
+	}
+	return g_XString_ignorelist
+}
+
+GetXAutocompleteChars( ByRef _doc_, bForce=false )
+{
+	global g_XString_autocomplete
+	if ( bForce || g_XString_autocomplete=="" )
+	{
+		var_temp := xpath( _doc_, "/root/_autocomplete/text()" )
+		StringReplace g_XString_autocomplete, var_temp, &#44`;, `,, all
+	}
+	return g_XString_autocomplete
+}
+
+;; 返回_doc_中所有的word列表 g_XString_wordlist
+GetXWordList( ByRef _doc_, bForce=false )
+{
+	global g_XString_wordlist
+	if ( bForce || g_XString_wordlist=="" )
+	{
+		var_temp := xpath( _doc_, "/HotXString/word/key/text()" )
+		StringReplace g_XString_wordlist, var_temp, &#44`;, `,, all
+	}
+	return g_XString_wordlist
+}

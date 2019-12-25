@@ -1,0 +1,115 @@
+; Winword 窗口中，pageup,pagedown分别上下滚动
+;#include .\inc\functions.aik
+var_wheelnum =3
+bool_AutoTransparent_smallwindow :=false
+;title_AutoTransparent = ahk_class OpusApp
+;text_AutoTransparent  = MsoDockTop
+title_AutoTransparent = ahk_class Framework::CFrame
+text_AutoTransparent  = 整页视图
+bool_AutoTransparent_alwaystop := true
+var_tooltip = 活动窗口
+
+窗口变小时自动置顶和透明:
+	;	tooltip Word窗口变小时自动置顶和透明
+	ifwinexist %title_AutoTransparent%,%text_AutoTransparent%
+	{
+		WinGetPos var_x,var_y,var_width,var_height ,%title_AutoTransparent%,%text_AutoTransparent%
+		if (var_width<700 and var_height<350) 
+			bool_AutoTransparent_smallwindow :=true
+		else
+			bool_AutoTransparent_smallwindow :=false
+		if bool_AutoTransparent_smallwindow
+		{
+			SetWin_Top_autoTransparent(title_AutoTransparent,text_AutoTransparent)
+		}
+		else
+		{
+			SetTimer, 窗口变小时自动置顶和透明, Off
+			tooltip 
+		}
+	 	winGetPos,var_x,var_y,var_width,var_height,A
+		tooltip %var_tooltip%,var_width*0.5-10,0
+	}
+	else
+	{
+		SetTimer, 窗口变小时自动置顶和透明, Off
+		tooltip 
+	}
+return
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; OneNote 窗口
+#ifwinactive ahk_class Framework::CFrame,MsoDockTop
+;,整页视图  ;MsoDockTop
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+::;reload::
+	reload
+	return
+
+;f12::   ;用来切换大窗口与小窗口
+;	send {f11}
+; 	winGetPos,var_x,var_y,var_width,var_height,ahk_class Framework::CFrame,MsoDockTop
+;	if (var_height<=300)
+;	{
+;	bool_AutoTransparent_smallwindow :=false
+;	SetTimer, 窗口变小时自动置顶和透明, off
+;	WinSet, Transparent, Off, ahk_class Framework::CFrame,MsoDockTop
+;	winmove, ahk_class Framework::CFrame,MsoDockTop,0,0,A_ScreenWidth,A_ScreenHeight-32
+;	return	
+;	}
+;	bool_AutoTransparent_smallwindow :=true
+;	winmove, ahk_class Framework::CFrame,MsoDockTop,A_ScreenWidth-650-20,A_ScreenHeight-280,650,250
+;;	winset,AlwaysOnTop,on, ahk_class Framework::CFrame ,MsoDockTop
+;;	WinSet, Transparent, 180, ahk_class Framework::CFrame ,MsoDockTop
+;	WinGetTitle title_AutoTransparent,A
+;	text_AutoTransparent = MsoDockTop
+;	bool_AutoTransparent_alwaystop := false
+;	SetTimer, 窗口变小时自动置顶和透明, 500
+;
+;	click 53,40
+;	return 
+;
+;#ifwinactive  ahk_class OpusApp,MsoDockTop
+
+
+sc07b & =::	;最大化
+>!=::
+	var_wheelnum = 3
+ 	bool_AutoTransparent_smallwindow :=false
+	tooltip
+	SetTimer, 窗口变小时自动置顶和透明, Off
+	winset,AlwaysOnTop,off,A
+	WinSet, Transparent, Off,
+;	winGetPos,var_x,var_y,var_width,var_height,A
+	WinGet, ExStyle, ExStyle, A
+	if not (ExStyle & 0x1000000) 
+		WinMaximize, A
+	sleep 500
+;	if not (var_width>650 and var_height>350)
+;		winmove, A,,0,0,A_ScreenWidth,A_ScreenHeight-35
+	return
+
+sc07b & -::
+>!-::
+	var_wheelnum = 1
+	bool_AutoTransparent_smallwindow :=true
+ 	winGetPos,var_x,var_y,var_width,var_height,A
+	winset,AlwaysOnTop,on,A
+  WinRestore , A
+	sleep 500
+	if not(var_width<650 and var_height<350)
+	{
+		winmove, A,,A_ScreenWidth-650-20,A_ScreenHeight-330,645,300
+		WinSet, Transparent, 200, A
+		click 617,265
+		click 617,265
+		MouseMove 200,165
+	}
+	WinGetTitle title_AutoTransparent,A
+	wingettext text_AutoTransparent, A
+	text_AutoTransparent = MsoDockTop
+
+	bool_AutoTransparent_alwaystop := true
+	var_tooltip = 活动窗口
+	SetTimer, 窗口变小时自动置顶和透明, 500
+	return
+#ifwinactive

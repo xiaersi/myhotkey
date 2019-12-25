@@ -1,0 +1,208 @@
+
+#include auto_baseline_menu.aik
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; UI创建
+【创建窗口】:
+;; 全局变量定义
+
+ReadProjectInfo(_project)
+_buildnum_total := 0	;; 项目sit build次数
+_buildnum_uat := 0		;; 项目uat build次数
+last_project =			;; 上一个项目
+last_product =			;; 上一个产品
+IniRead, _project, %g_inifile%, ., PROJECT_LIST,%A_Space%
+IniRead, last_project, %g_inifile%,. , LAST_PROJECT,%A_Space%
+IniRead, g_sit_path,  %g_inifile%,. , SIT_PATH, tags/1-sit
+IniRead, g_warsit_path,  %g_inifile%,. , WAR_SIT_PATH, 0-sit
+IniRead, g_uat_path,  %g_inifile%,. , UAT_PATH, tags/2-uat
+IniRead, g_waruat_path,  %g_inifile%,. , WAR_UAT_PATH, 1-uat
+
+IniRead, g_trunk_path,  %g_inifile%,. , TRUNK_PATH, trunk
+if last_project <>
+{
+	IniRead, _product, %g_inifile%, %last_project%, PRODUCT_LIST,%A_Space%
+	IniRead, last_product, %g_inifile%, %last_project%, LAST_PRODUCT,%A_Space%
+}
+winDy := 95
+winDx := 80
+yButton := 280 + winDy
+
+Gui, Menu, MyMenuBar
+
+;;---项目信息----------------------------------------------------------------
+;Gui, Add, Text, x12 y12 w28 h20 , 项目
+Gui, Add, DropDownList, x12 y10 w130 h20 r8 v_project g【项目】, %_project%
+Gui, Add, Button, x142 y10 w20 h20 g【添加项目】, +
+
+
+Gui, Add, Text, x12 y42 w25 h20 right, 模板
+Gui, Add, Edit, x42 y40 w120 h20  v_project_patten, -
+
+
+Gui, Add, Text, x12 y72 w55 h20 right, SIT 次数
+Gui, Add, Edit, x72 y70 w70 h20  v_buildnum_total, 0
+Gui, Add, Button, x142 y70 w20 h20 g【增加项目Build总数】, +
+
+Gui, Add, Text, x12 y102 w55 h20 right, UAT 次数
+Gui, Add, Edit, x72 y98 w70 h20  v_buildnum_uat, 0
+Gui, Add, Button, x142 y98 w20 h20 g【增加项目UATBuild总数】, +
+
+
+Gui, Add, Text, x12 y132 w55 h20 right, TRUNK次数
+Gui, Add, Edit, x72 y128 w70 h20  v_buildnum_thunk, 0
+Gui, Add, Button, x142 y128 w20 h20 g【增加项目ThunkBuild总数】, +
+
+;;---产品信息----------------------------------------------------------------
+Gui, Add, Text, x182 y12 w50 h20 , 产品模块
+Gui, Add, DropDownList, x232 y10 w100 r8 h20 v_product g【产品模块】, %_product%
+Gui, Add, Button, x332 y10 w20 h20 g【添加产品模块】, +
+
+Gui, Add, Text, x362 y12 w50 h20 , Patten
+Gui, Add, Edit, x402 y10 w100 h20 v_patten g【patten】, 
+
+Gui, Add, Text, x512 y12 w40 h20 , Build
+Gui, Add, Edit, x545 y10 w40 h20 v_buildnum g【BuildNum】, %_buildnum%
+Gui, Add, Button, x585 y10 w20 h20 g【增加Build次数】, +
+
+
+Gui, Add, Text, x182 y42 w50 h20 , war路径
+w := 350 + winDx
+Gui, Add, Edit, x232 y40 w%w% h20 v_warpath, WarPath
+x := 585 + winDx
+Gui, Add, Button, x%x% y40 w20 h20 g【SVN浏览产品War包路径】, 开
+
+Gui, Add, Text, x182 y72 w50 h20 , 产品路径
+Gui, Add, Edit, x232 y70 w%w% h20 v_productpath, ProductPath
+Gui, Add, Button, x%x% y70 w20 h20 g【SVN浏览产品基线路径】, 开
+
+
+
+Gui, Add, Text, x182 y102 w50 h20 , 开发路径
+Gui, Add, Edit, x232 y100 w%w% h20 v_devpath, DevPath
+Gui, Add, Button, x%x% y100 w20 h20 g【SVN浏览产品开发路径】, 开
+
+Gui, Add, Text, x182 y132 w50 h20 right, FROM:
+Gui, Add, Edit, x232 y130 w%w% h20 v_frompath, 
+Gui, Add, Button, x%x% y130 w20 h20 g【SVN浏览产品SIT路径】, 开
+
+
+Gui, Add, Radio,x232 y160  v_radio_sit checked g【选择SIT基线路径】, SIT基线
+Gui, Add, Radio,x332 y160  v_radio_uat g【选择UAT基线路径】, UAT基线
+Gui, Add, Radio,x432 y160  v_radio_thunk g【选择THUNK基线路径】, TRUNK基线
+Gui, Add, Radio,x532 y160  v_radio_war g【选择WAR基线路径】, WAR包路径
+
+;;---系统模块----------------------------------------------------------------
+y := 72 + winDy
+Gui, Add, Text, x12 y%y% w55 h20 right, 系统模块:
+y := y - 2
+Gui, Add, Edit, x72 y%y% w90 h20 Disabled v_sysmodule, 
+y := y + 25
+Gui, Add, ListBox, x12 y%y% w150 h178 v_syslist g【系统模块】, 
+
+y := 95 + winDy
+w := 430 + winDx
+Gui, Add, GroupBox, x172 y%y% w%w% h178 cGray , 系统模块设置
+
+y := 124 + winDy
+Gui, Add, Text, x182 y%y% w50 h20 , 系统代号
+Gui, Add, Text, x382 y%y% w50 h20 , 系统名称
+y := y - 2
+Gui, Add, Edit, x232 y%y% w100 h20 v_SysKey,
+w := 160 + winDx
+Gui, Add, Edit, x432 y%y% w%w% h20 v_SysName, 
+
+y := 152 + winDy
+Gui, Add, Text, x182 y%y% w50 h20 , 开发路径
+y := y - 2
+w := 360 + winDx
+Gui, Add, Edit, x232 y%y% w%w% h20 v_sysDevPath, 
+
+y := 182 + winDy
+Gui, Add, Text, x182 y%y% w50 h20 , 基线路径
+y := y - 2
+Gui, Add, Edit, x232 y%y% w%w% h20 v_SysSitPath, 
+
+y := 212 + winDy
+Gui, Add, Text, x182 y%y% w50 h20 right, TO:
+y := y + 20
+Gui, Add, Button, x182 y%y% w48 h20 g【查看SVN日志】, SVN日志
+y := y - 22
+Gui, Add, Edit, x232 y%y% w%w% h50 Disabled Multi v_toPath g【完整路径事件】, 
+
+;;---按钮--------------------------------------------------------------------
+
+Gui, Add, Button, x12 y%yButton% w70 h30 g【关闭】, 退  出
+Gui, Add, Button, x90 y%yButton% w70 h30 g【保存配置】, 保  存
+
+Gui, Add, Button, x232 y%yButton% w100 h30 vCreateSysBaseLine g【当前系统基线】, 当前系统基线
+Gui, Add, Button, x342 y%yButton% w100 h30 vCopyProductBaseLine g【复制产品基线】, 复制产品基线
+Gui, Add, Button, x452 y%yButton% w100 h30 vNewProductBaseLine g【新建产品基线】, 新建产品基线
+Gui, Add, Button, x562 y%yButton% w80 h30  g【CopyTo】, CopyTo
+; Generated using SmartGUI Creator 4.0
+h := 320 + winDy
+w := 616 + winDx
+Gui, Show, x171 y284 h%h% w%w%, 自动基线设置
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 设置初始上一个项目和产品模块
+if last_project <>
+{
+	GuiControl, ChooseString, _project, %last_project%
+
+	gosub 【项目】
+
+;	IniRead, _buildnum_total, %g_inifile%, %last_project%, BUILD,%A_Space%
+;	GuiControl, , _buildnum_total, %_buildnum_total%
+
+;	IniRead, _buildnum_uat, %g_inifile%, %last_project%, UAT_BUILD,%A_Space%
+;	GuiControl, , _buildnum_uat, %_buildnum_uat%
+}
+
+/*
+if last_product <>
+{
+	GuiControl, ChooseString, _product, %last_product%
+	gosub 【产品模块】
+}
+*/
+Return
+
+【关闭】:
+GuiClose:
+ExitApp
+
+
+
+;;---响应右键消息------------------------------------------------------------
+GuiContextMenu:  ; Launched in response to a right-click or press of the Apps key.
+	if A_GuiControl = _syslist  ; Display the menu only for clicks inside the ListView.
+	{
+		Menu, SysListMenu, show
+	}
+	else if A_GuiControl = _topath  ; Display the menu only for clicks inside the ListView.
+	{
+		if _topath <>
+		{
+			Menu, FullPathMenu, show
+		}
+	}
+	return
+
+
+RemoveToolTip:
+SetTimer, RemoveToolTip, Off
+ToolTip
+return	
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 快捷键，快速填写基线邮件
+
+;; OutLook
+
+#ifwinactive ahk_class rctrl_renwnd32
+insert & b::
+	sendinput {raw} %_topath%
+	return
+#ifwinactive
+

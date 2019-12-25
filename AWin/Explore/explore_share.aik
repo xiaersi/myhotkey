@@ -1,0 +1,155 @@
+
+RegRead var_hideExt, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\, HideFileExt
+RegRead,var_hidden,  REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\, Hidden
+
+; EXAMPLE #2: This is a working script that creates a popup menu that is displayed when the user presses the Win-Z hotkey.
+
+; Create the popup menu by adding some items to it.
+Menu, MyMenu, Add, VIM(&V), MenuHandler             	;; 1
+Menu, MyMenu, Add, Emedit(&E), MenuHandler          	;; 2
+
+Menu, MyMenu, Add  ; Add a separator line.          	;; 3
+
+Menu, MyMenu, Add, 去掉只读属性(&R), MenuHandler    	;; 4
+Menu, MyMenu, Add, 显示隐藏扩展名(&X), MenuHandler  	;; 5
+Menu, MyMenu, Add, 显示隐藏系统文件(&S), MenuHandler	;; 6
+Menu, MyMenu, Add, 显示隐藏隐藏文件(&R), MenuHandler	;; 7
+
+Menu, MyMenu, Show  
+
+return
+
+
+
+MenuHandler:
+	if A_ThisMenuItemPos = 1
+	{
+		∑用VIM打开文件()
+	}
+	else if A_ThisMenuItemPos = 2
+	{
+		∑用EmEdit打开文件()
+	}
+	else if A_ThisMenuItemPos = 4
+	{
+		∑去掉只读属性()
+	}
+	else if A_ThisMenuItemPos = 5
+	{
+		∑显示隐藏扩展名()
+	}
+	else if A_ThisMenuItemPos = 6
+	{
+		∑显示隐藏系统文件()
+	}
+	else if A_ThisMenuItemPos = 7
+	{
+		∑显示隐藏隐藏文件()
+	}
+	exitapp
+	return
+
+
+
+∑显示隐藏扩展名()
+{
+	RegRead value, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\, HideFileExt
+	If value = 0
+	{
+		value = 1
+		tooltip %value% 隐藏已知扩展名
+	}
+	Else
+	{
+		value = 0
+		tooltip %value% 显示所有扩展名
+	}
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\, HideFileExt, %Value%
+	send +{F10}e
+	; 点击键盘上的 AppsKey ，弹出右键，选择“刷新(e)” 。
+	sleep 1000
+	tooltip	
+	return
+}
+
+∑显示隐藏隐藏文件()
+{
+	RegRead, value, REG_DWORD, HKEY_CURRENT_USER,Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\, Hidden
+	If(value=1)
+	{
+		value = 2
+		tooltip %value% 不显示隐藏文件
+	}
+	Else
+	{
+		value = 1
+		tooltip %value% 显示所有文件
+	}
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER,Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\, Hidden, %Value%
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER,Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\, ShowSuperHidden, %Value%-1
+	send +{F10}e
+	sleep 1000
+	tooltip	
+	return
+}
+
+∑显示隐藏系统文件()
+{
+	RegRead value, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\, Hidden
+	If value = 1
+	{
+		value = 2
+		tooltip %value% 隐藏系统文件
+	}
+	Else
+	{
+		value = 1
+		tooltip %value% 显示系统文件
+	}
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\, Hidden, %Value%
+	send +{F10}e
+	sleep 1000
+	tooltip
+	return
+}
+
+
+∑去掉只读属性()
+{
+	clipboard =
+	send ^c
+	clipwait 2
+	var_temp := clipboard
+	FileSetAttrib -R+A, %var_temp%
+	var_temp = %var_temp% `n 已经去掉只读属性
+	tooltip7(var_temp)
+}
+
+
+∑用EmEdit打开文件()
+{
+	clipboard =
+	sleep 200
+	send ^c
+	sleep 500
+	var_file = `"%clipboard%`"
+	if  var_file <> 
+	{
+		iniread var_read, launchy.ini, file, emedit
+		run %var_emedit% %var_file% 
+	}
+}
+
+∑用VIM打开文件()
+{
+	clipboard =
+	sleep 200
+	send ^c
+	sleep 500
+	var_file = `"%clipboard%`"
+	if  var_file <> 
+	{
+		iniread var_read, launchy.ini, file, vim
+		run %var_emedit% %var_file% 
+	} 
+}

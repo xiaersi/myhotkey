@@ -1,0 +1,40 @@
+/**
+ *@file 		ahkfile.aik
+ *@author	陈建平
+ *@date 		2010.06.27
+ *@brief 	分析ahk/aik文件
+ *
+ * 
+ */
+
+#include ./inc/string.aik
+
+g_AhkPreLine =
+g_AhkCurLine =
+
+;; 当前所在节, 比如 #IfWinActive ....  
+g_AhkSection =      
+
+;; 当前行是否在函数/标签/热键定义体内
+;; 值域 = {	0 - 在全局, 1 - 在热键定义内, 2 - 在标签内, 3 - 发现函数, 4 - 在函数体内 }
+g_AhkState := 0 		
+g_CurSegment =                          ;; 当前所在函数/标签/热键的名称
+
+InitAhkGlobal()
+{
+	global  
+		g_AhkPreLine =
+		g_AhkCurLine =
+		g_AhkSection =  
+		g_AhkState := 0 		
+		g_CurSegment = 
+}
+
+
+∑分析一行(var_line)
+{
+	;; 过滤一些内容,排除干扰
+    StringReplace, Hotstring, Hotstring,	````, , All        ;; 过滤掉``
+    StringReplace, Hotstring, Hotstring,    ```;, , All        ;; 过滤掉`;
+    StringReplace, Hotstring, Hotstring,    ```%, , All        ;; 过滤掉`%	
+}

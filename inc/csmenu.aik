@@ -1,0 +1,173 @@
+#include .\inc\common.aik
+#include .\inc\path.aik
+#include .\inc\tip.aik
+
+
+;; 弹出类型CS的菜单, 返回用户按下的按钮(0~9有效), 如果出错则返回-1
+; @ Menu_		菜单的显示内容, 如Menu_ = 1. 搜索当前分区 `n2. 搜索当前分区组 `n3. 搜索当前记事本`n4. 搜索所有记事本 `n`n 0. 退出
+; @ Time_		指定菜单显示时间, 以0.1秒为单位, 默认10秒
+CSMenu( Menu_, Time_ = 100 )
+{
+	var_return := -1
+	csmenu_block_file := ∑获取根目录()
+	
+	; 运行bin\csmenu_block0-9.ahk 文件, 屏蔽0~9的按钮, 这几个按钮只能用来选择菜单, 而不会作为输入字符
+	csmenu_block_file = %csmenu_block_file%\bin\run\csmenu_block0-9.ahk
+	var_pid := run_ahk( csmenu_block_file )
+	
+	; 弹出菜单
+	tooltip `n %Menu_% 
+	sleep 500
+	
+	Time_ := Time_ * 2	; 目标加快循环速度
+	var_maxloop := Time_/10 -1
+	
+	loop %Time_%	; 循环Time_次, 每次sleep 0.1秒, 即相当于等待Time_ * 0.1 秒 用户选择搜索范围
+	{
+		if a_index >= var_maxloop
+		{
+			send {backspace}
+			return -1
+		}
+		sleep 50
+		; 依次查找用户有没有按下0~9的数字键
+		if (is_key_down("0"))
+		{
+			var_return := 0
+			break
+		}
+		    
+		if (is_key_down("1"))
+		{
+			var_return := 1
+			break
+		}
+		if (is_key_down("2"))
+		{
+			var_return := 2
+			break
+		}
+		if (is_key_down("3"))
+		{
+			var_return := 3
+			break
+		}
+		if (is_key_down("4"))
+		{
+			var_return := 4
+			break
+		}
+		if (is_key_down("5"))
+		{
+			var_return := 5
+			break
+		}
+		if (is_key_down("6"))
+		{
+			var_return := 6
+			break
+		}
+		if (is_key_down("7"))
+		{
+			var_return := 7
+			break
+		}
+		if (is_key_down("8"))
+		{
+			var_return := 8
+			break
+		}
+		if (is_key_down("9"))
+		{
+			var_return := 9
+			break
+		}
+		
+		if (is_key_down("space"))
+		{
+			ToolTip7("你取消了菜单")
+			var_return := -1
+			break
+		}
+			
+		if (is_key_down("backspace"))
+		{
+			ToolTip7("你取消了菜单")
+			var_return := -1
+			break
+		}
+	}
+	tooltip		; 关闭菜单
+	return var_return
+}
+
+
+
+/** @brief	弹出右键菜单
+ * @param[in]	var_menu  菜单主体
+ * @param[in]	var_funName  回调函数名称，不包括符号∑
+ */
+RightMenu( var_menu, var_funName )
+{
+	if var_menu =
+	{
+		return
+	}
+	if var_funName =
+	{
+		return
+	}
+
+	global g_右键菜单回调函数 := var_funName
+
+	loop parse, var_menu, `n
+	{
+		bChecked := false
+		bDisable := false
+		menuiterm := a_loopfield
+		;; 去掉注释
+		ifinstring menuiterm, `;
+			menuiterm := StrLeft2Sub( menuiterm, ";" )
+			
+		StrTrimRight( menuiterm )
+			
+		;; 菜单框中的^表示该菜单项需要勾选
+		ifinstring menuiterm, `^
+		{
+			bChecked := true
+			StringReplace, menuiterm, menuiterm, `^, 
+		}
+		
+		;; 菜单框中的#表示该菜单项需要disable
+		ifinstring menuiterm, `#
+		{
+			bDisable := true
+			StringReplace, menuiterm, menuiterm, `#, 
+		}		
+			
+		if menuiterm =
+			menu, MyRightMenu, Add
+		else 
+		{
+			Menu, MyRightMenu, Add, %menuiterm%, 【右键菜单响应】
+			if bChecked
+			{
+				Menu, MyRightMenu, Check, %menuiterm%
+			}
+			if bDisable
+			{
+				Menu, MyRightMenu, Disable, %menuiterm%
+			}
+		}
+	}
+	Menu, MyRightMenu, Show
+	return
+}
+
+return
+
+【右键菜单响应】:
+	∑%g_右键菜单回调函数%(A_ThisMenuItempos)
+	g_右键菜单回调函数 = 
+	return
+

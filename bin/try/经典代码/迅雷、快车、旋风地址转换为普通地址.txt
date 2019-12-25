@@ -1,0 +1,126 @@
+一些下载站，只有 迅雷、快车、旋风 ,没有普通下载地址，而且不想装那么多东西
+
+偶尔看到了有转换地址的网站，才知道这些地址原来可以转换的，搜索了一下原理
+发现不是很复杂，用ahk应该能办到，于是搜索地址转换 + ahk
+发现原来helfee写过，不过下载不到了，估计不是很复杂，于是，在ahk官方论坛上
+搜索了一下base64,就找到了解决办法,贴一下代码(有点懒，自己搜索一下原理哈):
+
+有点粗糙，有兴趣的，可以自己改进一下
+
+用法：在输入框中将 迅雷、快车、旋风的地址粘进去，回车，会将解密后的地址
+写入剪贴板，并msgbox
+
+代码：
+
+
+StringCaseSense On 
+Chars = ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/
+
+inputbox, inin
+; ----- 快车
+IfInString, inin, Flashget:
+{
+FdPos := RegExMatch(inin, "Flashget://(.*)\&.*", shuzu_)
+out := InvBase64(shuzu_1)
+StringTrimLeft, out, out, 10
+StringTrimRight, out, out, 10
+}
+; ----- 迅雷
+IfInString, inin, thunder:
+{
+StringReplace, inin, inin, thunder://
+out := InvBase64(inin)
+StringTrimLeft, out, out, 2
+StringTrimRight, out, out, 2
+}
+; ----- 旋风
+IfInString, inin, qqdl:
+{
+StringReplace, inin, inin, qqdl://
+out := InvBase64(inin)
+}
+clipboard = %out%
+msgbox, %out%
+return
+
+; ---------------------------------函数
+; 加密
+Base64(string) 
+{ 
+   Loop Parse, string 
+   { 
+      If Mod(A_Index,3) = 1 
+         buffer := Asc(A_LoopField) << 16 
+      Else If Mod(A_Index,3) = 2 
+         buffer += Asc(A_LoopField) << 8 
+      Else { 
+         buffer += Asc(A_LoopField) 
+         out := out . Code(buffer>>18) . Code(buffer>>12) . Code(buffer>>6) . Code(buffer) 
+      } 
+   } 
+   If Mod(StrLen(string),3) = 0 
+      Return out 
+   If Mod(StrLen(string),3) = 1 
+      Return out . Code(buffer>>18) . Code(buffer>>12) "==" 
+   Return out . Code(buffer>>18) . Code(buffer>>12) . Code(buffer>>6) "=" 
+} 
+; 解密
+InvBase64(code) 
+{ 
+   StringReplace code, code, =,,All 
+   Loop Parse, code 
+   { 
+      If Mod(A_Index,4) = 1 
+         buffer := DeCode(A_LoopField) << 18 
+      Else If Mod(A_Index,4) = 2 
+         buffer += DeCode(A_LoopField) << 12 
+      Else If Mod(A_Index,4) = 3 
+         buffer += DeCode(A_LoopField) << 6 
+      Else { 
+         buffer += DeCode(A_LoopField) 
+         out := out . Chr(buffer>>16) . Chr(255 & buffer>>8) . Chr(255 & buffer) 
+      } 
+   } 
+   If Mod(StrLen(code),4) = 0 
+      Return out 
+   If Mod(StrLen(code),4) = 2 
+      Return out . Chr(buffer>>16) 
+   Return out . Chr(buffer>>16) . Chr(255 & buffer>>8) 
+} 
+Code(i)     ; <== Chars[i & 63], 0-base index 
+{ 
+   Global Chars 
+   StringMid i, Chars, (i&63)+1, 1 
+   Return i 
+} 
+DeCode(c)   ; c = a char in Chars ==> position [0,63] 
+{ 
+   Global Chars 
+   Return InStr(Chars,c,1) - 1 
+}
+/*
+今天要做一个下载站的下载管理程序，需要用到普通下载url与迅雷快车旋风下载地址转换，网上找到一些有用的资料。
+例如华军winrar 3.71的下载地址是
+http://p2s.newhua.com/down/wrar371sc.exe
+1、普通地址转换为迅雷地址
+在原地址前面加”AA”，后面加”ZZ”(注：不包括引号)，地址变为
+AAhttp://p2s.newhua.com/down/wrar371sc.exeZZ
+此地址base64编码为
+QUFodHRwOi8vcDJzLm5ld2h1YS5jb20vZG93bi93cmFyMzcxc2MuZXhlWlo=
+迅雷专链即在上地址前加thunder://，即
+thunder://QUFodHRwOi8vcDJzLm5ld2h1YS5jb20vZG93bi93cmFyMzcxc2MuZXhlWlo=
+2、普通地址转换为快车地址
+在原地址前后都加上”[FLASHGET]“(注：不包括引号)，地址变为
+[FLASHGET]http://p2s.newhua.com/down/wrar371sc.exe[FLASHGET]
+此地址base64编码为
+W0ZMQVNIR0VUXWh0dHA6Ly9wMnMubmV3aHVhLmNvbS9kb3duL3dyYXIzNzFzYy5leGVbRkxBU0hHRVRd
+快车专链即在上地址前加flashget://，注意后面还要加上”&符号”，符号怎么得出我也不清楚，我自己在最后后面加的是我个人信息，至今未有人报告转换错误，即
+Flashget://W0ZMQVNIR0VUXWh0dHA6Ly9wMnMubmV3aHVhLmNvbS9kb3duL3dyYXIzNzFzYy5leGVbRkxBU0hHRVRd&yinbing1986
+3、普通地址转换为旋风地址
+旋风相对就简单多了，将原地址直接base64编码为
+aHR0cDovL3Aycy5uZXdodWEuY29tL2Rvd24vd3JhcjM3MXNjLmV4ZQ==
+旋风专链即在上地址前加qqdl://，即
+qqdl://aHR0cDovL3Aycy5uZXdodWEuY29tL2Rvd24vd3JhcjM3MXNjLmV4ZQ==
+原理就这样
+*/
+

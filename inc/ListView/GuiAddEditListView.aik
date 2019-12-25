@@ -1,0 +1,39 @@
+;; 在需要添加Editing ListView 的Gui的地方，include这个文件
+;; 在include本文件之前，请先设置g_LVTitle的值作为ListView的标题显示
+;; g_GuiID =    ;; 存放窗口GuiID
+;; g_lvOptions =  r20 w525 ;; ListView的位置
+;; EnableSingleClick = 1   ;whether or not to do cell highlighting on singleclick
+SysGet,SM_CXVSCROLL,2         ;get width of vertical scrollbar
+
+if g_lvOptions = 
+	g_lvOptions = r20 w525
+	
+EditingLV = SysListView321   ;set the controls to use
+/*
+LV_ED = Edit1
+LV_ST = Static1
+*/
+
+LVS_SINGLESEL = 0x4                     ;allow one item to be selected
+LVS_SHOWSELALWAYS = 0x8               ;shows selection highlighting even if no focus
+LVS_EX_FULLROWSELECT = LV0x20         ;whole row selection
+
+listOptions =
+   (Join`s LTrim
+      +AltSubmit
+      -Checked
+      -%LVS_EX_FULLROWSELECT%
+      -%LVS_SHOWSELALWAYS%
+      +%LVS_SINGLESEL%
+   )
+
+AutoTrim,Off   
+DetectHiddenWindows,On
+Gui,+LastFound
+g_GuiID := WinExist()   ;get id for gui
+GroupAdd,editKeypress,ahk_id %g_GuiID%   ;for ENTER and ESC handling
+Gui, Add, ListView, %g_lvOptions% %listOptions% v_MyListView g【点击MyListView】,%g_LVTitle% 
+Gui, Add, Edit, x0 y-50 vCellEdit g【通过Edit实时修改MyListView对应单元格的值】  ;make edit control
+Gui, Add, Text, x0 y-50 vCellHighlight +Border cBlue -Wrap   ;make static1 control
+ControlGetPos,lx,ly,lw,lh,%EditingLV%,ahk_id %g_GuiID%   ;get info on listview
+

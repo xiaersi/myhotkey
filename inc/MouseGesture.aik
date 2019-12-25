@@ -1,0 +1,984 @@
+/**
+ *@file    MouseGesture.aik
+ *@author  teshorse
+ *@date    2011.09.15
+ *@brief   画屏手势的实现
+ */
+
+【关闭画屏命令】:
+	write_ini( "AutoHotString.ini", g_GlobalHotkey_Section, "【开关画屏命令】", "0)^#!RButton" )
+	reload
+	return
+
+【开关画屏命令】:
+	if g_bUseMouseGesture
+	{
+		TrayTip , →[画屏手势]←, 【暂停】了画屏手势, 1
+		g_bUseMouseGesture := False
+	}
+	Else
+	{
+		TrayTip , ←)画屏手势(→, 【开启】了画屏手势, 1
+		g_bUseMouseGesture := true
+	}
+	Return
+
+【开关鼠标拖拽窗口】:
+	if g_bMButtoneDragWindow
+	{
+		TrayTip , 中键拖拽窗口, 【暂停】了中键拖拽窗口功能, 1
+		g_bMButtoneDragWindow := False
+	}
+	Else
+	{
+		TrayTip , 中键拖拽窗口, 【开启】了中键拖拽窗口功能, 1
+		g_bMButtoneDragWindow := true
+	}
+	Return
+
+【右键鼠标手势】:
+	if not g_bUseMouseGesture
+	{
+		GestureTip( "禁用画屏手势 " )
+		SendPlay {RButton}
+		return
+	}
+	InitGestureParam()
+	SetGestureStart()
+	GetGestureStartPos( start_x, start_y )
+
+	CoordMode, ToolTip, Screen
+
+	SetMouseDelay, -1
+
+	g_RButton_time := a_sec * 1000 + a_MSec
+
+	Loop
+	{
+		;; 松开了鼠标右键，手势结束
+		if GetKeyState("RButton","P") = 0  ;; RButton up
+		{
+			TrayTip
+			tooltip
+
+			MouseGetPos, tx, ty
+
+			∑结束画屏()
+			sleep 100
+
+			if ( 20 * 20 > ( (start_x - tx)**2 + (start_y - ty)**2) )
+			{
+				if ( GetKeyState("Ctrl","P") = 1 )
+				{
+				;	tipx(6, "【增强右捷菜单】", 1000, 0, 0  )
+					gosub 【增强右捷菜单】
+				}
+				else
+				{
+				;	tipx(6, "Click right", 1000, 0, 0  )
+					Click right
+				}
+			}
+			Else if g_GestureList <>
+			{
+				var_tip = (%start_x% , %start_y%) -> ( %tx%, %ty% )
+				∑执行鼠标手势(g_GestureList)
+			}
+			InitGestureParam()   ;; 清空画屏手势使用的变量
+			break
+		}
+		;; 如果用户按了ESC按钮，退出鼠标手势
+		else if ( GetKeyState("Esc","P") == 1 )
+		{
+			TrayTip
+			tooltip
+			∑结束画屏()
+			InitGestureParam()
+			break
+		}
+		;; 如果当前窗口不在禁用鼠标手势的列表，则绘制鼠标手势
+		else if not ∑当前窗口禁用鼠标手势()
+		{
+			if not g_screendraw_ready
+			{
+				if ( ( a_sec * 1000 + a_MSec ) - g_RButton_time > 100 )
+					∑预备画屏()
+			}
+
+
+			;; 捕捉一个画屏手势
+			thisGesture := GetMouseGesture( g_curGesture )
+			ctrlkeys 	:= ∑检查按下的控制键()
+			if thisGesture in →,↑,←,↓
+			{
+				;; 默认的手势起点
+				var_x0=
+				var_y0=
+
+				if ∑添加一个手势( thisGesture )
+				{
+					;; 当是第一个手势且屏幕画板还没有准备好，则寻找手势起点
+					if ( g_GestureNum == 1 )
+					{
+						GetMouseMoveStartPos( var_x0, var_y0 )
+					}
+				}
+
+				∑绘制一个手势( thisGesture, var_x0, var_y0 )
+
+				/*
+				if ∑添加一个手势( thisGesture )
+					∑延迟绘制一个手势( thisGesture, 0 )
+				else
+					∑延迟绘制一个手势( thisGesture, 200 )
+				*/
+
+				;; 设置重新捕捉下一个手势
+				ResetMouseMoveStart(  )
+			}
+			;; 如果用户突然按下了控制键，则刷新提示内容
+			else if ctrlkeys <> %preCtrlKeys%
+			{
+				preCtrlKeys := ctrlkeys
+				;; 用户按下了控制键，更新手势提示信息
+				if ( g_GlobalSwitch_GestureTooltip || g_GlobalSwitch_GestureTraytip )
+				{
+					var_gtip := ∑生成鼠标手势提示( g_GestureList, var_TrayTip )
+					if g_GlobalSwitch_GestureTraytip
+					{
+						TrayTip 　　　　　　　　★画屏手势提示★, %var_TrayTip%
+					}
+				}
+			}
+			;; 如果画屏手势需要Tooltip提示当前手势对应的命令
+			if g_GlobalSwitch_GestureTooltip
+			{
+				if var_gtip =
+				{
+					if g_GestureList <>
+						var_gtip = 无效手势【%CtrlKeys%%g_GestureList%】
+				}
+
+				GestureTip( var_gtip )
+			}
+
+			;; 在绘制画屏手势过程中，如果按下左键可以新增、修改、删除当前手势
+			if ( GetKeyState("Appskey","P") == 1 )
+			{
+				g_GestureList_modi := g_GestureList  ;; 待修改的画屏手势
+
+				∑结束画屏()
+
+				TrayTip
+				tooltip
+
+				if g_GestureList_modi <>
+				{
+					settimer 【定时器延时显示修改当前手势的菜单】, 200
+				}
+				InitGestureParam()
+				break
+			}
+		}
+		else
+		{
+			TrayTip
+			tooltip
+
+			MouseGetPos, tx, ty
+			if ( 20 * 20 > ( (start_x - tx)**2 + (start_y - ty)**2) )
+			{
+				if ( GetKeyState("Ctrl","P") = 1 )
+					gosub 【增强右捷菜单】
+				else
+					Click right
+			}
+			Else if g_GestureList <>
+			{
+				var_tip = (%start_x% , %start_y%) -> ( %tx%, %ty% )
+				∑执行鼠标手势(g_GestureList)
+			}
+			InitGestureParam()   ;; 清空画屏手势使用的变量
+			∑结束画屏()
+			break
+		}
+	}
+	SetMouseDelay 10
+	return
+
+
+
+InitGestureParam()
+{
+	global
+	thisGesture =
+	preGesture =
+	ctrlkeys =				;; 当前按下的控制键组合
+	preCtrlKeys = 			;; 之前按下的控制键组合
+	g_GestureList =
+
+	g_GestureNum := 0
+	g_curGesture =
+
+	var_gtip =
+	var_TrayTip =
+	GestureTip( "" )		;; 清除提示信息
+	ClearGestureStart()		;; 释放鼠标手势的鼠标位置信息
+	TrayTip
+}
+
+
+∑预备画屏()
+{
+	local hbm_old
+;	$画笔色$=0x00FFFF	;0xBBGGRR
+	$画笔宽$=4	
+	hdc_screen:=DllCall("GetDC", "uint", 0)
+	if not hdc_buffer
+		hdc_buffer:=DllCall("CreateCompatibleDC", "uint", hdc_screen)
+
+	hbm_buffer:=DllCall("CreateCompatibleBitmap", "uint", hdc_screen, "int", A_ScreenWidth, "int", A_ScreenHeight)
+	hbm_old := DllCall("SelectObject", "uint", hdc_buffer, "uint", hbm_buffer)
+	DllCall("BitBlt", "uint", hdc_buffer, "int", 0, "int", 0, "int", A_ScreenWidth, "int", A_ScreenHeight, "uint", hdc_screen, "int", 0, "int", 0, "uint", 0x00CC0020)
+	DllCall("gdi32.dll\DeleteObject", "uint", hbm_old)
+	g_screendraw_ready := true
+}
+
+∑结束画屏()
+{
+	global 
+	if g_screendraw_ready
+	{
+		DllCall("BitBlt", "uint", hdc_screen, "int", 0, "int", 0, "int", A_ScreenWidth, "int", A_ScreenHeight, "uint", hdc_buffer, "int", 0, "int", 0, "uint", 0x00CC0020)
+		;DllCall("InvalidateRect", "UInt", 0, "Int", 0, "Int", 0)
+		g_screendraw_ready := false
+	}
+}
+
+
+;; 如果成功地将thisGesture添加到了画屏手势列表g_GestureList，则返回true
+∑添加一个手势( thisGesture )
+{
+	global
+
+	if thisGesture not in →,↑,←,↓
+		return false
+
+	g_curGesture := thisGesture
+
+	if ( preGesture <> thisGesture )
+	{
+		bReturn := true
+		g_GestureNum ++
+		preGesture := thisGesture
+		g_GestureList := g_GestureList . thisGesture
+		return true
+	}
+	return false
+}
+
+
+
+
+∑绘制一个手势( thisGesture, x0_="", y0_="", x1_="", y1_="" )
+{
+	Local var_temp, CtrlKeys
+	Local bRet := true
+
+	if thisGesture = →
+		$画笔色$=0x0000FF
+	else if thisGesture = ↑
+		$画笔色$=0xFF00FF
+	else if thisGesture = ←
+		$画笔色$=0x00FF00
+	else if thisGesture = ↓
+		$画笔色$=0xFF9f00
+
+	;; 手势提示信息
+	var_gtip := ∑生成鼠标手势提示( g_GestureList, var_TrayTip )
+	if not var_gtip
+	{
+		$画笔色$=0x663399
+		/* 2011-12-21 注释，无效手势也要绘制
+		;; 销毁跟踪手势的屏幕画板
+		gosub 【销毁默认屏幕画板】
+		bRet := false
+		*/
+	}
+	else
+	{
+		if not g_screendraw_ready
+			∑预备画屏()
+	}
+
+	;; 如果画屏手势需要气泡提示
+	if (g_GlobalSwitch_GestureTraytip)
+	{
+		TrayTip 　　　　　　　　★画屏手势提示★, %var_TrayTip%
+	}
+
+	;; 如果屏幕画板已经产生，则向其绘制手势
+	DrawGestureStraight( g_curGesture, x0_, y0_, x1_, y1_ )
+	return bRet
+}
+
+;; 如果当前窗口禁用鼠标手势，则返回true，否则返回false
+∑当前窗口禁用鼠标手势()
+{
+	global g_MouseGestur_ActiveWinGroup        	;; 过滤鼠标手势的活动窗口组
+	global g_MouseGestur_ExistWinGroup 			;; 过滤鼠标手势的非活动窗口组
+
+	ifwinexist ahk_group g_MouseGesture_ExistWinGroup
+	{
+		return true
+	}
+
+	ifwinactive ahk_group g_MouseGesture_ActiveWinGroup
+	{
+		return true
+	}
+
+	return false
+}
+
+
+
+∑检查按下的控制键()
+{
+	keys =
+	if ( GetKeyState("ctrl","P") = 1 )
+	{
+		keys = %keys%^
+	}
+	if ( GetKeyState("Alt","P") = 1 )
+	{
+		keys = %keys%!
+	}
+	if ( GetKeyState("shift","P") = 1 )
+	{
+		keys = %keys%+
+	}
+	return keys
+}
+
+∑执行鼠标手势( gestureList_ )
+{
+	local keyname, var_line, keyValue, loops, GestureList, CtrlKeys, needle, martch, martch2
+	if gestureList_ <>
+	{
+		CtrlKeys 	:= ∑检查按下的控制键()
+		GestureList := gestureList_
+		if CtrlKeys <>
+		{
+			needle := CtrlKeys
+			StringReplace needle, needle, ^, \^, all
+			StringReplace needle, needle, +, \+, all
+			needle = ^[%needle%]+
+		}
+		;; 如果存在与鼠标手势对应的CMDString，则执行之
+		loops := g_MouseGestureArray0
+		loop %loops%
+		{
+			var_line := g_MouseGestureArray%A_Index%
+			if StrSplit2Sub( var_line, "=", keyName, keyValue )
+			{
+				;; 过滤掉失效的手势
+				if not IsValidCmd( keyValue )
+					continue
+				;; 首先将不包含当前手势的行过滤掉
+				ifNotInString keyName, %gestureList_%
+					continue
+				;; 如果当前用户按下了Ctrl、Alt、Shift控制键，则将不精确匹配这些控制键的行过滤掉
+				if CtrlKeys <>
+				{
+					if RegExMatch( keyName, "^[!\+\^]+", martch ) = 0
+						continue
+					if RegExMatch( martch, needle, martch2 ) = 0
+						continue
+					if martch <> %martch2%
+						continue
+					GestureList := martch2 . gestureList_
+				}
+				else
+				{
+					GestureList := gestureList_
+				}
+
+				if keyName = %GestureList%
+				{
+					return run_cmd( keyValue )
+				}
+			}
+		}
+	}
+	return false
+}
+
+∑生成鼠标手势提示( gestureList_, byref var_TrayTip )
+{
+	local keyname, var_line, keyValue, loops, var_ret, var_temp, GestureList, CtrlKeys, needle, martch, martch2, noMartchAtall
+	noMartchAtall := true		;; 没有任何匹配，那怕是不完全匹配，意味着该手势及以后的手势都是无效的
+	var_TrayTip =
+	if gestureList_ <>
+	{
+		CtrlKeys 	:= ∑检查按下的控制键()
+		GestureList := gestureList_
+		;; 如果用户按下了控制键，则准备好needle，后面好匹配包含该控制键组合的行
+		if CtrlKeys <>
+		{
+			needle := CtrlKeys
+			StringReplace needle, needle, ^, \^, all
+			StringReplace needle, needle, +, \+, all
+			needle = ^[%needle%]+
+		}
+
+		;; 如果存在与鼠标手势对应的CMDString，则执行之
+		loops := g_MouseGestureArray0
+		loop %loops%
+		{
+			var_line := g_MouseGestureArray%A_Index%
+			if StrSplit2Sub( var_line, "=", keyName, keyValue )
+			{
+				;; 过滤掉失效的手势
+				if not IsValidCmd( keyValue )
+					continue
+
+				;; 首先将不包含当前手势的行过滤掉
+				ifNotInString keyName, %gestureList_%
+					continue
+
+				if noMartchAtall
+					noMartchAtall := false
+
+				;; 如果当前用户按下了Ctrl、Alt、Shift控制键，则将不精确匹配这些控制键的行过滤掉
+				if CtrlKeys <>
+				{
+					if RegExMatch( keyName, "^[!\+\^]+", martch ) = 0
+						continue
+					if RegExMatch( martch, needle, martch2 ) = 0
+						continue
+					if martch <> %martch2%
+						continue
+					GestureList := martch2 . gestureList_
+				}
+				else
+				{
+					GestureList := gestureList_
+				}
+				;; 完全匹配
+				if keyName = %GestureList%
+				{
+					var_temp := GetCmdTip( keyValue )
+					var_ret = %keyName%【%var_temp%】
+				}
+				;; 不完全匹配
+				else if instr( keyName, GestureList ) = 1
+				{
+					var_temp := GetCmdTip( keyValue )
+					var_temp = %keyName%`t%var_temp%
+					StringMid var_temp, var_temp, strlen(GestureList)+1
+					var_temp = ...%var_temp%
+					var_TrayTip = %var_TrayTip%%var_temp%`n
+				}
+			}
+		}
+		;; 将当前完全匹配的内容，插入到var_TrayTip最前面，以便TrayTip可以显示之
+		if noMartchAtall
+		{ ;; 无效手势
+			var_ret =
+		}
+		else if var_ret <>
+		{
+			sort var_TrayTip
+			if var_TrayTip <>
+				var_TrayTip = %var_ret%`n-----------------------------------`n%var_TrayTip%
+			else
+				var_TrayTip = %var_ret%
+		}
+		else
+		{
+			if var_TrayTip <>
+			{
+				var_TrayTip = %CtrlKeys%【%GestureList%】`n-----------------------------------`n%var_TrayTip%
+			}
+			var_ret = %CtrlKeys%【%GestureList%】
+		}
+	}
+	return var_ret
+}
+
+
+【中键拖拽窗口】:
+	;; 如果按下了鼠标右键，再按鼠标中键等效于shift+LButton选择文本，而不拖拽窗口
+	if ( GetKeyState("RButton","P") == 1 )
+	{
+		send {shift down}{LButton}{shift up}
+		return
+	}
+
+	if not g_bMButtoneDragWindow
+	{
+		SendPlay {MButton}
+		return
+	}
+
+	WinGetActiveTitle, var_title
+	WinGetClass, var_class, A
+	bDrag := true
+	if var_class in Shell_TrayWnd, DV2ControlHost,
+	{
+		bDrag := false
+	}
+	if var_title in Program Manager, 「开始」菜单,
+	{
+		bDrag := false
+	}
+	WinGet, var_ahkid, ID, A
+	if ( is_full_screen( var_ahkid ) )
+	{
+		bDrag := false
+	}
+	if bDrag
+	{
+		g_direct := ∑设置鼠标移动起点并返回相对活动窗口的方位()
+
+		CoordMode, ToolTip, Screen
+		GetMouseMoveStartPos( start_x, start_y )
+		tooltip ★, start_x, start_y
+		g_GestureTip =
+		if g_direct = L
+			g_GestureTip = ←
+		else if g_direct = R
+			g_GestureTip = →
+		else if g_direct = T
+			g_GestureTip = ↑
+		else if g_direct = B
+			g_GestureTip = ↓
+		else if g_direct = LT
+			g_GestureTip = ↖
+		else if g_direct = LB
+			g_GestureTip = ↙
+		else if g_direct = RT
+			g_GestureTip = ↗
+		else if g_direct = RB
+			g_GestureTip = ↘
+		else if g_direct = C
+			g_GestureTip = ☆
+
+		;; 加快窗口的移动速度
+		SetWinDelay, 0
+
+		loop
+		{
+			if GetKeyState("MButton","P") = 0  ;; up
+				break
+			AWindowMove( g_direct )
+			if g_GestureTip <>
+				GestureTip( g_GestureTip )
+			Sleep 50
+		}
+		SetWinDelay, 100
+		GestureTip()
+		tooltip
+	}
+	else
+	{
+		SendPlay {MButton}
+	}
+	return
+
+
+【鼠标手势关闭窗口的菜单】:
+	menu , 鼠标手势关闭窗口的菜单, add, 关闭当前活动窗口(&A), 【关闭当前活动窗口】
+	menu , 鼠标手势关闭窗口的菜单, add, 关闭当前窗口标签(&T), 【关闭当前窗口标签】
+	menu , 鼠标手势关闭窗口的菜单, add, 关闭鼠标下的窗口(&W), 【关闭鼠标下的窗口】
+	GetGestureStartPos( tx, ty )
+	if tx <>
+		if ty <>
+		{
+			if ( !IsPosInAWin( tx, ty ) )
+			{
+				menu , 鼠标手势关闭窗口的菜单, add, 关闭手势起点窗口(&X), 【关闭手势起始位置下的窗口】
+			}
+		}
+	menu , 鼠标手势关闭窗口的菜单, add, 关闭同类窗口(&G), 【关闭同组窗口】
+	menu ,  鼠标手势关闭窗口的菜单, show
+	return
+
+【关闭当前活动窗口】:
+	sleep 100
+	∑关闭窗口()
+	return
+
+【关闭当前窗口标签】:
+	sleep 100
+	send +{F4}
+	return
+
+【关闭鼠标下的窗口】:
+	sleep 100
+	MouseGetPos,  ,  , UMWID
+	winclose , ahk_id %UMWID%
+	return
+
+【关闭手势起始位置下的窗口】:
+	if g_GestureStart_winid <>
+	{
+		winclose , ahk_id %g_GestureStart_winid%
+	}
+	return
+
+【关闭同组窗口】:
+	WinGetActiveTitle, var_ATitle
+	WinGetClass, var_AClass , A
+	msgbox 4, 关闭同组窗口, 当前窗口： %var_ATitle% `n`n确定要关闭与之同组的窗口？
+	ifmsgbox yes
+	{
+		winclose , ahk_group %var_AClass%
+	}
+	return
+
+【添加鼠标手势禁用列表】:
+	var_root := ∑获取根目录()
+	var_file = %var_root%\bin\Setting\AddWindowToMouseGestureDisableList.ahk
+	run_ahk(var_file)
+	return
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 键盘模拟画屏手势
+
+∑添加绘制键盘模拟手势( thisGesture )
+{
+	local x0, y0, x1, y1, r, var_tip
+	;; global g_KeyDraw_x0, g_keyDraw_y0
+	if ( g_GestureNum == 0 )
+	{
+		InitGestureParam()
+
+		;; 将屏幕的中心设置为手势起点
+		g_KeyDraw_x0 := A_ScreenWidth/2
+		g_keyDraw_y0 := A_ScreenHeight/2
+	}
+
+	if ∑添加一个手势( thisGesture )
+	{
+		x0 := g_KeyDraw_x0
+		y0 := g_keyDraw_y0
+		r := ( A_ScreenHeight/4 - 20 ) * ( 0.8 ** g_GestureNum )
+		if r < 50
+			r := 50
+
+		;; 得到本次画屏手势的结束坐标
+		x1 := x0
+		y1 := y0
+		if thisGesture = →
+			x1 := x1 + r
+		else if thisGesture = ↑
+			y1 := y1 - r
+		else if thisGesture = ←
+			x1 := x1 - r
+		else if thisGesture = ↓
+			y1 := y1 + r
+
+		;; 如果是无效手势，则退出
+		if not ∑绘制一个手势( thisGesture, x0, y0, x1, y1 )
+		{
+			var_tip = %g_GestureList% 画屏手势无效，`n 键盘模拟画屏手势结束！
+			Tooltip7( var_tip, 800 )
+			∑结束键盘模拟画屏手势()
+		}
+
+		g_KeyDraw_x0 := x1
+		g_KeyDraw_y0 := y1
+	}
+}
+
+∑开始键盘模拟画屏手势( )
+{
+	;; 销毁跟踪手势的屏幕画板
+	; gosub 【销毁默认屏幕画板】
+	∑预备画屏()
+
+
+	Hotkey, *left, 	【键盘模拟向左手势】, On
+	Hotkey, *Right, 【键盘模拟向右手势】, On
+	Hotkey, *Up, 	【键盘模拟向上手势】, On
+	Hotkey, *Down, 	【键盘模拟向下手势】, On
+	Hotkey, Enter, 	【执行键盘模拟手势】, On
+	Hotkey, Space, 	【退出键盘模拟手势】, On
+	Hotkey, LButton,【退出键盘模拟手势】, On
+
+	InitGestureParam()
+}
+
+
+∑结束键盘模拟画屏手势()
+{
+	Hotkey, *left, 	Off
+	Hotkey, *Right, Off
+	Hotkey, *Up, 	Off
+	Hotkey, *Down, 	Off
+	Hotkey, Enter, 	Off
+	Hotkey, Space, 	Off
+	Hotkey, LButton,Off
+
+	InitGestureParam()
+
+	;; 销毁跟踪手势的屏幕画板
+	;gosub 【销毁默认屏幕画板】
+	∑结束画屏()
+}
+
+
+【键盘模拟画屏命令】:
+	tooltip7( "键盘模拟画屏手势" )
+	∑开始键盘模拟画屏手势( )
+	return
+
+【Win加方向键模拟画屏手势】:
+	if ( g_GestureNum <= 0 || g_GestureNum = "" )
+	{
+		tooltip7( "键盘模拟画屏手势" )
+		∑开始键盘模拟画屏手势( )
+	}
+	if a_ThisHotkey = #left
+		∑添加绘制键盘模拟手势( "←" )
+	else if a_ThisHotkey = #right
+		∑添加绘制键盘模拟手势( "→" )
+	else if a_ThisHotkey = #up
+		∑添加绘制键盘模拟手势( "↑" )
+	else if a_ThisHotkey = #down
+		∑添加绘制键盘模拟手势( "↓" )
+
+	return
+
+
+【键盘模拟向左手势】:
+	∑添加绘制键盘模拟手势( "←" )
+	return
+
+
+【键盘模拟向右手势】:
+	∑添加绘制键盘模拟手势( "→" )
+	return
+
+
+【键盘模拟向上手势】:
+	∑添加绘制键盘模拟手势( "↑" )
+	return
+
+【键盘模拟向下手势】:
+	∑添加绘制键盘模拟手势( "↓" )
+	return
+
+【执行键盘模拟手势】:
+	∑执行鼠标手势(g_GestureList)
+	∑结束键盘模拟画屏手势()
+	return
+
+【退出键盘模拟手势】:
+	∑结束键盘模拟画屏手势()
+	return
+
+
+#include ./SubUI/21屏幕画板窗口.aik
+
+
+
+;; 向屏幕画板画鼠标手势
+DrawGesture( x0_="", y0_="" )
+{
+	global
+	if ( x0_ <> "" and y0_ <> "" )
+	{
+		x0 := x0_
+		y0 := y0_
+	}
+	else
+		GetMouseMoveStartPos( x0, y0 )
+/*
+	if x0 = ""
+		return
+
+	if y0 = ""
+		return
+*/
+	CoordMode, Mouse, Screen
+	MouseGetPos, tx, ty
+;	if ( x0 <> tx || y0 <> ty )
+	{
+	;	var_tip = (%x0% %y0%) (%tx% %ty%)
+	;	tipx(20, var_tip )
+		DrawLine21(x0, y0, tx, ty, $画笔色$ )
+		Paint21(x0,y0,$画笔色$)
+	}
+}
+
+
+DrawGestureStraight( ges_, x0_="", y0_="", x1_ = "", y1_ = "" )
+{
+	local x0, y0, mx, my, sx, sy, ex, ey, cRegion
+	CoordMode, Mouse, Screen
+	/*
+	global g_DrawGes_startpos_x, g_DrawGes_startpos_y
+	global g_DrawGes_prepos_x, g_DrawGes_prepos_y
+	global g_DrawGes_PreGesture
+	*/
+	;; 起始手势
+	if ( x0_ <> "" and y0_ <> "" )
+	{
+		g_DrawGes_startpos_x := x0_
+		g_DrawGes_startpos_y := y0_
+		g_DrawGes_PreGesture := ges_
+		g_DrawGes_prepos_x	 := x0_
+		g_DrawGes_prepos_y	 := y0_
+	}
+
+	;; 如果手势方向发生变化, 则变换g_DrawGes_startpos_x, g_DrawGes_startpos_y
+	if ( ges_ <> g_DrawGes_PreGesture )
+	{
+
+		g_DrawGes_startpos_x := g_DrawGes_prepos_x
+		g_DrawGes_startpos_y := g_DrawGes_prepos_y
+		g_DrawGes_PreGesture := ges_
+	}
+
+	;; 初始化变量
+	mx := x1_                               ;; (mx,my)是本次手势的终点坐标，
+	my := y1_								;; 如果参数（x1_,y1_）有效则用该坐标作为手势终点，
+	if ( mx == "" || my == "" )			;; 否则以鼠标的当前坐标作为手势终点
+	{
+		CoordMode, Mouse, Screen
+		MouseGetPos, mx, my
+	}
+	x0 := g_DrawGes_startpos_x				;; (x0,y0)是本次手势的起始点坐标，如果参数(x0_,y0_)有效，则实际使用参数给定的坐标作为手势起始坐标
+	y0 := g_DrawGes_startpos_y				;; 否则使用上次手势结束坐标作为本次手势的起始坐标
+
+	if ges_ = →
+	{
+		sx := x0 - $画笔宽$
+		sy := y0 - $画笔宽$
+		ex := mx + $画笔宽$
+		ey := y0 + $画笔宽$
+		my := y0
+	}
+	else if ges_ = ←
+	{
+		sx := x0 + $画笔宽$
+		sy := y0 - $画笔宽$
+		ex := mx - $画笔宽$
+		ey := y0 + $画笔宽$
+		my := y0
+	}
+	else if ges_ = ↑
+	{
+		sx := x0 -$画笔宽$
+		sy := y0 + $画笔宽$
+		ex := x0 + $画笔宽$
+		ey := my - $画笔宽$
+		mx := x0
+	}
+	else if ges_ = ↓
+	{
+		sx := x0 - $画笔宽$
+		sy := y0 - $画笔宽$
+		ex := x0 + $画笔宽$
+		ey := my + $画笔宽$
+		mx := x0
+	}
+
+	;; 绘图
+	cBrush:=DllCall("gdi32.dll\CreateSolidBrush", "uint",  $画笔色$)
+;	DrawCircle( x, y, cBrush, hdc_canvas, 1 )
+	cRegion:=DllCall("gdi32.dll\CreateRoundRectRgn", "int", sx, "int", sy, "int", ex, "int", ey, "int", $画笔宽$*2, "int", $画笔宽$*2)
+
+;	cRegion:=DllCall("gdi32.dll\CreateRectRgn", "int", sx, "int", sy, "int", ex, "int", ey)
+;	DllCall("gdi32.dll\FillRgn" , "uint", hdc_canvas , "uint", cRegion , "uint", cBrush)
+
+	DllCall("gdi32.dll\FillRgn" , "uint", hdc_screen , "uint", cRegion , "uint", cBrush)
+
+	DllCall("gdi32.dll\DeleteObject", "uint", cBrush)
+	DllCall("gdi32.dll\DeleteObject", "uint", cRegion)
+
+;	DllCall("BitBlt", "uint", hdc_canvas, "int", 0, "int", 0, "int", A_ScreenWidth, "int", A_ScreenHeight, "uint", hdc_buffer2, "int", 0, "int", 0, "uint", 0x00CC0020)
+	g_DrawGes_prepos_x := mx
+	g_DrawGes_prepos_y := my
+}
+
+
+;; bool 查找画屏手势，成功返回true，失败返回false
+∑查找指定画屏手势( Gesture_, byref _keyName_, byref _keyValue_ )
+{
+	Local loops, var_line, var_ret, keyName, keyValue, var_gesture, tmpGesture
+	;; 以下两个参数通过位运算记录控制键，位的对应关系为 ^!+
+	Local bitGes := 0	;; 用于记录参数手势中的控制键
+	Local bitTmp := 0
+
+	;; 将Gesture_中的控制键与方向键分离，分别记录到bitGes和var_gesture
+	var_gesture := Gesture_
+	ifInString var_gesture, ^
+	{
+		bitGes := bit_or( bitGes, 4 )
+		StringReplace, var_gesture, var_gesture, ^, , all
+	}
+	ifInString var_gesture, !
+	{
+		bitGes := bit_or( bitGes, 2 )
+		StringReplace, var_gesture, var_gesture, !, , all
+	}
+	ifInString var_gesture, +
+	{
+		bitGes := bit_or( bitGes, 1 )
+		StringReplace, var_gesture, var_gesture, +, , all
+	}
+
+	;; 如果Gesture_中没有方向键，则画屏手势不合法，直接退出
+	if var_gesture not contains  →,↑,←,↓
+	{
+		return false
+	}
+
+	;; 如果存在与鼠标手势对应的CMDString，则执行之
+	loops := g_MouseGestureArray0
+	loop %loops%
+	{
+		var_line := g_MouseGestureArray%A_Index%
+		if var_line =
+			continue
+
+		if StrSplit2Sub( var_line, "=", keyName, keyValue )
+		{
+			ifInString keyName, %var_gesture%
+			{
+				tmpGesture := keyName
+				;; 将tmpGesture中的控制键与方向键分离，分别记录到bitTmp和tmpGesture
+				bitTmp := 0
+				ifInString tmpGesture, ^
+				{
+					bitTmp := bit_or( bitTmp, 4 )
+					StringReplace, tmpGesture, tmpGesture, ^, , all
+				}
+				ifInString tmpGesture, !
+				{
+					bitTmp := bit_or( bitTmp, 2 )
+					StringReplace, tmpGesture, tmpGesture, !, , all
+				}
+				ifInString tmpGesture, +
+				{
+					bitTmp := bit_or( bitTmp, 1 )
+					StringReplace, tmpGesture, tmpGesture, +, , all
+				}
+				;; 如果控制键相同且方向键也相同，则查找成功
+				if ( bitGes == bitTmp && tmpGesture == var_gesture  )
+				{
+					_keyName_ := keyName
+					_keyValue_ := keyValue
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+

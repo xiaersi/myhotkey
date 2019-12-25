@@ -1,0 +1,32 @@
+21:42 2009/9/7	形参可以做为函数名
+	myfun(fun_name)
+	{
+		%fun_name%()	// 变量的值可以作为函数名
+	}
+	因此, 调用myfun("fun1"), 将会在myfun()内部调用fun1()方法
+	此外, 形参的值还可以作为函数的一部分,如可以如此使用:
+	myfun2(fun_name)
+	{
+		call_%fun_name%()	// 变量的值可以作为函数名
+	}
+	此时调用myfun2("fun"), 将在myfun2内部调用call_fun()方法
+	
+21:56 2009/9/7	形参的值可以作为局部变量的一部分, 如
+	testfun2(param)
+	{
+		var_%param% = 25
+		return var_%param%
+	}
+	形参的值可以单独作为完整的局部变量
+	testfun3(param)
+	{
+		%param% = 25		// %param% 也可以作为完整的变量, 
+		return %param%		// 但如此return的值并非25, 改成下面就行了
+	}
+	testfun3(param)
+	{
+		%param% = 25		// %param% 也可以作为完整的变量, 
+		var_temp := %param%	// 这里已经把param的值%param%当作变量名了
+		return 	var_temp	
+	}
+2010年6月12日 调用函数时，函数名与(符号之间不能有其他符号，包括空格，否则会调用失败

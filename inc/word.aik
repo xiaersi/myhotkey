@@ -1,0 +1,114 @@
+#SingleInstance ignore	;只运行一次，禁止多次运行
+#include .\inc\common.aik
+
+
+AddWord2AHK(varKey,varSec)
+{
+	if(varSec="")
+		return
+	iniread varRead,..\..\lib\FunctionBase\GeneralWord.ini,word,%varKey%
+	if not (varRead="" or varRead="ERROR") 
+	{
+		tipword("已经存在编码："%varKey%)
+		return 
+	}
+	iniread varRead,MyWord.ini,head,%varKey%
+	if  (varRead=1) 
+	{
+	msgbox varRead=%varRead%`n即将添加%varKey%到AHK文件
+		tipword("已经存在编码："%varKey%)
+		iniwrite 1,MyWord.ini,head,%varKey%
+		return 
+	}
+	varBuf =
+	varBuf = ::%varKey%::`n`tReadWord(`"%varKey%`")`n`treturn`n
+	varBuf = %varBuf%::%varKey%_::`n`tReadGeneralWord(`"%varKey%`")`n`treturn`n
+
+	if(varSec="word")
+	{
+		fileappend %varBuf%, ..\..\lib\GeneralWord.aik
+		tipword("成功添加编码到GeneralWord.aik")
+	}
+	else
+	{
+		fileappend %varBuf%, MyWord.ahk
+		iniwrite 1,MyWord.ini,head,%varKey%
+		tipword("成功添加编码到MyWord.ahk")
+	}
+	reload
+}
+AddGeneralWord()
+{
+;tipword("AddGeneralWord")
+	varClip := cliptext()
+	if(varClip="") 
+		return false
+	varTemp = 词组：%varClip%
+	varKey:=MyinputBox("通用编码",varTemp)
+	if  (errorlevel) 
+		return false
+	if not (varKey="")
+	{
+		iniwrite %varClip%,..\..\lib\FunctionBase\GeneralWord.ini,word,%varKey%
+		AddWord2AHK(varKey,"word")
+	tooltip write to file
+	sleep 1000
+	tooltip
+	}
+	return true
+}
+
+AddMyWord()
+{
+;tipword("AddMyWord")
+	varClip := cliptext()
+	if(varClip="") 
+		return false
+	varTemp = 词组：%varClip%
+	winget varProcessName,ProcessName,A
+	varTitle = 编码：%varProcessName%
+	varKey:=MyinputBox(varTitle,varTemp)
+	if  (errorlevel) 
+		return false
+	if not (varKey="")
+	{
+		iniwrite %varClip%,MyWord.ini,%varProcessName%,%varKey%
+		AddWord2AHK(varKey,varProcessName)
+	tipword("write to file")
+	}
+	return true
+
+}
+ReadGeneralWord(varKey)
+{
+	iniread varRead,..\..\lib\FunctionBase\GeneralWord.ini,word,%varKey%
+	if  (varRead="") return false
+	sendbyclip(varRead)
+	return true
+}
+ReadMyWord(varKey)
+{
+	winget varProcessName,ProcessName,A
+	iniread varRead,MyWord.ini,%varProcessName%,%varKey%
+	if  (varRead="") return false
+	sendbyclip(varRead)
+	return true
+}
+ReadWord(varKey)
+{
+	winget varProcessName,ProcessName,A
+	iniread varRead,MyWord.ini,%varProcessName%,%varKey%
+	if  (varRead="" or varRead="ERROR") 
+	{
+		iniRead varRead,..\..\lib\FunctionBase\GeneralWord.ini,word,%varKey%
+		if  (varRead="" or varRead="ERROR") 
+		{
+		msgbox %varRead%
+		sendbyclip(varKey)
+		return false
+		}
+	}
+	sendbyclip(varRead)
+	return true
+}
+

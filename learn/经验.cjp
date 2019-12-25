@@ -1,0 +1,74 @@
+1. 当两个键互相映射时，会不会死循环呢？	比如: 
+	F5::F9
+	F9::F5
+	这两个按钮互相映射，会达到交换按键的功能吗？还是死循环？
+	结果：不会死循环，达到次的按键的功能！！
+
+2. 读写注册表的方法
+	var_RootKey = HKEY_CURRENT_USE
+	var_SubKey = Control Panel\Teshorse\AutoHotKey\EverWindowIDPS
+
+	regread var_read,%var_RootKey%,%var_SubKey% ,%var_key%
+
+	inidelete %var_RootKey%,%var_SubKey%,%var_key%
+
+	RegWrite, REG_SZ, %var_RootKey%, %var_SubKey%, %var_key%, %var_value
+
+3.关于if 语句， if 语句有两种表示方法, pascal 与 C++的表示方法， 分别举例如下
+	var1 := "value1"
+	var2 := "value2"
+	if var1 = value1
+	{
+	}
+	等价于
+	if ( var1 == "value1" )
+	{
+	}
+	两者都在判断变量var1的值是否等于"value1", 它们的区别在于
+	前一种方法只需要用一个等号，等号右边直接填写值本身，无需引号；
+	后一种方法则是C的风格，用==比较两个值是否相等。
+
+	下面比较大小的方法也是等价的：
+	if var1 > 1 and var2 > 2
+	{
+	}
+	等价于
+	if ( var1 > 1 && var2 > 2 )
+	{
+	}
+
+	这两种方法各有优势，
+	比如 if var = 等价于 if ( var == "") 
+	if var <> 造价于 if ( var != "" )
+	前者要比后者方便快捷，
+
+	但是，前者经常会有下面的误用：
+	以为 if var1 = and var2 <> 会等价于 if ( var1 == "" && var2 != "" )
+	其实前者等价于 if ( var1 == "and var2 <>" )
+	从而达不到预期的目标。
+
+	因此在if 语句中，当涉及到多次等值比较时，建议采用C++风格，而只有一次比较时建议用pascal风格更简便。
+
+4. strlen("123456") 和 strlen("中国人")的值都是6，也就是说中文汉字一个字的长度为2
+
+5. Loop , parse, 字符串, 分隔符 
+	的功能是以指定字符作为分隔符号，将字符串分隔成多个子串，举例：
+	var_temp = 中国,美国,英国,日本
+	Loop parse, var_temp, `,
+	{
+	}
+	上面的代码将var_temp 分解成中国、美国、英国、日本
+	需要注意的是：
+	1. 如果 var_temp = China 那么分解得到的一个子串 China
+	2. 如果 var_temp = China, 那么分解得到两个子串  China 和 空字符串
+	3. 如果 var_temp = China, USA 那么分解得到两个子串 China 和 USA
+	4. 总之，假设var_temp 中包含n个分隔符号，那么将分解成n+1个子串
+	5. 分隔符号可以是包含多个字符的字符串，但它不是一个整体，它的任意一个字符都起分隔作用
+	6. 多字节字符不好作为分隔符，会将它作为两个分隔符对待
+
+6. 关于注释, 有两种风格, 
+	1) 行注释用分号开头, 例如
+		; 注释内容
+	2) 类似C风格的 /* */, 但如果用这种方法注释一行时, /* 与 */不能写在同一行, 例如
+		/* 注释内容
+		*/

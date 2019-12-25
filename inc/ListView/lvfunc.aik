@@ -1,0 +1,173 @@
+
+
+;; 得到指定ListView的信息（所有行数， 显示行数， 当前显示的第一条数据的序号 ）
+GetLVInfo( var_GuiID, var_ListView, byref _nTotalRows, byref _nDisplayRows, byref _TopIndex )
+{	
+	LVM_GETITEMCOUNT = 4100      	;gets total number of rows
+	LVM_GETCOUNTPERPAGE = 4136   	;gets number of displayed rows
+	LVM_GETTOPINDEX = 4135      	;gets the first displayed row
+	SendMessage,LVM_GETITEMCOUNT,0,0,%var_ListView%,ahk_id %var_GuiID%
+	_nTotalRows := ErrorLevel   	;get total number of rows
+	SendMessage,LVM_GETCOUNTPERPAGE,0,0,%var_ListView%,ahk_id %var_GuiID%
+	_nDisplayRows := ErrorLevel   	;get number of displayed rows
+	SendMessage,LVM_GETTOPINDEX,0,0,%var_ListView%,ahk_id %var_GuiID%
+	_TopIndex := ErrorLevel   		;get first displayed row	
+}
+
+;; 得到指定ListView的所有行数
+GetLVAllRows( var_GuiID, var_ListView )
+{	
+	LVM_GETITEMCOUNT = 4100      	;gets total number of rows
+	SendMessage,LVM_GETITEMCOUNT,0,0,%var_ListView%,ahk_id %var_GuiID%
+	TotalRows := ErrorLevel   	;get total number of rows
+	return TotalRows
+}
+
+GetLVColWidth( var_GuiID, var_row )
+{
+	SendMessage, 0x1029, %var_row%, 0,, ahk_id %var_GuiID%
+  	return ErrorLevel
+}
+
+;; 得到指定列的宽度
+GetLVColumnWidth( var_GuiID, var_ListView, var_col )
+{
+	LVM_GETSUBITEMRECT = 4152   ;gets cell width,height,x,y
+	LVIR_LABEL = 0x0002            		;LVM_GETSUBITEMRECT constant - get label info
+	VarSetCapacity(XYstruct, 16, 0)   	;create struct
+	InsertInteger( LVIR_LABEL, XYstruct, 0 )   ;get label info constant
+	InsertInteger( var_col -1, XYstruct, 4 )   ;subitem index
+	SendMessage,LVM_GETSUBITEMRECT, 0, &XYstruct,%var_ListView%, ahk_id %var_GuiID%   ;get cell coords
+	_CellX    	:= ExtractInteger(XYstruct,0,4)    ;row upperleft x = itempos x + listview x
+	RowX2    	:= ExtractInteger(XYstruct,8,4)    ;row bottomright x2 = itempos x2 + listview x
+	_CellW 		:= RowX2 - _CellX   ;get cell width
+	return _CellW
+}
+
+;; 返回ListView指定单元格的ArrayRect, 左上角( x=ArrayRect1, y=ArrayRect2 ), 右下角( x=ArrayRect3, ArrayRect4)
+LV_GetCellRect( var_GuiID, var_ListView,  var_row, var_col, ArrayRect )
+{
+	Local LVM_GETTOPINDEX, LVM_GETSUBITEMRECT, LVIR_LABEL
+	Local TopIndex, XYstruct, which, lx, ly, lw, lh
+	LVM_GETTOPINDEX = 4135      	;gets the first displayed row
+	LVM_GETSUBITEMRECT = 4152   ;gets cell width,height,x,y
+	LVIR_LABEL = 0x0002            		;LVM_GETSUBITEMRECT constant - get label info
+	ControlGetPos,lx,ly,lw,lh,%var_ListView%,ahk_id %var_GuiID%   ;get info on listview
+	SendMessage,LVM_GETTOPINDEX,0,0,%var_ListView%,ahk_id %var_GuiID%
+	TopIndex := ErrorLevel   ;get first displayed row	
+		
+	VarSetCapacity(XYstruct, 16, 0)   	;create struct
+	InsertInteger( LVIR_LABEL, XYstruct, 0 )   ;get label info constant
+	InsertInteger( var_col , XYstruct, 4 )   ;subitem index
+	SendMessage,LVM_GETSUBITEMRECT, 0, &XYstruct,%var_ListView%, ahk_id %var_GuiID%   ;get cell coords
+
+	
+	which 		:= var_row -1  ;loop through each displayed row
+	InsertInteger(LVIR_LABEL  ,XYstruct,0)   ;get label info constant
+	InsertInteger( var_col - 1, XYstruct,4)   ;subitem index
+	SendMessage, LVM_GETSUBITEMRECT,%which%,&XYstruct,%var_ListView%,ahk_id %var_GuiID%   ;get cell coords
+	ArrayRect1    		:= ExtractInteger(XYstruct,0,4)    + lx 	;row upperleft x = itempos x + listview x
+	ArrayRect2   		:= ExtractInteger(XYstruct,4,4) 	+ ly   	;row upperleft y = itempos y + listview y
+	ArrayRect3    		:= ExtractInteger(XYstruct,8,4)  	+ lx  	;row bottomright x2 = itempos x2 + listview x	
+	ArrayRect4    		:= ExtractInteger(XYstruct,12,4) 	+ ly   	;row bottomright y2 = itempos y2 + listview y
+}
+
+;; 得到鼠标下的ListView的单元格信息（行、列、左上角坐标、宽、高）
+GetLVCellUnderMouse( var_GuiID, var_ListView, byref _CurRow, byref _CurCol, byref _CellX, byref _CellY, byref _CellW, byref _CellH )
+{
+	;; 得到鼠标相对窗口的位置（mx, my )
+	CoordMode,MOUSE,RELATIVE
+	MouseGetPos,mx,my,oID,oCNN
+	
+	;; 先得到ListView的信息（所有行数、显示行数、显示第一行的序号）	
+   	LVM_GETITEMCOUNT = 4100      	;gets total number of rows
+	LVM_GETCOUNTPERPAGE = 4136   	;gets number of displayed rows
+	LVM_GETTOPINDEX = 4135      	;gets the first displayed row
+	ControlGetPos,lx,ly,lw,lh,%var_ListView%,ahk_id %var_GuiID%   ;get info on listview
+	SendMessage,LVM_GETITEMCOUNT,0,0,%var_ListView%,ahk_id %var_GuiID%
+	nTotalRows := ErrorLevel   ;get total number of rows
+	SendMessage,LVM_GETCOUNTPERPAGE,0,0,%var_ListView%,ahk_id %var_GuiID%
+	nDisplayRows := ErrorLevel   ;get number of displayed rows
+	SendMessage,LVM_GETTOPINDEX,0,0,%var_ListView%,ahk_id %var_GuiID%
+	TopIndex := ErrorLevel   ;get first displayed row	
+	
+	;; 得到单元格当前所在行，以及单元格的Y坐标和高度
+	LVM_GETSUBITEMRECT = 4152   ;gets cell width,height,x,y
+	LVIR_LABEL = 0x0002            		;LVM_GETSUBITEMRECT constant - get label info
+	VarSetCapacity(XYstruct, 16, 0)   	;create struct
+	Loop,%nDisplayRows%   ;gets the current row, and cell Y,H
+	{   
+		which := topIndex + A_Index -1   ;loop through each displayed row
+		InsertInteger(LVIR_LABEL  ,XYstruct,0)   ;get label info constant
+		InsertInteger(A_Index-1   ,XYstruct,4)   ;subitem index
+		SendMessage,LVM_GETSUBITEMRECT,%which%,&XYstruct,%var_ListView%,ahk_id %var_GuiID%   ;get cell coords
+		_CellY   := ExtractInteger(XYstruct,4,4) + ly   ;row upperleft y = itempos y + listview y
+		RowY2    := ExtractInteger(XYstruct,12,4) + ly   ;row bottomright y2 = itempos y2 + listview y
+		_CellH 	 := RowY2 - _CellY ;get cell height
+		If( my <= RowY2 )   ;if mouse Y pos less than row pos + height
+		{   
+			_CurRow    := which   +1   ;1-based current row
+			currRow0   := which      ;0-based current row
+			Break
+		}
+	}
+	;; 得到单元格当前所在列，以及单元格的X坐标和宽度
+	VarSetCapacity(XYstruct, 16, 0)   ;create struct
+	Loop % LV_GetCount("Col")   ;gets the current column, and cell X,W
+	{   
+		InsertInteger(LVIR_LABEL  ,XYstruct,0)   ;get label info constant
+		InsertInteger(A_Index-1   ,XYstruct,4)   ;subitem index
+		SendMessage,LVM_GETSUBITEMRECT,%currRow0%,&XYstruct,%var_ListView%,ahk_id %var_GuiID%   ;get cell coords
+		_CellX    	:= ExtractInteger(XYstruct,0,4) + lx   ;row upperleft x = itempos x + listview x
+		RowX2    	:= ExtractInteger(XYstruct,8,4) + lx   ;row bottomright x2 = itempos x2 + listview x
+		If(mx <= RowX2 )   ;if mouse X pos less than column pos+width
+		{   
+			_CurCol := A_Index   ;get current column number
+			_CellW 		:= RowX2 - _CellX   ;get cell width			
+		 	Break
+		}
+
+	}
+}
+
+;; 当单元框无法显示时，向左移动ListView的水平滚动条，使得选中的单元格得以显示
+GetMovedCellX( var_GuiID, var_ListView, var_CellRow, var_CellCol, var_CellX )
+{   
+	LVM_SCROLL = 4116               ;scrolls the listview
+	LVIR_LABEL = 0x0002            ;LVM_GETSUBITEMRECT constant - get label info
+	LVM_GETSUBITEMRECT = 4152   ;gets cell width,height,x,y
+
+	ControlGetPos,lx,ly,lw,lh,%var_ListView%,ahk_id %var_GuiID%   ;get info on listview
+	hscrollVal := var_CellX - lx - 4    ;get the difference
+	SendMessage,LVM_SCROLL,%hscrollVal%,0,%var_ListView%,ahk_id %var_GuiID%   ;scroll the column into view
+	VarSetCapacity(XYstruct, 16, 0)   ;recreate struct
+	InsertInteger(LVIR_LABEL   ,XYstruct,0)   ;get just label coords
+	InsertInteger(var_CellCol-1      ,XYstruct,4)   ;1-based subitem index
+	currRow0 := var_CellRow - 1
+	SendMessage,LVM_GETSUBITEMRECT,%currRow0%,&XYstruct,%var_ListView%,ahk_id %var_GuiID%   ;get cell coords
+	return ExtractInteger(XYstruct,0,4) + lx   ;row upperleft x = itempos x + listview x
+}
+
+InsertInteger(pInteger, ByRef pDest, pOffset = 0, pSize = 4)
+; The caller must ensure that pDest has sufficient capacity.  To preserve any existing contents in pDest,
+; only pSize number of bytes starting at pOffset are altered in it.
+{
+    Loop %pSize%  ; Copy each byte in the integer into the structure as raw binary data.
+        DllCall("RtlFillMemory", "UInt", &pDest + pOffset + A_Index-1, "UInt", 1, "UChar", pInteger >> 8*(A_Index-1) & 0xFF)
+}
+
+ExtractInteger(ByRef pSource, pOffset = 0, pIsSigned = false, pSize = 4)
+; pSource is a string (buffer) whose memory area contains a raw/binary integer at pOffset.
+; The caller should pass true for pSigned to interpret the result as signed vs. unsigned.
+; pSize is the size of PSource's integer in bytes (e.g. 4 bytes for a DWORD or Int).
+; pSource must be ByRef to avoid corruption during the formal-to-actual copying process
+; (since pSource might contain valid data beyond its first binary zero).
+{
+    Loop %pSize%  ; Build the integer by adding up its bytes.
+        result += *(&pSource + pOffset + A_Index-1) << 8*(A_Index-1)
+    if (!pIsSigned OR pSize > 4 OR result < 0x80000000)
+        return result  ; Signed vs. unsigned doesn't matter in these cases.
+    ; Otherwise, convert the value (now known to be 32-bit) to its signed counterpart:
+    return -(0xFFFFFFFF - result + 1)
+}
+

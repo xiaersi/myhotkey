@@ -1,0 +1,253 @@
+
+;;---快捷键响应--------------------------------------------------------------
+
+【UP键处理】:
+	GuiControlGet, OutputVar, Focus
+	if OutputVar <> SysListView321
+	{
+		GuiControl, Focus, _KeyListView
+		send {up}
+		return
+	}
+	else
+	{
+		g_bAutoSearch := false
+		settimer 【延时显示Listview当前选中行的内容】, 100
+	}
+	return
+
+【Wheel键处理】:
+	GuiControlGet, OutputVar, Focus
+	if OutputVar <> SysListView321
+	{
+		GuiControl, Focus, _KeyListView
+	}
+	return
+	
+;; 在下拉列表中，向上选择
+【ListView中选择上一条】:
+	GuiControl, Focus, _KeyListView
+	send {up}
+	settimer 【延时显示Listview当前选中行的内容】, 100
+	return
+	
+
+
+【Down键处理】:
+	GuiControlGet, OutputVar, Focus
+	if OutputVar <> SysListView321
+	{
+		GuiControl, Focus, _KeyListView
+		send {down}	
+		return
+	}
+	else
+	{
+		sleep 100
+		g_bAutoSearch := false
+		settimer 【延时显示Listview当前选中行的内容】, 100
+	}
+	return
+	
+
+;; 在下拉列表中，向下选择
+【ListView中选择下一条】:
+	GuiControl, Focus, _KeyListView
+	send {down}
+	settimer 【延时显示Listview当前选中行的内容】, 100
+	return
+		
+
+【回车事件处理】:
+	g_runsuccess := false
+	Gui, submit, nohide
+	GuiControlGet, OutputVar, Focus
+	CommandSplit( _edtSearch, g_cmdType, g_cmdName, "cmdParamArray" )	
+	if  OutPutVar =  SysListView321 
+	{
+		curRow := LV_GetNext(0, "Focused")
+		g_runsuccess := LV_run( g_cmdType, curRow, "cmdParamArray" )
+		var_tip = 列表第 %curRow% 行执行
+	}
+	else if OutPutVar = Edit1
+	{
+		GuiControlGet, g_bVisible, Visible, _KeyListView
+		LV_GetText( keyName, 1, 1 )
+		LV_GetText( g_lvSec, 1, SECFIELD )
+		;; 如果ListView可见，且第一行符合执行条件，则执行第一行
+		if ( g_bVisible && keyName == g_cmdName && g_lvSec != g_FolderSection )
+		{
+			g_runsuccess := LV_run( g_cmdType, 1, "cmdParamArray" )
+			var_tip = 列表第 1 行(%g_cmdName%)执行
+		}
+		;; 其他情况，直接执行搜索框里输入的内容
+        else    
+		{
+			g_runsuccess := RunInput( _edtSearch )
+			var_tip =  `"%_edtSearch%`" 执行
+		}
+	}
+	if g_runsuccess
+	{
+		gosub 【退出程序】
+	}
+	else
+	{
+		var_tip = %var_tip% 失败！
+		tooltip %var_tip%, 35, 65, 7
+		SetTimer, RemoveToolTip7, 2000	
+	}
+  	return
+  	
+
+【左键处理】:
+	MouseGetPos, g_MouseX, g_MouseY, OutputVarWin, OutputVarControl, 0
+	if OutputVarControl = SysListView321
+	{
+        SetTimer, RemoveToolTip7, 30        ;; 取消tooltip7的提示
+
+		GetLVCellUnderMouse( hGui, g_LVName, var_CurRow, var_CurCol, var_CellX, var_CellY, var_CellW, var_CellH )
+		
+		;; 如果点击的是第一列Key列，将值赋值到搜索框
+        if var_CurCol = 1               
+		{
+			LV_GetText( g_lvKeyValue, var_CurRow, VALUEFIELD ) 
+			LV_GetText( g_lvSec, var_CurRow, SECFIELD ) 
+			LV_GetText( g_lvKeyName, var_CurRow, KEYFIELD ) 	
+			
+			;; 如果点击的是目录，则将g_lvKeyValue的值赋值给搜索框
+			if g_lvSec = file
+			{
+				if ( get_file_ext( g_lvKeyValue ) == "$Dir$" )
+				{
+					Guicontrol,,_edtSearch, %g_lvKeyValue%
+					return
+				}
+			}
+			;; 如果点击的是非目录，且是普通命令，则将g_lvKeyName的值赋值给搜索框，且禁止刷新ListView
+			if g_lvKeyName =
+			{
+				;; 过滤掉
+			}
+			else if g_lvKeyName = Key
+			{
+				;; 过滤掉
+			}
+			else ifNotInstring g_lvSec, $
+			{
+				g_bAutoSearch := false
+				Guicontrol,,_edtSearch, %g_lvKeyName%
+				g_bAutoSearch := true
+			}
+		}
+		;; 如果点击的不是第一列，则不改变搜索框的值，仅Tooltip提示KeyValue的内容。
+		else
+		{
+			settimer 【延时显示Listview当前选中行的内容】, 100
+		}
+	}
+ 	return
+  	
+【中键处理】:
+	CoordMode, Mouse, Screen
+	MouseGetPos, var_x0, var_y0
+	WinGetPos , g_AX, g_AY, , , %g_wintitle%
+	Loop
+	{
+		Sleep 50
+		MouseGetPos, var_x, var_y
+		; tooltip x%var_x% y%var_y%
+		∑拖拽鼠标移动窗口( g_wintitle, var_x - var_x0, var_y - var_y0 )
+		ToolTip %_MySlider%
+
+		if not GetKeyState( "MButton", "P" )
+		{
+			Break
+		}
+	}
+	return
+
+∑拖拽鼠标移动窗口( ATitle, dx, dy )
+{
+	CoordMode, ToolTip, Screen
+	global g_AX
+	global g_AY
+
+	ifwinnotexist %ATitle%
+		return
+
+	WinMove, %ATitle%, , g_AX + dx, g_AY + dy
+}
+
+
+【退格键处理】:
+	GuiControlGet, OutputVar, Focus
+	if OutputVar = Edit1
+	{
+		g_bAutoFit := false
+	}
+	else if  OutPutVar =  SysListView321 
+	{
+		sleep 100
+        	GuiControl, Focus,  _edtSearch  ;; 在ListView上按退格键，定位到搜索框
+	}
+	return
+
+;; 打开Ini文件，手工编辑launchy.ini
+【手工编辑配置文件】:
+	ifexist %g_inifile%
+	{
+		myrun( g_inifile )
+	}
+	return
+	
+
+【使用飞扬小字典编辑配置文件】:
+	var_root := ∑获取根目录()
+	var_file = %var_root%\bin\dict\dict.ahk
+
+	var_param = 
+		(Ltrim
+		file:%g_inifile%
+		title:%g_inifile%
+		cursec:file
+		)
+
+	run_ahk( var_file, var_param, a_workingdir )	
+	return
+
+
+【延时显示Listview当前选中行的内容】:
+	var_temp =
+	;; 如果内容超过长度，则提示
+	LV_GetText( var_sec, var_CurRow, 2 )
+	LV_GetText( var_temp, var_CurRow, 3 )
+	LV_GetText( var_more, var_CurRow, 4 )
+	
+	if ( strlen( var_temp ) > 25 )
+	{
+		if var_more <>
+		{
+			if var_sec = file
+				var_temp = %var_temp%`n路径: %var_more%
+			else
+				var_temp = %var_temp%`n%var_more%
+		}	
+		
+	}
+	else if var_more <>
+	{
+		if var_sec = file
+			var_temp = 路径: %var_more%
+		else
+			var_temp = %var_more%
+	}
+	ControlGetPos,lx,ly,lw,lh,%g_LVName%,ahk_id %hGui%   ;get info on listview
+	LV_GetCellRect( hGui, g_LVName, var_CurRow, 3, "ArrayRect" )
+	x := lx + lw
+	y := ArrayRect2
+	tooltip %var_temp%,x,y,7
+	SetTimer, RemoveToolTip7, 3000	
+	settimer 【延时显示Listview当前选中行的内容】, off
+	return
+

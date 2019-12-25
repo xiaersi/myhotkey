@@ -1,0 +1,364 @@
+; EmEdit中的热键
+/*
+* ^+f::	查找上一个
+   #f:: 	加亮选中的单词 (利用了查找会有加亮的功能) 	10:25 2009-7-29
+*/
+
+;#include .\inc\common.aik
+;#include .\inc\window.aik
+#include .\inc\emedit.aik
+
+#ifwinactive ahk_class EmEditorMainFrame3
+
+f8::	;; 打开当前文件所在的目录
+	WinGetActiveTitle var_title
+	SplitPath, var_title , , var_path
+	run %var_path%
+	return
+
+sc070 & x::
+esc::
+	send ^w
+	return
+	
+!esc::		;; 关闭当前页, 并按Ctrl + Tab 切换窗口
+	send ^w
+	Sleep 100
+	send !{tab}
+	return 
+	
+^+f::	; 查找剪贴板的内容 
+	send ^f
+	winwait 查找 ahk_class #32770, 搜索完成后关闭该对话框(&L), 5
+	if not errorlevel		{
+		WinActivate
+		sleep 100
+		ControlSetText, Edit1, %Clipboard%
+		controlclick Button10, 查找 ahk_class #32770, 搜索完成后关闭该对话框(&L)
+	}
+	return
+	
+>!f::	; 加亮选中的单词 (利用了查找会有加亮的功能) 
+	send ^f
+	winwait 查找 ahk_class #32770, 搜索完成后关闭该对话框(&L), 5
+	if not errorlevel	{
+		sleep 200
+		controlclick Button10, 查找 ahk_class #32770, 搜索完成后关闭该对话框(&L)
+		winclose 查找 ahk_class #32770, 搜索完成后关闭该对话框(&L)
+	}
+	return
+
+::55;::
+::%;::
+	send `%`%{left}
+	return
+
+
+;; {alt}+引号 为选中的文本添加引号
+!"::	;; 注释,  "
+	var_temp = `"
+	block_selected_text(var_temp, var_temp)
+	Return
+	
+!'::	;; 注释 '	;; {alt}+单引号 为选中的文本添加单引号
+	var_temp = `'
+	block_selected_text(var_temp, var_temp)
+	Return
+	
+	
+^!/::
+	var_help = F7`t`t滚轮向上滚动 
+	var_help = %var_help%`nF8`t`t打开当前文件所在的目录
+	var_help = %var_help%`nAlt + F5`t运行当前编辑的文件
+
+	talkshow(var_help,"EmEdit Help")
+	return
+!;::
+^;::
+	send {end}`;
+	return
+
+;; 注释行
+:://--::
+	send {space}{backspace}
+	noteline("//", "-", 40)
+	return
+:://-/::
+	send {space}{backspace}
+	noteline2("//", "-", 40)
+	return
+
+::;;;::
+	sendinput {`; 42}
+	return 
+
+::;--::
+	send {space}{backspace}
+	noteline(";", "-", 40)
+	return 
+
+::;-;::
+	send {space}{backspace}
+	noteline2(";", "-", 40)
+	return 
+	
+::{};::
+	send {{}{enter}{}}{up}{enter}
+	return
+	
+::/***::
+	SendInput  /***************************************************************`n* `n***************************************************************/
+	sleep 100
+	send {up}
+	return 
+	
+::AddStrLineInfo::
+	sendinput AddString_LineInfo(ByRef var_msg, a_LineFile, a_ThisFunc, a_LineNumber)
+	return
+
+;------- 以下为快速生成代码片段 ---------------------------------
+::#ifd;::
+	sendbyclip("#if defined _DEBUG`n`n#endif")
+	send {up}
+	Return
+	
+;; 快速生成CSMenu的代码
+::CSMenu;::
+	CreateCSMenu()
+	return
+	
+;; 快速输入调用 msgbox 4的代码
+::msgboxYN::
+::msgbox4::
+	send msgbox 4`,`, `nIfMsgBox Yes`n`nIfMsgBox No
+	send +{home}
+	return
+
+;; 快速生成新HotString的代码
+::newhs;::
+::newhotstring::
+	var_key := myinput("指定关键字","为你要新添加的Hotstring指定关键字")
+	send ::%var_key%::  `;{{}`n`t`nreturn  `;{}}{up 2}{end}{space}
+	return
+	
+
+;;------ Alt + F5 ----------------------------------
+!f5::  ;;保存并运行当前编辑的文件...................................
+	send ^s			;; 先将当前编辑的文件保存
+	sleep 200
+	WinGetActiveTitle var_title
+	StringReplace, var_title, var_title, - EmEditor,, All
+	; 如果是编辑amx mod x 脚本代码, 按f1查询选中的函数
+	ifinstring, var_title, .sma
+	{
+		amxx_compile(var_title)		; 编译当前sma文件生成并移动插件
+	}
+	else ifinstring , var_title, .ahk	; 运行当前*.ahk文件
+	{
+	;	msgbox %var_title%
+		run %var_title%		
+	}
+	else ifinstring , var_title, .inc ; 选择运行当前inc文件相同目录下的*.ahk 或 *.sma文件
+	{
+		SplitPath, var_title , OutFileName, OutDir, OutExtension, OutNameNoExt
+	
+;		var_menu = @ 请选择你想执行什么任务 @
+;		addstring(var_menu, "--------------------------------------------------", true)
+;		var_temp = 1. 编译%OutNameNoExt%.sma 文件, 生成Amxx 插件
+;		addstring(var_menu, var_temp, true)
+;		var_temp = 2. 运行%OutNameNoExt%.ahk 文件
+;		addstring(var_menu, var_temp, true)
+;		addstring(var_menu, "`n0. 退出 ", true)
+;		var_result := CSMenu(var_menu, 80)
+;		if var_result not in 1,2,3 ;,4
+;			Return
+;			
+;		if var_result = 1
+;		{
+			var_title = %OutDir%\%OutNameNoExt%.sma
+			MsgBox 4, 确认编译sma文件, 是否要编译%var_title%`n并生成%OutNameNoExt%.amxx插件?
+			IfMsgBox yes
+			{
+				amxx_compile(var_title)		; 编译当前sma文件生成并移动插件
+			}
+;		}
+;		else if var_result = 2
+;		{
+;			var_title = %OutDir%\%OutNameNoExt%.ahk
+;			run %var_title%	
+;		}
+	}
+	return
+
+F1::
+	WinGetActiveTitle var_title
+	; 如果是编辑amx mod x 脚本代码, 按f1查询选中的函数
+	ifinstring, var_title, .sma
+	{
+		SearchHelpKey("AMX Mod X Documentation ahk_class HH Parent", "amxhelp")
+	}
+	else ifinstring , var_title, .ahk
+	{
+		SearchHelpKey("AutoHotkey Help ahk_class HH Parent", "ahkhelp")
+	}
+	else ifinstring , var_title, .aik
+	{
+		SearchHelpKey("AutoHotkey Help ahk_class HH Parent", "ahkhelp")
+	}
+	else ifinstring , var_title, .inc
+	{
+		var_menu = @ 查找哪个帮助文档? @
+		addstring(var_menu, "--------------------------------------------------", true)
+		addstring(var_menu, "1. 查找Amxx 的帮助文档 ", true)
+		addstring(var_menu, "2. 查找AHK 的帮助文档", true)
+		addstring(var_menu, "`n0. 退出 ", true)
+		var_result := CSMenu(var_menu, 80)
+		if var_result not in 1,2,3 ;,4
+			Return
+			
+		if var_result = 1
+		{
+			SearchHelpKey("AMX Mod X Documentation ahk_class HH Parent", "amxhelp")
+		}
+		else if var_result = 2
+		{
+			SearchHelpKey("AutoHotkey Help ahk_class HH Parent", "ahkhelp")
+		}
+	}
+	return
+	
+	
+!f3::	; 搜索文件夹
+	var_menu = 
+	(
+@ 在文件夹中查找 @
+--------------------------------------------------
+1. AMXX::在D:\work\MyAmxxScript(*.sma  *.inc)中查找
+2. AMXX::在D:\work\HLDS_CS16\cstrike\addons\amxmodx\scripting(*.sma *.inc)中查找
+3. AHK::在D:\Program Files\MyHotKey(*.ahk  *.aik)中查找
+4. AMXX::在D:\Program Files\一起玩平台FPS类游戏\...\scripting(*.sma *.inc)中查找
+
+0. 退出 
+	)
+	var_result := CSMenu(var_menu, 80)
+	if var_result not in 1,2,3 ,4
+		Return
+	
+	send !si
+	winwait 在文件中查找 ahk_class #32770, 搜索文件夹(&I), 5
+	if not errorlevel
+	{
+		; 将查找窗口移动到屏幕中央
+		WinSet, Transparent, 0
+		sleep 100
+		WinActivate
+		WinWaitActive
+		CenterActiveWindow()
+		sleep 100
+		WinSet, Transparent, off
+		sleep 100
+		
+		if var_result = 1
+		{
+			WinActivate
+			ControlSetText, Edit2, *.sma`; *.inc
+			ControlSetText, Edit3, D:\work\MyAmxxScript
+		}
+		else if var_result = 2
+		{
+			WinActivate
+			ControlSetText, Edit2, *.sma`; *.inc
+			ControlSetText, Edit3, D:\work\HLDS_CS16\cstrike\addons\amxmodx\scripting
+		}
+		else if var_result = 3
+		{
+			WinActivate
+			ControlSetText, Edit2, *.ahk`; *aik
+			ControlSetText, Edit3, D:\Program Files\MyHotKey
+		}
+		else if var_result = 4
+		{
+			WinActivate
+			ControlSetText, Edit2, *.sma`; *.inc
+			ControlSetText, Edit3, D:\Program Files\一起玩平台FPS类游戏\CS1.6\cstrike\addons\amxmodx\scripting
+		}
+;		else if var_result =4
+;		{
+;			WinActivate
+;			ControlSetText, Edit2, *.aik
+;			ControlSetText, Edit3, D:\Program Files\MyHotKey
+;		}
+		sleep 200
+		controlclick Button9, 查找 ahk_class #32770, 搜索完成后关闭该对话框(&L)
+	}
+	else 
+	{
+	msgbox 未弹出 在文件中查找 的窗口
+	}
+	Return
+	
+
+;/********************************************
+;* EmEditor 的查找窗口
+;********************************************/
+#ifwinactive 查找 ahk_class #32770, 搜索完成后关闭该对话框(&L)
+
+;; 在查找窗口任意地方按 Ctrl + V , 都将剪贴板里的内容复制查找框内
+^v::	
+	ControlSetText Edit1, %Clipboard%, 查找 ahk_class #32770, 搜索完成后关闭该对话框(&L)
+	Return
+	
+;/***************************************************************
+;* 为编译成功的Amxx插件输入目标位置 时弹出的Input窗口
+ ;***************************************************************/
+#IfWinActive 为编译成功的Amxx插件输入目标位置 ahk_class #32770
+::cs15::
+	var_temp := read_ini("launchy.ini","path","amx_plugins15", "error")
+	if (var_temp <> "error")
+	{
+		sendinput %var_temp%
+	}
+	return 
+F5::
+	var_temp := read_ini("launchy.ini","path","amx_plugins15", "error")
+	if (var_temp <> "error")
+	{
+		ControlSetText Edit1, %var_temp%, 为编译成功的Amxx插件输入目标位置
+	}
+	return 
+	
+::cs16::
+	var_temp := read_ini("launchy.ini","path","amx_plugins", "error")
+	if (var_temp <> "error")
+	{
+		sendinput %var_temp%
+	}
+	return 
+F6::
+	var_temp := read_ini("launchy.ini","path","amx_plugins", "error")
+	if (var_temp <> "error")
+	{
+		ControlSetText Edit1, %var_temp%, 为编译成功的Amxx插件输入目标位置
+	}
+	return 
+	
+::mycs16::
+	var_temp := read_ini("launchy.ini","path","amx_plugins2", "error")
+	if (var_temp <> "error")
+	{
+		sendinput %var_temp%
+	}
+	return 
+F7:: ;{ 
+	var_temp := read_ini("launchy.ini","path","amx_plugins2", "error")
+	if (var_temp <> "error")
+	{
+		ControlSetText Edit1, %var_temp%, 为编译成功的Amxx插件输入目标位置
+	}
+	return ;}
+	
+F8::  ;{ 将插件移动到临时位置 D:\000
+	ControlSetText Edit1, D:\000, 为编译成功的Amxx插件输入目标位置
+	return  ;}
+#ifwinactive
+

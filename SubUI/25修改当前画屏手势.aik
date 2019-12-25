@@ -1,0 +1,285 @@
+【定时器延时显示修改当前手势的菜单】:
+	settimer 【定时器延时显示修改当前手势的菜单】, off
+	Gosub 【菜单修改当前手势】
+	return
+
+【菜单修改当前手势】:
+	if not g_IsCreated_菜单修改当前手势
+	{
+		g_IsCreated_菜单修改当前手势 := true
+		menu MENU画屏手势开关, add, 开关手势提示 (&h), 【开关画屏手势Tooltip提示】
+		menu MENU画屏手势开关, add, 开关气泡提示 (&t), 【开关画屏手势气泡提示】
+		menu MENU画屏手势开关, add,
+		menu MENU画屏手势开关, add, 关闭画屏手势 (&x), 【关闭画屏命令】
+
+
+		menu 菜单修改当前手势, add, 新增当前手势 (&A), 【修改当前手势】
+		menu 菜单修改当前手势, add, 修改当前手势 (&M), 【修改当前手势】
+		menu 菜单修改当前手势, add, 删除当前手势 (&D), 【删除当前手势】
+		menu 菜单修改当前手势, add
+		menu 菜单修改当前手势, add, 画屏手势开关 (&K), :MENU画屏手势开关
+		menu 菜单修改当前手势, add, 屏蔽画屏手势 (&J), 【添加鼠标手势禁用列表】
+		menu 菜单修改当前手势, add, 编辑画屏手势 (&E), 【编辑画屏命令】
+
+
+		if g_GlobalSwitch_GestureTooltip
+			menu , MENU画屏手势开关, check, 开关手势提示 (&h)
+		Else
+			menu , MENU画屏手势开关, uncheck, 开关手势提示 (&h)
+
+		if g_GlobalSwitch_GestureTraytip
+			menu , MENU画屏手势开关, check, 开关气泡提示 (&t)
+		Else
+			menu , MENU画屏手势开关, uncheck, 开关气泡提示 (&t)
+
+	}
+	;; 如果存在与鼠标手势对应的CMDString，则执行之
+	iFind := 0
+	loops := g_MouseGestureArray0
+	g_CtrlKeys =
+	loop %loops%
+	{
+		var_line := g_MouseGestureArray%A_Index%
+		if StrSplit2Sub( var_line, "=", keyName, keyValue )
+		{
+			g_CtrlKeys :=  ∑检查按下的控制键()
+			if ( g_CtrlKeys . g_GestureList == keyName )
+			{
+				iFind := 2
+				break
+			}
+			else if ( iFind != 1  && regexmatch( keyName, "[\^\!\+]{0,3}" . g_GestureList ) > 0 && keyValue <> "" )
+			{
+				iFind = 1
+			}
+		}
+	}
+	if ( iFind == 2 )
+	{
+		menu 菜单修改当前手势, Disable, 新增当前手势 (&A)
+		menu 菜单修改当前手势, Enable, 修改当前手势 (&M)
+		menu 菜单修改当前手势, Enable, 删除当前手势 (&D)
+	}
+	else if ( iFind == 1 )
+	{
+		menu 菜单修改当前手势, Disable, 新增当前手势 (&A)
+		menu 菜单修改当前手势, Enable, 修改当前手势 (&M)
+		menu 菜单修改当前手势, Disable, 删除当前手势 (&D)
+	}
+	Else
+	{
+		menu 菜单修改当前手势, Enable, 新增当前手势 (&A)
+		menu 菜单修改当前手势, Disable, 修改当前手势 (&M)
+		menu 菜单修改当前手势, Disable, 删除当前手势 (&D)
+	}
+	menu 菜单修改当前手势, show
+	Return
+
+
+【新增当前手势】:
+【修改当前手势】:
+	;; g_GestureList_modi 为待修改的画屏手势
+	∑修改指定画屏手势( g_GestureList_modi, g_CtrlKeys )
+	g_GestureList_modi= ;; 画屏手势使用完毕之后清空
+	return
+
+
+【删除当前手势】:
+	if not ∑删除画屏手势( g_CtrlKeys . g_GestureList )
+	{
+		msgbox 删除画屏手势失败！	
+	}
+	return
+
+
+【开关画屏手势Tooltip提示】:
+	g_GlobalSwitch_GestureTooltip := !g_GlobalSwitch_GestureTooltip
+	if g_GlobalSwitch_GestureTooltip
+		menu , MENU画屏手势开关, check, 开关手势提示 (&h)
+	Else
+		menu , MENU画屏手势开关, uncheck, 开关手势提示 (&h)
+	write_ini( "AutoHotString.ini", g_GlobalSwitch_Section, "画屏命令当前手势提示", g_GlobalSwitch_GestureTooltip )
+	return
+
+【开关画屏手势气泡提示】:
+	g_GlobalSwitch_GestureTraytip := !g_GlobalSwitch_GestureTraytip
+	if g_GlobalSwitch_GestureTraytip
+		menu , MENU画屏手势开关, check, 开关气泡提示 (&t)
+	Else
+		menu , MENU画屏手势开关, uncheck, 开关气泡提示 (&t)
+	write_ini( "AutoHotString.ini", g_GlobalSwitch_Section, "画屏命令气泡提示", g_GlobalSwitch_GestureTraytip )
+	return
+
+
+∑修改指定画屏手势( GestureList_, CtrlKeys_="" )
+{
+	Local var_title, var_ret, curGesture, var_temp
+	Local CtrlChecked, AltChecked, ShiftChecked, curCmdValue
+	var_title = 修改画屏手势
+	var_Wintitle = %var_title% ahk_class AutoHotkeyGUI
+
+	if GestureList_ =
+	{
+		msgbox 要 修改的画屏手势 为空！
+		return false
+	}
+
+	;; 准备界面初始化参数
+	curGesture := CtrlKeys . GestureList_
+	ifInstring CtrlKeys_, ^
+		CtrlChecked = checked
+	ifInstring CtrlKeys_, !
+		AltChecked = checked
+	ifInstring CtrlKeys_, +
+		ShiftChecked = checked
+	
+	∑查找指定画屏手势( curGesture, var_temp, curCmdValue )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 显示窗口
+
+	Gui, 25:Add, CheckBox, x306 y0 w40 h30 v_ModGesture_ckCtrl %CtrlChecked%   g【修改手势_刷新】, Ctrl
+	Gui, 25:Add, CheckBox, x356 y0 w40 h30 v_ModGesture_ckAlt  %AltChecked%    g【修改手势_刷新】, Alt
+	Gui, 25:Add, CheckBox, x406 y0 w60 h30 v_ModGesture_ckShift %ShiftChecked% g【修改手势_刷新】, Shift
+
+
+	Gui, 25:Add, Text, x-4 y10 w80 h20 +Right, 画屏手势：
+	Gui, 25:Add, Edit, x76 y10 w220 h20 disabled v_ModGesture_edtCurGes, %curGesture%
+
+	Gui, 25:Add, Text, x-4 y36 w80 h20 +Right, 当前命令：
+	Gui, 25:Add, Edit, x76 y38 w390 h20 v_ModGesture_CurCmd +ReadOnly, %curCmdValue%
+
+	Gui, 25:Add, Text, x-4 y70 w80 h20 +Right, 新设命令：
+	Gui, 25:Add, Edit, x76 y65 w390 h25 v_ModGesture_edtNewCmd, %curCmdValue%
+
+	Gui, 25:Add, Button, x75  y105 w80 h30 g【修改手势_确定】, 确  定
+	Gui, 25:Add, Button, x165 y105 w80 h30 g【修改手势_取消】, 取  消
+	Gui, 25:Add, Button, x275 y105 w80 h30 g【修改手势_执行】, 执  行
+	Gui, 25:Add, Button, x365 y105 w80 h30 g【修改手势_删除】, 删  除
+
+	; Generated using SmartGUI Creator 4.0
+	Gui, 25:-SysMenu	;; 去掉最大化、最小化、关闭按钮
+	Gui, 25:Show, h146 w479, %var_title%
+
+	;; 设置热键
+	Hotkey, IfWinActive, %var_Wintitle%
+	Hotkey, !F4, 	【修改手势_取消】
+	
+	loop 
+	{
+		Sleep 200
+		IfWinNotExist %var_Wintitle%
+		{
+			break
+		}
+	}
+
+	Return
+
+
+【修改手势_取消】:
+	25:GuiClose:
+		Gui, 25:destroy
+	Return
+
+
+
+
+【修改手势_确定】:
+		gui 25:submit, nohide
+		if ∑保存画屏手势( _ModGesture_edtCurGes, _ModGesture_edtNewCmd )
+			gosub 【修改手势_取消】
+		else
+			msgbox 保存失败！
+		return
+
+
+【修改手势_执行】:
+		gui 25:submit, nohide
+		if _ModGesture_edtNewCmd <>
+			run_cmd( _ModGesture_edtNewCmd )
+		return
+
+【修改手势_删除】:
+		gui 25:submit, nohide
+		if ∑删除画屏手势( _ModGesture_edtCurGes )
+			gosub 【修改手势_取消】
+		else
+			msgbox 删除画屏手势失败！
+		return
+
+
+【修改手势_刷新】:
+	gui submit, nohide
+	curGesture := GestureList_
+	if _ModGesture_ckShift
+		curGesture = +%curGesture%
+
+	if _ModGesture_ckAlt
+		curGesture = !%curGesture%
+
+	if _ModGesture_ckCtrl
+		curGesture = ^%curGesture%		
+	
+	curCmdValue =
+	if ∑查找指定画屏手势( curGesture, var_temp, curCmdValue )
+		guicontrol, , _ModGesture_edtCurGes, %var_temp%
+	else
+		guicontrol, , _ModGesture_edtCurGes, %curGesture%
+
+	guicontrol, , _ModGesture_CurCmd, %curCmdValue%
+
+	if _ModGesture_edtNewCmd =
+	{
+		guicontrol, , _ModGesture_edtNewCmd, %curCmdValue%
+	}
+	return
+}
+
+
+∑保存画屏手势( keyName_, keyValue_ )
+{
+	keyName  := keyName_
+	keyValue := keyValue_
+	if ∑查找指定画屏手势( keyName_, keyName, keyValue )
+	{
+		if ( keyName_ == keyName && keyValue_ == keyValue )
+		{
+			return true
+		}
+		keyValue := keyValue_
+	}
+	msgbox keyName_%keyName_%
+	;; 如果keyName中没有方向键，则画屏手势不合法，直接退出
+	if keyName not contains  →,↑,←,↓
+	{
+		return false
+	}
+
+	if write_ini( "AutoHotString.ini", "画屏手势", keyName, keyValue, true )
+	{
+        LoadAutoHotString()             ;; 在保存画屏手势之后重新加载autohotkey.ini，使画屏手势生效
+		return true
+	}
+	return false
+}
+
+∑删除画屏手势( Gesture_ )
+{
+	keyName := Gesture_
+	if ∑查找指定画屏手势( Gesture_, keyName, keyValue )
+	{
+		
+	}
+	;; 如果keyName中没有方向键，则画屏手势不合法，直接退出
+	if keyName not contains  →,↑,←,↓
+	{
+		return false
+	}
+	if del_ini( "AutoHotString.ini", "画屏手势", keyName, true )
+	{
+		LoadAutoHotString()             ;; 在删除画屏手势之后重新加载autohotkey.ini，使画屏手势生效
+		return true
+	}
+	return false
+}

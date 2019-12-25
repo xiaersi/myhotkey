@@ -1,0 +1,399 @@
+;; PLSQL窗口中，辅助输入
+
+#ifwinactive ahk_class TPLSQLDevForm
+!esc::
+	exitapp
+	return
+
+^w:: ;; 关闭当前窗口
+	send !fc
+	return
+
+::help;::
+	var_help = 
+(
+帮助提示
+!Home			执行光标之前的本行SQL
+!F8/!End		执行光标之后的本行SQL
+export 			在导出窗口, 自动填充导出的条件及目标位置
+addex`;或addexport`;	为指定的表添加导出条件到配置文件
+delim`;或delimport`;	导入之前, 先清空满足导出条件的记录, 以免发生记录冲突
+win+esc			退出
+)
+	msgbox %var_help%
+	return
+
+!home::		; 执行光标之前的本行SQL语句
+	send {shift down}{home}{shift up}
+	send {f8}
+	return 
+	
+
+!f8::	    ; 执行光标所在行的SQL语句
+!end::
+	send {home}{shift down}{end}{shift up}
+	send {f8}
+	return 
+	
+^+m::
+	var_temp = 
+	if clipboard <>
+	{
+		var_temp := StrRight2Sub( clipboard, "_", "R1" )
+		var_temp = OB_RECTIME_%var_temp%	
+	}
+	var_text = select max(字段) from %clipboard%
+	var_temp := myinput("指定字段", var_text, var_temp )
+	var_temp = max(%var_temp%)
+	SelectFromClipboard( var_temp )
+	return
+	
+^+n::
+	SelectFromClipboard( "count(*)" )
+	return
+	
+::sc;::
+::selcount;::
+	sleep 100
+	send {home}{shift down}{end}{shift up}	
+	var_input := myinput("查找表的记录数", "请输入表名", clipboard )
+	if var_input <>
+	{
+		if g_user=
+			sendinput select count(*) from %var_input%
+		else
+			sendinput select count(*) from %g_user%.%var_input%
+			
+		sleep 100
+		send {home}{shift down}{end}{shift up}
+		send {f8}
+	}
+	return
+	
+^+l::
+	SelectFromClipboard( "*" )
+	return	
+	
+::sa;::
+::selall;::
+	sleep 100
+	send {home}{shift down}{end}{shift up}	
+	var_input := myinput("查找表整个表", "请输入表名", clipboard )
+	if var_input <>
+	{
+		if g_user =
+			sendinput select * from %var_input%
+		else 
+			sendinput select * from %g_user%.%var_input%
+		sleep 100
+		send {home}{shift down}{end}{shift up}
+		send {f8}
+	}
+	return	
+	
+::sw;::
+	sleep 100
+	send {home}{shift down}{end}{shift up}	
+	var_input := myinput("查找表整个表", "请输入表名", clipboard )
+	if var_input <>
+	{
+		sleep 100
+		if g_user =
+			sendinput select count(*) from %var_input%
+		else 
+			sendinput select count(*) from %g_user%.%var_input%
+			
+		sleep 100
+		var_where := read_ini("PLSQL.ini", "where", var_input, "")
+		if var_where <>
+		{
+			if var_where <> all
+			{
+				sendinput _{bs} where %var_where%
+			}
+			else
+			{
+				tooltip where 条件为 All
+				sleep 500
+			}
+		}
+		sleep 100
+		send {home}{shift down}{end}{shift up}
+		send {f8}
+		tooltip
+	}
+	return		
+	
+
+::swl;::
+	sleep 100
+	send {home}{shift down}{end}{shift up}	
+	var_input := myinput("查找表整个表", "请输入表名", clipboard )
+	if var_input <>
+	{
+		sleep 100
+		if g_user =
+			sendinput select * from %var_input%
+		else 
+			sendinput select * from %g_user%.%var_input%
+			
+		sleep 100
+		var_where := read_ini("PLSQL.ini", "where", var_input, "")
+		if var_where <>
+		{
+			if var_where <> all
+			{
+				sendinput _{bs} where %var_where%
+			}
+			else
+			{
+				tooltip where 条件为 All
+				sleep 500
+			}
+		}
+		sleep 100
+		send {home}{shift down}{end}{shift up}
+		send {f8}
+		tooltip
+	}
+	return	
+
+^+a::
+::addex;::	; 为指定的表添加导出条件到配置文件
+::addexport;::
+	sleep 100
+	var_table := myinput("指定导出的Table", "请输入要导出的Table名称", clipboard )
+	if var_table <>
+	{
+		send {home}{shift down}{end}{shift up}	
+		sleep 100
+		if g_user =
+			sendinput select count(*) from %var_table% %a_space%
+		else
+			sendinput select count(*) from %g_user%.%var_table% %a_space%
+			
+		var_recenttable := read_ini("PLSQL.ini", ".", "recent", "")
+		∑Add字符串队列( var_recenttable, var_table, "|", true, 30 )
+		write_ini("PLSQL.ini", ".", "recent", var_recenttable, false )
+		
+		var_where := read_ini("PLSQL.ini", "where", var_table, "")
+		if var_where =
+		{
+			ifinstring var_table, ctb_
+			{
+				var_temp := StrRight2Sub( var_table, "_", "R1" )
+				if g_days =
+				{
+					var_where = OB_RECTIME_%var_temp%  > day(
+				}
+				else
+				{
+					var_where = OB_RECTIME_%var_temp%  > sysdate - %g_days%
+				}
+			}
+		}
+		var_temp := myinput("指定导出条件", "请输入要导出的where条件", var_where, 600)
+
+		if var_temp <>
+		{
+			;; 将date(2010-9-9) 转换为 to_date('2010-9-9', 'yyyy-mm-dd')
+			ifinstring var_temp, day(
+			{
+				var_date := strmid2sub( var_temp, "day(", ")" )
+				if var_date <>
+				{
+					stringreplace var_temp, var_temp, day(%var_date%), to_date('%var_date%'`, 'yyyy-mm-dd'), all
+				}
+			}	
+			write_ini("PLSQL.ini", "where", var_table, var_temp, false)
+			tooltip 为 %var_table% 添加了where 条件:`n %var_temp%
+			if var_temp <> all
+			{
+				var_temp = where %var_temp%
+				sleep 100
+				sendinput %var_temp%	
+				sleep 100
+				send  {home}{shift down}{end}{shift up}	
+				send {f8}
+			}
+			sleep 1500
+			tooltip			
+		}
+	}
+	return
+	
+::where;::
+	var_where := read_ini("PLSQL.ini", "where", clipboard, "")
+	if var_where <>
+	{
+		if var_where = all
+		{
+			msgbox 表 %clipboard% 的 where 条件为 ALL
+		}
+		else
+		{
+			sendinput where %var_where%
+		}
+	}
+	return
+	
+^+d::
+::delim;::	;; 导入之前, 先清空满足导出条件的记录, 以免发生记录冲突
+::delimport;::
+	send {home}{shift down}{end}{shift up}	
+	var_table := myinput("指定导出的Table", "请输入要导出的Table名称", clipboard )
+	if var_table <>
+	{
+		var_where := read_ini("PLSQL.ini", "where", var_table, "")
+		sleep 100
+		if var_where <>
+		{
+			if g_user =
+				sendinput delete %var_table% 
+			else
+				sendinput delete %g_user%.%var_table% 
+				
+			if var_where = all
+			{
+				tooltip where 条件为all
+			}
+			else
+			{
+				sendinput %a_space% where %var_where%
+			}
+			
+			sleep 50
+			send {home}{shift down}{end}{shift up}	
+			sleep 50
+			msgbox 4, 确认删除, 确定要执行删除操作吗？
+			ifmsgbox yes
+			{
+				send {f8}
+				/*
+				MsgBox, 4, 删除, 是否从最近列表中删除表 %var_table%
+				IfMsgBox Yes
+				{
+					StrListDel( var_recenttable, var_table, "|" )
+					write_ini("PLSQL.ini", ".", "recent", var_recenttable )
+				    return
+				}
+				*/
+			}
+			tooltip
+		}
+		else
+		{
+			msgbox %var_table% 没有配置 where 条件！
+		}
+	}
+	return
+	
+	
+::login;::
+	g_user := myinput("指定登录用户", "请指定数据库的登录用户", g_user )
+	iniwrite g_user, PLSQL.ini, . , login
+	return
+
+
+; 在导出窗口，选中某个表，复制并分离出表和名称
+^+c::
+	send ^c
+	sleep 200
+	ifinstring clipboard, `tTABLE
+	{
+		clipboard := strleft2sub( clipboard, "`t" )
+		ifinstring clipboard, .
+		{
+			clipboard := strRight2sub( clipboard, "." )
+		}
+		if clipboard <>
+		{
+			tooltip 已经复制表 %clipboard%
+			sleep 900
+			tooltip
+		}
+	}
+	return
+	
+	
+^+e::
+	send ^c
+	sleep 200
+	ifinstring clipboard, `tTABLE
+	{
+		clipboard := strleft2sub( clipboard, "`t" )
+		ifinstring clipboard, .
+		{
+			clipboard := strRight2sub( clipboard, "." )
+		}
+	}
+	
+::exp;::
+::export;:: ; 在导出窗口, 自动填充导出的条件及目标位置
+	var_file := a_scriptdir
+	var_table := myinput("指定导出的Table", "请输入要导出的Table名称", clipboard )
+	if var_table <>
+	{
+		var_where := read_ini("PLSQL.ini", "where", var_table, "")
+		
+		;; 导出条件为全部时，使用pde文件
+		if var_where = all
+		{
+			var_where = 
+			var_file = %var_file%\%var_table%.pde
+			controlsettext TEllipseEdit1, %var_file%
+			tooltip 注意：%var_table%的导出条件为全部导出，默认导出为pde文件！
+			sleep 1000
+			tooltip
+			return
+		}
+		;; 导出有where条件时，默认导出到一个sql文件中。
+		controlsettext TEdit1, %var_where%
+		if g_ext =
+		{
+			g_ext := myinput("设置导出扩展名", "请设置导出文件的默认扩展名：", "sql" )
+		}
+		var_file = %var_file%\%var_table%.%g_ext%
+	}
+	controlsettext TEllipseEdit1, %var_file%
+	CoordMode Mouse, Relative
+	ControlGetPos , X, Y, Width, Height, TButton1
+	MouseMove, X+35, Y+15
+	tooltip 点这里导出
+	sleep 800
+	tooltip
+	return
+	
+^+i::
+::imp;::
+::import;::
+	var_file := a_scriptdir
+	var_table := clipboard 
+	if var_table <>
+	{
+		var_file = %var_file%\%var_table%.sql
+		sendinput @ %var_file%
+	}
+	return
+	
+	
+SelectFromClipboard( Field )
+{
+	global g_user
+	sleep 100
+	send {home}{shift down}{end}{shift up}	
+	sleep 100
+	var_input := clipboard
+	if var_input <>
+	{
+		if g_user=
+			sendinput select %Field% from %var_input%
+		else
+			sendinput select %Field% from %g_user%.%var_input%
+			
+		sleep 100
+		send {home}{shift down}{end}{shift up}
+		send {f8}
+	}
+}
+#ifWinactive

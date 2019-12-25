@@ -1,0 +1,367 @@
+#ifwinactive ahk_class TEditWindow ; BCB 的编辑窗口
+#include .\AWin\VC\vcCommon.aik
+#include .\inc\run.aik
+
+:k50:;ifp::
+:k50:ifp;::	;; 快速输入 if ( NULL != p )
+	var_clip := clipboard
+	clipboard =
+	var_input := myinput( "指针变量", "请输入指针变量", var_clip )
+	var_temp = if ( NULL `!= %var_input% )
+	clipboard := var_temp
+	sleep 100
+	send ^v
+	send {enter}{{}{enter}{enter}{}}{up}{tab}
+	clipboard := var_clip
+	return
+
+#1::
+	WinGetActiveStats,title_ActiveWindow,var_width,var_height,var_x,var_y
+	winmove, %title_ActiveWindow%, , %var_x%, %var_y%, 640, 400
+	return
+
+#2::	; 还原窗口
+	winmove A, , 200, 140, 735, 602
+	return 
+
+
+#3::
+	if a_screenheight > 1000
+        winmove A, , 190, 112, 1070, 878 	;; 22寸大屏幕
+	else
+		winmove A, , 190, 112, 1070, 766	;; 19寸
+	return
+
+#4::	; 最大化窗口	
+#NumpadAdd::
+	winmove A, , 342, 112, 1089, 852
+	return 
+
+#Tab::	;; 切换源文件与头文件
+	send ^{F6}		
+	return
+
+^G:: return                             ;; 屏蔽Ctrol+G定位到行，因为该功能总是导致编辑器不正常
+
+
+F6::	;; 编译当前文件
+	send !p
+	send c
+	winwait Compiling ahk_class TProgressForm, , 1
+	loop 600
+	{
+		sleep 100
+		ifwinnotexist Compiling ahk_class TProgressForm
+		{
+			return
+		}
+		controlgetText btnText, TButton1, Compiling ahk_class TProgressForm
+		if btnText = OK
+		{
+			msgbox 4, 编译已经完毕, 编译已经完毕 关闭编译小窗口？, 5
+			ifmsgbox Yes
+			{
+				winclose Compiling ahk_class TProgressForm, OK
+			}
+			return 
+		}
+	}
+	return
+
+
+~F7::       ;; 编译整个项目时，检查编译完毕时弹出窗口提示。
+	winwait Compiling ahk_class TProgressForm, , 1
+	loop 600
+	{
+		sleep 100
+		ifwinnotexist Compiling ahk_class TProgressForm
+		{
+			return
+		}
+		controlgetText btnText, TButton1, Compiling ahk_class TProgressForm
+		if btnText = OK
+		{
+			msgbox 4, 编译已经完毕, 编译已经完毕 关闭编译小窗口？, 10
+			ifmsgbox Yes
+			{
+				winclose Compiling ahk_class TProgressForm, OK
+			}
+			return 
+		}
+	}	
+	return
+
+:://;::	; 其实输出//本身，目的在于防止输入法将//变成、、
+	sendbyclip("//")
+	return
+
+::///;::
+	sendbyclip("///")
+	return
+
+
+
+esc & 1::
+	IfWinExist ahk_class TClassBrowser
+	{
+		winclose ahk_class TClassBrowser
+	}
+	return 
+
+!f8::	; 用VIM打开当前文件。
+	oldClip := ClipBoardAll
+	send {rbutton}y		; 复制当前文件的完整地址到剪贴板
+	sleep 200
+	iniread,var_vim,launchy.ini,file, vim
+	if var_vim <>
+	{
+		StringSplit TempArray, var_vim, |
+		if TempArray0 > 0
+		{
+			var_vim := TempArray1
+			IfNotExist %var_vim%
+			{
+				tooltip 没有正确指定 VIM 编辑器的路径`n无法用vim 打开当前文件 
+				sleep 1000
+				tooltip
+				return
+			}
+			run %var_vim% `"%clipboard%`"
+		}
+	}
+	clipboard := oldClip
+	return
+
+#f8::	; 用EmEdit打开当前文件。
+	oldClip := ClipBoardAll
+	send {rbutton}y		; 复制当前文件的完整地址到剪贴板
+	sleep 200
+	runini( "EmEdit", clipboard )
+	/*
+	iniread,var_vim,launchy.ini,file, EmEdit
+	if var_vim <>
+	{
+		var_list = +-`;
+		StringLeft var_firstchar, var_vim, 1
+		IfInstring var_list, %var_firstchar%	
+		{
+			StringMid var_vim, var_vim, 2	;; 去掉行首的+-以及分号
+		}
+		IfNotExist %var_vim%
+		{
+			tooltip 没有正确指定Emedit 编辑器的路径`n无法用vim 打开当前文件 
+			sleep 1000
+			tooltip
+			return
+		}
+		run %var_vim% `"%clipboard%`"
+	}
+	*/
+	clipboard := oldClip
+	return
+
+!m::	; 定位到函数搜索框
+	AltDownTime = 0
+	var_oldclip := clipboardAll
+	clipboard =
+	sleep 100
+	send ^c
+	ControlFocus TCnProcListComboBox1, ahk_class TEditWindow
+	if clipboard =
+	{
+		clipboard := var_oldclip	
+	}
+	if clipboard <>
+	{
+		send ^v
+		AltDownTime := ( A_Min * 60 + A_sec ) * 1000 + A_MSec
+		keywait Alt
+		
+		if ( AltDownTime > 0 && ( A_Min * 60 + A_sec ) * 1000 + A_MSec - AltDownTime < 800 )
+		{
+			AltDownTime = 0
+			ControlGetFocus, OutputVar , ahk_class TEditWindow
+			if OutputVar = TCnProcListComboBox1
+				send {enter}
+		}		
+/*		sleep 50
+		send {down}
+		sleep 1000
+
+		ControlGet, nCount, LineCount, , TEditControl1, ahk_class TEditWindow
+		
+		msgbox nCount[%nCount%]
+		if ChoicePos = 0
+			send {enter}
+		else
+		*/
+			send {home}{shift down}{end}{shift up}
+	}
+	clipboard := var_oldclip
+	return
+	
+
+	
+>^f::	; 右Ctrl+f 从光标向下全局查找
+	send ^f
+	winwait Find Text ahk_class TSrchDialog, , 1
+	if not ErrorLevel
+	{
+		; 选择查寻范围为Global
+		control, Check, , TRadioButton2, Find Text ahk_class TSrchDialog	
+		; 选择查找起始位置为整个查寻范围
+		control, Check, , TRadioButton4, Find Text ahk_class TSrchDialog	
+		; 设置向下查寻
+		control, Check, , TRadioButton6, Find Text ahk_class TSrchDialog	
+	}
+	return
+
+>^+f::	; 右Ctrl+shift+f 从光标向上全局查找
+	send ^f
+	winwait Find Text ahk_class TSrchDialog, , 1
+	if not ErrorLevel
+	{
+		; 选择查寻范围为Global
+		control, Check, , TRadioButton2, Find Text ahk_class TSrchDialog	
+		; 选择查找起始位置为整个查寻范围
+		control, Check, , TRadioButton4, Find Text ahk_class TSrchDialog	
+		; 设置向下查寻
+		control, Check, , TRadioButton5, Find Text ahk_class TSrchDialog	
+	}
+	return
+	
+
+<^+f::	; 从全文向下全局查找
+	send ^f
+	winwait Find Text ahk_class TSrchDialog, , 1
+	if not ErrorLevel
+	{
+		; 选择查寻范围为Global
+		control, Check, , TRadioButton2, Find Text ahk_class TSrchDialog	
+		; 选择查找起始位置为整个查寻范围
+		control, Check, , TRadioButton3, Find Text ahk_class TSrchDialog	
+		; 设置向下查寻
+		control, Check, , TRadioButton6, Find Text ahk_class TSrchDialog	
+	}
+	return
+
+!f3::
+^!f::			;; 查找所有文件
+	send ^f
+	winwait Find Text ahk_class TSrchDialog, , 1
+	if not ErrorLevel
+	{
+		winactivate Find Text ahk_class TSrchDialog	
+		sleep 100
+		send +{tab}{right}
+		sleep 100
+		controlfocus  Edit2, Find Text ahk_class TSrchDialog	
+;;		MouseMove, 170, 320 , 0
+	}
+	return
+
+!F4:: return	;; 屏蔽Alt+F4，因为经常按!F3时会误按到它
+
+
+~^LButton::		;; Ctrl + 鼠标点击，将会弹出查看变量值的窗口，自动复制该变量值并关闭该窗口
+	sleep 200
+	WinWaitActive , Debug Inspector -  ahk_class TDebugInspector, , 1
+	if not ErrorLevel
+	{
+		ControlGetText, var_var, TEdit1,  Debug Inspector - ahk_class TDebugInspector
+		ControlGetText, var_text , TPropInspEdit1, Debug Inspector - ahk_class TDebugInspector
+		if var_text <>
+		{
+			ClipBoard := var_text
+			;; 取字符串的值
+			IfInString var_text, `"
+			{
+				 
+				var_quot = `"
+				var_pos := instr( var_text, var_quot )
+				StringMid var_temp, var_text, var_pos+1
+				StringLeft var_temp, var_temp, Strlen( var_temp ) -1
+			;	var_temp := StrRight2Sub( var_text, var_quot ) 	
+			;	var_temp := StrTrimRight( var_temp, var_quot )
+				ClipBoard := var_temp
+				var_tip = %var_var% `r`n= `"%ClipBoard%`"
+			}		
+			else
+			{
+				var_tip = %var_var% `r`n= %ClipBoard%
+			}
+			tooltip %var_tip%, , , 7
+				
+			;; 自动关闭查看变量的窗口
+			keywait Ctrl
+			winclose  Debug Inspector - ahk_class TDebugInspector
+			SetTimer, RemoveToolTip7, 800		
+		}		 
+	}	
+	return
+
+
+Appskey & =::
+	gosub 【复制并调整选中代码的空格】
+	return
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#ifwinactive  ahk_class TClassBrowser
+esc & 1::
+	winclose ahk_class TClassBrowser
+	return
+
+;; 屏蔽设置窗口大小的快捷键 win+1，Win+2, Win+3
+#1:: return
+#2:: return
+#3:: return
+
+;; 属性窗口
+#ifwinactive Object Inspector ahk_class TPropertyInspector
+
+;; 属性窗口操作，如果弹出修改控件名称的，自动关闭之
+;~enter::
+~Lbutton::
+	sleep 100
+	IfWinExist 修改组件名称 ahk_class TCnPrefixEditForm
+	{
+		WinClose
+	}
+	return
+	
+;; 调试时，Ctrl+鼠标点击弹出的查看变量值的窗口
+#ifwinactive Debug Inspector -  ahk_class TDebugInspector
+
+^c::	;; Ctrl+C 时复制变量值（字符串时只复制又引号内的值） 
+	ControlGetText, var_var, TEdit1,  Debug Inspector - ahk_class TDebugInspector
+	ControlGetText, var_text , TPropInspEdit1, Debug Inspector - ahk_class TDebugInspector
+	if var_text <>
+	{
+		ClipBoard := var_text
+		;; 取字符串的值
+		IfInString var_text, `"
+		{
+			 
+			var_quot = `"
+			var_pos := instr( var_text, var_quot )
+			StringMid var_temp, var_text, var_pos+1
+			StringLeft var_temp, var_temp, Strlen( var_temp ) -1
+		;	var_temp := StrRight2Sub( var_text, var_quot ) 	
+		;	var_temp := StrTrimRight( var_temp, var_quot )
+			ClipBoard := var_temp
+			var_tip = %var_var% `r`n = `"%ClipBoard%`"
+		}		
+		else
+		{
+			var_tip = %var_var% `r`n = %ClipBoard%
+		}
+		tooltip7( var_tip )
+
+		;; 自动关闭查看变量的窗口
+		winclose  Debug Inspector - ahk_class TDebugInspector
+	}
+	return
+
+#ifwinactive

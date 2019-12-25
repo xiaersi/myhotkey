@@ -1,0 +1,81 @@
+    25、显示隐藏文件
+
+    在HKEY_CURRENT_USERSoftwareMicrosoftWindowsCurrent VersionExplorerAdvanced子键下，有几个值影响隐藏文件和文件夹的显示。要让XP显示出隐藏的文件和文件夹，把Hidden设置成 1.要显示出文件的扩展名，把HideFileExt设置成0.要显示出受保护的操作系统文件，把ShowSuperHidden设置成1.注意：这部分设置也可以通过“文件夹选项”对话框的“查看”选项卡修改。
+    
+        31、让文件彻底隐藏
+
+    在我们的电脑上总有一些属于自己的秘密文件，对于这些文件，我们当然不希望别人随便看到，就算是我们将该文件的属性设置为“隐藏”，表面上这个文件是不见了，但是众所周知，通过单击“查看”菜单中的“文件夹选项”命令，然后在“查看”标签项中选择“显示所有文件”，这样你的隐藏文件就全部曝光了，那么怎样才能彻底地隐藏文件呢？下面就告诉你一个更为安全的方法。
+
+    “运行”对话框中输入“regedit”，打开注册表编辑器；
+
+    展开HKEY_LOCAL_MACHINESoftwareMicrosoftWindowsCurrentVersionexplorer
+
+    AdvancedFolderHiddenSHOWALL，CheckedValue键值项，将它的键值修改为“0”，如果没有该健值的话，可以自己新建一个名为“CheckedValue”的“DWORD值”，然后将其值修改为“0”即可。
+
+    最后退出注册表编辑器，重新启动计算机，接下来你就发现设置为“隐藏”属性的文件可以彻底隐身了，即使是在“文件夹选项”窗口中选择“显示所有文件”，我们隐藏的文件也不会露出来了。
+    
+        34、注册表修改之最后疯狂奉献
+
+    改变小图标大小（像素）：
+
+    在[HKEY－CURRENT－USERControl PaneldesktopWindowMetrics]中，更改或新建Shell Small Icon Size=″16″即可。
+
+    禁止系统右键弹出菜单：
+
+    在[HKEY－CURRENT－USERSoftwareMicrosoftWindowsCurrentVersionPoliciesExplorer]中，建立键值NoViewContextMenu= 01 00 00 00.
+
+    禁止任务栏右键弹出菜单：
+
+    在[HKEY－CURRENT－USERSoftwareMicrosoftWindowsCurrentVersionPoliciesExplorer]中，新建NoTrayContextMenu=01 00 00 00.
+
+    隐藏[设置]菜单中[控制面板]和[打印机]菜单项：
+
+    在[HKEY－CURRENT－USERSoftwareMicrosoftWindowsCurrentVersionPoliciesExplorer]中，新建键值NoSetFolders=01 00 00 00.
+
+    隐藏[设置]菜单中[任务栏和开始菜单]菜单项：
+
+    在 [HKEY－CURRENT－USERSoftwareMicrosoftWindowsCurrentVersionPoliciesExplorer] 中，新建键值NoChangeStartMenu=01 00 00 00，NoSetTaskbar=01 00 00 00.
+
+    隐藏[设置]菜单中[文件夹选项]：
+
+    在[HKEY－CURRENT－USERSoftwareMicrosoftWindowsCurrentVersionPoliciesExplorer]中，新建NoFolderOptions=01 00 00 00.
+
+    隐藏[设置]菜单中[活动桌面]项：
+
+    在[HKEY－CURRENT－USERSoftwareMicrosoftWindowsCurrentVersionPoliciesExplorer]中，新建NoSetActiveDesktop=01 00 00 00.
+
+    隐藏[设置]菜单中[Windows Update]项：
+
+    在[HKEY－CURRENT－USERSoftwareMicrosoftWindowsCurrentVersionPoliciesExplorer]中，新建NoWindowsUpdate=01 00 00 00.
+
+    禁止“文档”记录功能：
+
+    在[HKEY－CURRENT－USERSoftwareMicrosoftWindowsCurrentVersionPoliciesExplorer]中，新建NoRecentDocsHistory=01 00 00 00.
+
+    退出时自动清除文档内容：
+
+    在[HKEY－CURRENT－USERSoftwareMicrosoftWindowsCurrentVersionPoliciesExplorer]中，新建ClearRecentDocsOnExit= 01 00 00 00.
+
+    禁止数据光盘自动运行：
+
+    在[HKEY－CURRENT－USERSoftwareMicrosoftWindowsCurrentVersionPoliciesExplorer]中，新建NoDriveTypeAutoRun=00 00 00 00.
+
+    禁止CD光盘自动运行：
+
+    在[HKEY－CLASSES－ROOTAudioCDshell]中，新建键值@=″ ″
+
+    去除新建快捷方式时自动添加的“快捷方式”字符串：
+
+    在[HKEY－CURRENT－USERSoftwareMicrosoftWindowsCurrentVersionExplorer]中，令Link=00 00 00 00.
+
+    禁止使用MS－DOS方式：
+
+    在[HKEY－CURRENT－USERSoftwareMicrosoftWindowsCurrentVersionPoliciesWinOldApp]中，建立键值Disabled=01 00 00 00.
+
+    关闭“无反应的应用程序”的等待时间（毫秒）：
+
+    在[HKEY－CURRENT－USERControl Paneldesktop]中，新建WaitToKillAppTimeOut=″10000″
+
+    关闭出错应用程序的等待响应时间（毫秒）：
+
+    在[HKEY－CURRENT－USERControl Paneldesktop]中，新建HungAppTimeout=″10000″。

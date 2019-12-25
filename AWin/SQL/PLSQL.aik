@@ -1,0 +1,412 @@
+;; PLSQL窗口中，辅助输入
+
+			
+::odspwd::
+	send W7zzBkz7oK
+	return
+
+#ifwinactive ahk_class TPLSQLDevForm
+!esc::
+	exitapp
+	return
+
+esc::
+^w:: ;; 关闭当前窗口
+	send !fc
+	return
+
+^+v::
+	Menu, plsqlMenu, add, &1.从日志提取SQL, 【粘贴日志SQL】
+	Menu, plsqlMenu, add, &2.提取字段, 【提取SQL字段】	
+	Menu, plsqlMenu, add, &3.字段加引号, 【给SQL字段加引号】	
+	Menu, plsqlMenu, add, &4.组装WhereIn语句, 【组装WhereIn语句】
+	menu, plsqlMenu, show
+	return 
+
+::help;::
+	var_help = 
+(
+帮助提示
+!Home			执行光标之前的本行SQL
+!F8/!End		执行光标之后的本行SQL
+win+esc			退出
+)
+	msgbox %var_help%
+	return
+
+!home::		; 执行光标之前的本行SQL语句
+	send {home}{shift down}{end}{shift up}
+	send {f8}
+	return 
+	
+
+!f8::	    ; 执行光标所在行的SQL语句
+!end::
+	send {home}{shift down}{end}{shift up}
+	send {f8}
+	return 
+	
+^+m::		; select max(???) from $clip$
+	var_temp = 
+	if clipboard <>
+	{
+		var_temp := StrRight2Sub( clipboard, "_", "R1" )
+		var_temp = OB_RECTIME_%var_temp%	
+	}
+	var_text = select max(字段) from %clipboard%
+	var_temp := myinput("指定字段", var_text, var_temp )
+	var_temp = max(%var_temp%)
+	SelectFromClipboard( var_temp )
+	return
+	
+^+n::		; select count(*) from $clip$
+	SelectFromClipboard( "count(*)" )
+	return
+
+
+	
+::sc;::
+::selcount;::
+	sleep 100
+	send {home}{shift down}{end}{shift up}	
+	var_input := myinput("查找表的记录数", "请输入表名", clipboard )
+	if var_input <>
+	{
+		if g_user=
+			sendinput select count(*) from %var_input%
+		else
+			sendinput select count(*) from %g_user%.%var_input%
+			
+		sleep 100
+		send {home}{shift down}{end}{shift up}
+		send {f8}
+	}
+	return
+	
+^+l::
+	SelectFromClipboard( "*" )
+	return	
+	
+::sa;::
+::selall;::
+	sleep 100
+	send {home}{shift down}{end}{shift up}	
+	var_input := myinput("查找表整个表", "请输入表名", clipboard )
+	if var_input <>
+	{
+		if g_user =
+			sendinput select * from %var_input%
+		else 
+			sendinput select * from %g_user%.%var_input%
+		sleep 100
+		send {home}{shift down}{end}{shift up}
+		send {f8}
+	}
+	return	
+	
+::to_::
+	var_tip =
+	(
+d	to_date('|','yyyy-mm-dd')
+c	to_char('|','yyyy-mm-dd')
+t   to_date('|','yyyy-mm-dd hh24:mi:ss')
+	)
+	tooltip  %var_tip%
+	UserInput =
+	Input, UserInput, T5 L1 I, {enter}.{esc}{tab}
+	if UserInput = d 
+		sendinput to_date('', 'yyyy-mm-dd'){left 16}
+	else if UserInput = c
+		sendinput to_char('', 'yyyy-mm-dd'){left 16}
+	else if UserInput = t
+		sendinput to_date('', 'yyyy-mm-dd hh24:mi:ss'){left 27}
+	tooltip
+	return
+
+::to_d::
+	sendinput to_date('', 'yyyy-mm-dd'){left 16}
+	return 
+
+::to_date;::
+	sendinput to_date('%clipboard%', 'yyyy-mm-dd'){left 16}
+	return
+
+
+::to_t::
+	sendinput to_date('', 'yyyy-mm-dd hh24:mi:ss'){left 27}
+	return 
+
+::to_time;::
+	sendinput to_date('%clipboard%', 'yyyy-mm-dd hh24:mi:ss'){left 27}
+	return
+
+::to_c::
+	sendinput to_char('', 'yyyy-mm-dd'){left 16}
+	return
+
+::to_char;::
+	sendinput to_char('%clipboard%', 'yyyy-mm-dd'){left 16}
+	return
+
+::`'yyyy-::'yyyy-mm-dd'
+		
+	
+SelectFromClipboard( Field )
+{
+	global g_user
+	sleep 100
+	send {home}{shift down}{end}{shift up}	
+	sleep 100
+	var_input := clipboard
+	if var_input <>
+	{
+		if g_user=
+			sendinput select %Field% from %var_input%
+		else
+			sendinput select %Field% from %g_user%.%var_input%
+			
+		sleep 100
+		send {home}{shift down}{end}{shift up}
+		send {f8}
+	}
+}
+
+;; 从日志中复制MyBatis日志，处理成可直接执行的SQL语句
+ParseSqlFromLog( logSql_ )
+{
+	; reSQL, inSQL, inParam, FoundPos
+	Loop, parse, logSql_, `n
+	{
+		if A_LoopField =  ; Ignore the blank item at the end of the list.
+			continue
+		FoundPos := RegExMatch(A_LoopField, "==>  Executing:")  
+		if FoundPos
+		{
+			inSql := substr(A_LoopField, FoundPos + 15)
+		}
+		else
+		{
+			FoundPos := RegExMatch(A_LoopField, "==> Parameters:") 
+			if FoundPos
+			{
+				inParam := substr(A_LoopField, FoundPos + 15)
+			}
+		}
+
+	}
+
+	if inSQL=
+		return
+
+	if inParam =
+		return
+
+	StringSplit, params, inParam, `,
+
+	Loop, %params0%
+	{
+		p := params%a_index%
+		if p =
+			continue
+		StringReplace p, p, (Integer), , all
+		StringReplace p, p, (Long), , all
+		q := p
+		FoundPos := RegExMatch(p, "\(") 
+		if FoundPos
+		{
+			ifinstring p, (String)
+			{
+				p := substr(p, 1, FoundPos-1)
+				p := RegExReplace(p, "^\s+")
+				p = `'%p%`'
+			}
+			else ifinstring p, (Date)
+			{
+				p := substr(p, 1, FoundPos-1)
+				p := RegExReplace(p, "^\s+")
+				ifinstring p, :
+				{
+					p = to_date(`'%p%`',`'yyyy-mm-dd hh24:mi:ss`')
+				}
+				else
+				{
+					p = to_date(`'%p%`',`'yyyy-mm-dd`')
+				}
+			}
+			else ifinstring p, (Timestamp)
+			{
+				p := substr(p, 1, FoundPos-1)
+				p := RegExReplace(p, "^\s+")
+				p = to_timestamp(`'%p%`',`'yyyy-mm-dd hh24:mi:ss.ff`')
+			}
+			else
+			{
+				p := substr(p, 1, FoundPos-1)
+				p := RegExReplace(p, "^\s+")
+			}
+		}		
+		
+		; msgbox %q% [ %FoundPos% ] >> %p%
+		StringReplace inSQL, inSQL, `?, %p%
+	}
+	
+	re = %inSQL%`r`n-- %inParam%
+	return re
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; PowerDesigner 添加 Sequence 时的窗口
+#ifWinactive Sequence Properties - 
+
+F6::
+	Sleep, 100
+	ControlClick  , Edit1, Sequence Properties - 
+	ControlSetText , Edit1, 1, Sequence Properties -  	;; Start With
+
+	ControlClick  , Edit3, Sequence Properties - 
+	ControlSetText , Edit3, 1, Sequence Properties -  	;; Increment by
+
+	ControlClick  , Edit4, Sequence Properties - 
+	ControlSetText , Edit4, 1, Sequence Properties - 	;; Min Value
+
+	ControlClick  , Edit5, Sequence Properties - 
+	ControlSetText , Edit5, 9999999999999999999999999999, Sequence Properties -    ;; Max value
+
+	ControlFocus , Edit2, Sequence Properties - 
+;	ControlSetText , Edit2, cycle, Sequence Properties - 	;; Cycle
+
+	ControlClick  , Edit6, Sequence Properties - 
+	ControlSetText , Edit6, 20, Sequence Properties - 	;; Cache
+
+	ControlFocus , Edit7, Sequence Properties - 
+;	ControlSetText , Edit7, order, Sequence Properties - 	;; Order
+	return
+
+#ifWinactive
+
+;; 从日志中复制MyBatis日志，处理成可直接执行的SQL语句
+【粘贴日志SQL】:
+	var_temp := ParseSqlFromLog( clipboard )
+	if var_temp <>
+	{
+		clipboard := var_temp
+		send ^v	
+		sleep 200
+		;; 美化器
+		send !eb
+	}
+	return
+
+【提取SQL字段】:
+	var_out =
+	Loop, parse, clipboard, `n, `r
+	{
+	var_pos := RegExMatch(A_LoopField, "[^\s]+", var_line )
+	if var_pos <= 0
+		continue
+
+    if var_line <>
+		var_out = %var_out%    %var_line%,%a_space%`n
+	}
+
+	if var_out <>
+	{
+		var_out := RegExReplace(var_out, ",\s+$", "" )
+		var_out = select `n    %var_out%`nfrom%a_space%
+		clipboard := var_out
+		send ^v
+	}
+	return
+
+
+【给SQL字段加引号】:	
+	var_out =
+	Loop, parse, clipboard, `n, `r
+	{
+		var_pos := RegExMatch(A_LoopField, "[^\s]+", var_line )
+		if var_pos <= 0
+			continue
+
+   	 	if var_line <>
+			var_out = %var_out%'%var_line%',%a_space%
+
+		if mod(a_index, 100) = 0
+		{
+			var_out = %var_out%`n
+		}
+	}
+
+	if var_out <>
+	{
+		var_out := RegExReplace(var_out, ",\s+$", "" )
+		clipboard := var_out
+		send ^v
+	}
+	return
+
+
+【组装WhereIn语句】:
+
+	if g_bst_firtstr =
+	{
+		g_bst_firtstr := MyInput("指定第1个参数", "指定block_selected_text的第1个参数", "指定第1个参数后，重试")
+		return 
+	}
+	
+	if g_bst_secondstr =
+	{
+		g_bst_secondstr := MyInput("指定第2个参数", "指定block_selected_text的第2个参数", ")")
+	}
+
+
+	if instr(g_bst_firtstr, "(") = 0
+		g_bst_firtstr =  %g_bst_firtstr%(
+
+	if instr(g_bst_secondstr, ")") = 0
+		g_bst_secondstr =  %g_bst_secondstr%)
+	
+
+	var_out =
+	var_sql_cnt = 1
+	var_return = 
+	Loop, parse, clipboard, `n, `r
+	{
+		var_pos := RegExMatch(A_LoopField, "[^\s``]+", var_line )
+		if var_pos <= 0
+			continue
+
+   	 	if var_line <>
+			var_out = %var_out%'%var_line%',%a_space%
+
+		if mod(a_index, 1000) = 0
+		{
+			Position = 0
+			StringGetPos, Position, var_out, `, , R
+			if Position > 0
+				StringLeft, var_out, var_out, Position
+			var_out = %g_bst_firtstr%`n`t`t%var_out%`n%g_bst_secondstr%`n
+			var_return =  %var_return%---%var_sql_cnt%----------------------------------------------`n%var_out%`nunion all`n 
+			var_sql_cnt++
+			var_out =
+		}
+	}
+
+	if var_out <>
+	{
+			Position = 0
+			StringGetPos, Position, var_out, `, , R
+			if Position > 0
+				StringLeft, var_out, var_out, Position
+			var_out = %g_bst_firtstr%`n`t`t%var_out%`n%g_bst_secondstr%`n
+			var_return =  %var_return%---%var_sql_cnt%----------------------------------------------`n%var_out%`n
+			var_out = 
+	}
+	
+	if var_return <>
+	{
+			clipboard = %var_return% `;
+			send ^v	
+			var_return =
+	}
+	
+	return

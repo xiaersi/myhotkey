@@ -1,0 +1,127 @@
+g_RemoveToolTipList =  ;; 需要定时Remove的Tooltip序号
+
+settooltipvar(byref var_tooltip,var_text="无提示内容",var_time=1000)
+{
+;	global var_tooltip
+	var_temp:=var_tooltip
+	var_tooltip:=var_text
+	sleep %var_time%
+	var_tooltip:=var_temp
+	return
+}
+
+
+;; 短暂提示;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+tipshow(var_temp="无提示内容",var_time=800,var_tipnum=2)
+{
+	tooltip %var_temp%,,,%var_tipnum%
+	sleep %var_time%
+	tooltip,,,%var_tipnum%
+}
+
+
+;;---用第X个tooltip显示文本内容，内容为空时即隐藏该tooltip-------------------
+tipx( idx, text="", var_time=2500, x_="", y_="" )
+{
+	global g_RemoveToolTipList
+	tooltip %text%,x_,y_,%idx%
+
+	;; 将idx添加到g_RemoveToolTipList中
+	if text <>
+	{
+		StrListAdd( g_RemoveToolTipList, idx, "|" )
+		settimer , 【RemoveToolTipX】, %var_time%
+	}
+}
+
+
+tipword(string="无提示内容",var_time=2000)
+{
+	tooltip3(string,var_time)
+}
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+talkshow(var_text="无提示内容",var_title="",var_time=5000)
+{
+	TrayTip, %var_title%, %var_text%
+	SetTimer, RemoveTrayTip, %var_time%
+	return
+
+	RemoveTrayTip:
+	SetTimer, RemoveTrayTip, Off
+	TrayTip
+	return
+}
+
+
+
+tooltip7(string="无提示内容",var_time=2500)
+{
+	if string =
+		Return
+		
+	tooltip %string%,,,7
+	SetTimer, RemoveToolTip7, %var_time%
+	return
+
+	RemoveToolTip7:
+	SetTimer, RemoveToolTip7, Off
+	tooltip ,,,,7
+	return
+}
+
+
+tooltip5(string="无提示内容",var_time=2000)
+{
+	if string =
+		Return
+		
+	tooltip %string%,,,5
+	SetTimer, RemoveToolTip5, %var_time%
+	return
+
+	RemoveToolTip5:
+	SetTimer, RemoveToolTip5, Off
+	tooltip ,,,,5
+	return
+}
+
+
+tooltip3(string="无提示内容",var_time=2000)
+{
+	if string =
+		Return
+		
+	tooltip %string%,,,3
+	SetTimer, RemoveToolTip3, %var_time%
+	return
+
+	RemoveToolTip3:
+	SetTimer, RemoveToolTip3, Off
+	tooltip ,,,,3
+	return
+}
+
+
+GestureTip( str="", var_time=800 )
+{
+	tipx( 19, str, var_time )
+}
+
+CmdStringTip( str="", var_time=1200 )
+{
+	tipx( 18, str, var_time )
+}
+
+【RemoveToolTipX】:
+	SetTimer 【RemoveToolTipX】, off
+	loop parse, g_RemoveToolTipList, |
+	{
+		idx := a_loopfield
+		if idx is integer
+		{
+			tooltip ,,,,%idx%
+		}
+	}
+	return

@@ -1,0 +1,420 @@
+;; 得到鼠标移动的信息（半径、向量、方向）
+
+;; 鼠标移动的起点位置信息
+g_MouseMoveInfo_winid =
+g_MouseMoveInfo_Ctrl =
+g_MouseMoveInfo_x0 = ;; 鼠标移动起点的坐标
+g_MouseMoveInfo_y0 =
+
+;; 手势开始时的活动窗口信息
+g_ActiveWindow_title =
+g_ActiveWindow_x0 =
+g_ActiveWindow_y0 =
+g_ActiveWindow_w0 =
+g_ActiveWindow_h0 =
+
+;; 一个手势起点的位置信息，不同于g_MouseMoveInfo_...
+ClearGestureStart()
+{
+	g_GestureStart_winid =
+	g_GestureStart_Ctrl =
+	g_GestureStart_x0 =
+	g_GestureStart_y0 =
+}
+
+SetGestureStart( mWinID_ = "", mx_ = "", my_ = "", aTitle_ = "", ax_ = "", ay_ = "", aw_ = "", ah_ = "" )
+{
+	CoordMode, Mouse, Screen
+	global g_MouseMoveInfo_winid, g_MouseMoveInfo_x0, g_MouseMoveInfo_y0, g_MouseMoveInfo_Ctrl
+	global g_GestureStart_winid, g_GestureStart_Ctrl, g_GestureStart_x0, g_GestureStart_y0
+	global g_ActiveWindow_title, g_ActiveWindow_x0, g_ActiveWindow_y0, g_ActiveWindow_w0, g_ActiveWindow_h0
+	if ( mWinID_ <> "" && mx_ <> "" && my_ <> "" )
+	{
+		g_MouseMoveInfo_winid 	:= mWinID_
+		g_MouseMoveInfo_x0		:= mx_
+		g_MouseMoveInfo_y0		:= my_
+	}
+	else
+	{
+		MouseGetPos, g_MouseMoveInfo_x0, g_MouseMoveInfo_y0, g_MouseMoveInfo_winid, g_MouseMoveInfo_Ctrl
+	}
+	g_GestureStart_winid 		:= g_MouseMoveInfo_winid
+	g_GestureStart_Ctrl			:= g_MouseMoveInfo_Ctrl
+	g_GestureStart_x0			:= g_MouseMoveInfo_x0
+	g_GestureStart_y0			:= g_MouseMoveInfo_y0
+
+	if ( aTitle_ <> "" && ax_ <> "" && ay_ <> "" && aw_ <> "" && ah_ <> "" )
+	{
+		g_ActiveWindow_title	:= aTitle
+		g_ActiveWindow_x0		:= ax_
+		g_ActiveWindow_y0		:= ay_
+		g_ActiveWindow_w0		:= aw_
+		g_ActiveWindow_h0		:= ah_
+	}
+	else
+		WinGetActiveStats, g_ActiveWindow_title, g_ActiveWindow_w0, g_ActiveWindow_h0, g_ActiveWindow_x0, g_ActiveWindow_y0
+}
+
+GetGestureStartPos( byref _x_, byref _y_ )
+{
+	global
+	_x_ := g_GestureStart_x0
+	_y_ := g_GestureStart_y0
+}
+
+SetMouseMoveStart( mWinID_ = "", mx_ = "", my_ = "", aTitle_ = "", ax_ = "", ay_ = "", aw_ = "", ah_ = "" )
+{
+	CoordMode, Mouse, Screen
+	global g_MouseMoveInfo_winid, g_MouseMoveInfo_x0, g_MouseMoveInfo_y0, g_MouseMoveInfo_Ctrl
+	global g_ActiveWindow_title, g_ActiveWindow_x0, g_ActiveWindow_y0, g_ActiveWindow_w0, g_ActiveWindow_h0
+	if ( mWinID_ <> "" && mx_ <> "" && my_ <> "" )
+	{
+		g_MouseMoveInfo_winid 	:= mWinID_
+		g_MouseMoveInfo_x0		:= mx_
+		g_MouseMoveInfo_y0		:= my_
+	}
+	else
+	{
+		MouseGetPos, g_MouseMoveInfo_x0, g_MouseMoveInfo_y0, g_MouseMoveInfo_winid, g_MouseMoveInfo_Ctrl
+	}
+
+	if ( aTitle_ <> "" && ax_ <> "" && ay_ <> "" && aw_ <> "" && ah_ <> "" )
+	{
+		g_ActiveWindow_title	:= aTitle
+		g_ActiveWindow_x0		:= ax_
+		g_ActiveWindow_y0		:= ay_
+		g_ActiveWindow_w0		:= aw_
+		g_ActiveWindow_h0		:= ah_
+	}
+	else
+		WinGetActiveStats, g_ActiveWindow_title, g_ActiveWindow_w0, g_ActiveWindow_h0, g_ActiveWindow_x0, g_ActiveWindow_y0
+}
+
+ResetMouseMoveStart( )
+{
+	CoordMode, Mouse, Screen
+	global g_MouseMoveInfo_winid, g_MouseMoveInfo_x0, g_MouseMoveInfo_y0, g_MouseMoveInfo_Ctrl
+	MouseGetPos, g_MouseMoveInfo_x0, g_MouseMoveInfo_y0, g_MouseMoveInfo_winid, g_MouseMoveInfo_Ctrl
+}
+
+GetMouseMoveStartPos( byref _x_, byref _y_ )
+{
+	global
+	_x_ := g_MouseMoveInfo_x0
+	_y_ := g_MouseMoveInfo_y0
+	;msgbox (%_x_%`,%_y_%)
+}
+;; 设置鼠标移动起点, 返回相对活动窗口的方位( L左, R右, T上, B下, C在窗口内, 空：未知 )
+∑设置鼠标移动起点并返回相对活动窗口的方位()
+{
+	global g_MouseMoveInfo_winid, g_MouseMoveInfo_x0, g_MouseMoveInfo_y0
+	global g_ActiveWindow_title, g_ActiveWindow_x0, g_ActiveWindow_y0, g_ActiveWindow_w0, g_ActiveWindow_h0
+
+	SetMouseMoveStart()
+
+	if ( g_ActiveWindow_title = "" || g_ActiveWindow_x0 = "" || g_ActiveWindow_y0 = "" || g_ActiveWindow_w0 = "" || g_ActiveWindow_h0 = "" )
+	{
+		return
+	}
+
+	CoordMode, Mouse, Relative
+	MouseGetPos, rx, ry
+	CoordMode, Mouse, Screen
+	direction =
+	if rx <= 0
+		direction = %direction%L
+	else if  ( rx >= g_ActiveWindow_w0 )
+		direction = %direction%R
+	if ry <= 0
+		direction = %direction%T
+	else if ( ry >= g_ActiveWindow_h0 )
+		direction = %direction%B
+	if direction =
+		direction = C
+	return direction
+}
+
+;; 得到鼠标当前位置相对于起点的向量( dx, dy )
+GetMouseMoveVector( byref _dx_, byref _dy_ )
+{
+	CoordMode, Mouse, Screen
+	global g_MouseMoveInfo_x0, g_MouseMoveInfo_y0
+	_dx_ := 0
+	_dy_ := 0
+
+	if g_MouseMoveInfo_x0 <>
+	{
+		if g_MouseMoveInfo_y0 <>
+		{
+			MouseGetPos, x, y
+			_dx_ := x - g_MouseMoveInfo_x0
+			_dy_ := y - g_MouseMoveInfo_y0
+;			ifWinExist AHK默认屏幕画板
+;				DrawLine21( g_MouseMoveInfo_x0, g_MouseMoveInfo_y0, x, y, 0x996633 )
+			return true
+		}
+	}
+
+
+	;; 如果尚未设置起点，则先设置起点
+	SetMouseMoveStart()
+;	DrawLine21( g_MouseMoveInfo_x0, g_MouseMoveInfo_y0, x, y, 0x996633 )
+	return false
+}
+
+;; 得到鼠标相对起点的移动半径的平方
+GetMouseMoveRadii( )
+{
+	GetMouseMoveVector( dx, dy )
+	return dx*dx + dy*dy
+}
+
+;; 判断鼠标移动的半径是否超过指定的距离
+IsMouseMove( r_ = 20 )
+{
+	if r_ < 1
+		r_ = 1
+
+	rr := GetMouseMoveRadii()
+	if ( rr > r_ * r_ )
+		return true
+
+	return false
+}
+
+;; 让指定窗口跟随鼠标移动再移动（比如实现鼠标拖动窗口的功能）
+WindowMoveWithMouse( wintitle_="", win_x0="", win_y0=""  )
+{
+	global g_ActiveWindow_title, g_ActiveWindow_x0, g_ActiveWindow_y0
+	;global g_MouseMoveInfo_x0, g_MouseMoveInfo_y0
+	if GetMouseMoveVector( dx, dy )
+	{
+		if wintitle_ =
+		{
+			wintitle_ 	:= g_ActiveWindow_title
+			win_x0 		:= g_ActiveWindow_x0
+			win_y0		:= g_ActiveWindow_y0
+		}
+
+		rr := dx*dx + dy*dy
+		if rr < 100
+		{
+			WinMove, %wintitle_%, , win_x0, win_y0
+		}
+		else
+		{
+			WinMove, %wintitle_%, , win_x0 + dx, win_y0 + dy
+			return true
+		}
+	}
+	return false
+}
+
+;; 窗口拖拽
+AWindowDragLeftSide( )
+{
+	Local rr, dx, dy
+	if GetMouseMoveVector( dx, dy )
+	{
+		rr := dx*dx
+		if rr > 100
+		{
+			WinMove, %g_ActiveWindow_title%, , g_ActiveWindow_x0 + dx, , g_ActiveWindow_w0 - dx
+			return true
+		}
+		WinMove, %g_ActiveWindow_title%, , g_ActiveWindow_x0, , g_ActiveWindow_w0,
+	}
+	return false
+}
+
+
+AWindowDragRightSide( )
+{
+	Local rr, dx, dy
+	if GetMouseMoveVector( dx, dy )
+	{
+		rr := dx*dx
+		if rr > 100
+		{
+			WinMove, %g_ActiveWindow_title%, , , , g_ActiveWindow_w0 + dx
+			return true
+		}
+		WinMove, %g_ActiveWindow_title%, , , , g_ActiveWindow_w0,
+	}
+	return false
+}
+
+AWindowDragTopSide( )
+{
+	Local rr, dx, dy
+	if GetMouseMoveVector( dx, dy )
+	{
+		rr := dy*dy
+		if rr > 100
+		{
+			WinMove, %g_ActiveWindow_title%, , , g_ActiveWindow_y0 + dy, , g_ActiveWindow_h0 - dy
+			return true
+		}
+		WinMove, %g_ActiveWindow_title%, , , g_ActiveWindow_y0, , g_ActiveWindow_h0
+	}
+	return false
+}
+
+AWindowDragBottomSide( )
+{
+	Local rr, dx, dy
+	if GetMouseMoveVector( dx, dy )
+	{
+		rr := dy*dy
+		if rr > 100
+		{
+			WinMove, %g_ActiveWindow_title%, , , , , g_ActiveWindow_h0 + dy
+			return true
+		}
+		WinMove, %g_ActiveWindow_title%, , , , , g_ActiveWindow_h0
+	}
+	return false
+}
+
+;; direction_ in L,R,T,B,TL,TR,BL,BR,M(移动),S(缩放)
+AWindowMove( direction_="" )
+{
+	Local rr, rr1, rr2, dx, dy, x, y, w, h, t, TX, TY, aCX, aCY, dr
+	if direction_ =
+		direction_ = M
+	ifinstring direction_, C
+		direction_ = M
+
+	t := g_ActiveWindow_title
+	x := g_ActiveWindow_x0
+	y := g_ActiveWindow_y0
+	w := g_ActiveWindow_w0
+	h := g_ActiveWindow_h0
+
+	if GetMouseMoveVector( dx, dy )
+	{
+		if direction_ in L,R
+			rr := dx*dx
+		else if direction_ in T,B
+			rr := dy*dy
+		else
+			rr := dx*dx + dy*dy
+
+		if rr < 100
+		{
+			WinMove, %t%, , x, y, w, h
+			return false
+		}
+		;; 鼠标移动窗口
+		if direction_ = M
+		{
+			x := x + dx
+			y := y + dy
+		}
+		;; 缩放窗口
+		else if direction_ = S
+		{
+			aCX := x + g_ActiveWindow_w0 / 2
+			aCY := y + g_ActiveWindow_h0 / 2
+			CoordMode, Mouse, Screen
+			MouseGetPos, Tx, Ty
+			rr2 := (Tx - aCX)*(TX - aCX) + (TY - aCY)*(TY - aCY)
+			rr1 := ( g_MouseMoveInfo_x0 - aCX ) ** 2 + ( g_MouseMoveInfo_y0 - aCY ) ** 2
+			dr := sqrt(rr2) - sqrt(rr1)
+
+			if ( abs(dr) > 12 )
+			{
+				rr :=  ( g_ActiveWindow_w0**2 + g_ActiveWindow_h0**2  )
+				dx := dr * sqrt( g_ActiveWindow_w0**2 / rr )
+				dy := dr * sqrt( g_ActiveWindow_h0**2 / rr )
+				x := x - dx
+				y := y - dy
+				w := w + 2*dx
+				h := h + 2*dy
+			}
+		}
+		else
+		{
+			ifInstring direction_, L
+			{
+				x := x + dx
+				w := w - dx
+			}
+			else ifinstring direction_, R
+			{
+				w := w + dx
+			}
+			ifInstring direction_, T
+			{
+				y := y + dy
+				h := h - dy
+			}
+			else ifinstring direction_, B
+			{
+				h := h + dy
+			}
+		}
+		WinMove, %t%, , x, y, w, h
+		return true
+	}
+	return false
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 鼠标手势
+GetMouseGesture( curGes="" )
+{
+	local dx, dy
+	GetMouseMoveVector( dx, dy )
+	if ( ( dx*dx + dy*dy ) > 100  )
+	{
+		if ( abs(dx) > abs(dy) * 2 )
+		{
+			if dx > 0
+				Return "→"
+			else
+				return "←"
+		}
+		else if ( 2 * abs(dx) < abs(dy) )
+		{
+			if dy < 0
+				Return "↑"
+			else
+				Return "↓"
+		}
+		else if ( curGes == "→" and dx > 0 )
+			return "→"
+		else if ( curGes == "←" and dx < 0 )
+			return "←"
+		else if ( curGes == "↑" and dy < 0 )
+			return "↑"
+		else if ( curGes == "↓" and dy > 0 )
+			return "↓"
+	}
+	Return
+}
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 对鼠标下的控件操作
+SendPgup2UnderMouseControl()
+{
+	global g_MouseMoveInfo_Ctrl, g_MouseMoveInfo_winid
+	UMC 	:= g_MouseMoveInfo_Ctrl
+	UMWID 	:= g_MouseMoveInfo_winid
+	if ( UMC = "" || UMWID = "" )
+	{
+		MouseGetPos, , , UMWID, UMC
+	}
+	ControlSend %UMC%, {PGUP}, ahk_id %UMWID%
+}
+
+SendPgdn2UnderMouseControl()
+{
+	global g_MouseMoveInfo_Ctrl, g_MouseMoveInfo_winid
+	UMC 	:= g_MouseMoveInfo_Ctrl
+	UMWID 	:= g_MouseMoveInfo_winid
+	if ( UMC = "" || UMWID = "" )
+	{
+		MouseGetPos, , , UMWID, UMC
+	}
+	ControlSend %UMC%, {PGDN}, ahk_id %UMWID%
+}

@@ -1,0 +1,471 @@
+;; 编辑飞扬命令串
+
+
+;#include ..\..\
+【复制编辑飞扬命令串】:
+	clipboard =
+	send ^c
+	clipwait 0.5
+	gosub 【编辑飞扬命令串】
+	return
+
+【编辑飞扬命令串】:
+	g_AWinID =                              ;; 当前窗口的唯一标识
+	WinGet, g_AWinID, id, A
+	tooltip7( "【编辑飞扬命令串】" )
+	cmdstr := ∑编辑飞扬命令串( clipboard )
+	if cmdstr <>
+	{
+		clipboard := cmdstr
+		ifWinExist ahk_id %g_AWinID%
+		{
+			IfWinNotActive, ahk_id %g_AWinID%, , WinActivate, ahk_id %g_AWinID%,
+			WinWaitActive, ahk_id %g_AWinID%,
+		;	Gui, 23:hide
+			send ^v
+		}
+		else
+		{
+			tooltip 命令已经复制到剪贴板！
+			sleep 1000
+		}
+
+	}
+	return
+
+∑编辑飞扬命令串( _cmdstr = "", Prompt_="" )
+{
+ 	global _cmdstr_edtInput, _cmdstr_edtOptions, _cmdstr_lbDefOptions, _cmdstr_bValid, _cmdstr_lbOptions, _cmdstr_edtCmd
+
+;tooltip7( "Enter ∑编辑飞扬命令串()" )
+	if  Prompt_ =
+		previewText = 预览生成的飞扬命令串:
+	else 
+		previewText = 【预览】： %Prompt_%
+
+	;; 初始化全局变量
+	var_title = 编辑飞扬命令串
+	wintitle = %var_title% ahk_class AutoHotkeyGUI
+	var_ret =
+
+	bAutoFilt := true   ;; 在选项编辑框输入内容是，是否要自动过滤下方的默认选项列表ListBox
+
+
+	cmdstr =
+
+	var_checked = checked
+
+	OptionTypes = send|menu|gosub|func|run|clip|submenu|sendByClip|tip:|runby:|launchy:|IfWinActive:|IfWinExist:|IfExist:|name:|sleep:|MAX|MIN|HIDE|WinActivate:
+
+	DefOptions =
+
+
+	;; 如果传递了参数进来，则根据参数修改全局变量
+	if _cmdstr <>
+	{
+		cmdstr := cmdStringSplit( _cmdstr, opt )
+
+		if RegExMatch( opt, "^\d(?=$|\|)", var_match ) > 0
+		{
+			if var_match =
+				var_checked =
+			DefOptions := RegExReplace( opt, "^\d[$|\|]" )
+		}
+		else
+		{
+			DefOptions := opt
+		}
+	}
+
+	;; 获取预览窗格的默认命令串
+	OptionList := DefOptions
+	if DefOptions <>
+		OptionList = |%OptionList%
+
+	if var_checked =
+		var_preview = 0%OptionList%)%cmdstr%
+	else
+		var_preview = 1%OptionList%)%cmdstr%
+
+;tooltip7( "∑编辑飞扬命令串()  Create GUI." )
+
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;; 显示窗口
+	Gui, 23:Add, Text, x6 y18 w50 h20 +Right, 命令值:
+	Gui, 23:Add, Edit, x60 y13 w400 h25 v_cmdstr_edtInput g【飞扬命令串_命令值编辑框】, %cmdstr%
+	Gui, 23:Add, Text, x12 y50 w130 h20 , 选项类型:
+	Gui, 23:Add, Edit, x12 y70 w130 h22 v_cmdstr_edtOptions g【飞扬命令串_选项编辑框】,
+	Gui, 23:Add, ListBox, x12 y100 w130 h170 v_cmdstr_lbDefOptions g【飞扬命令串_DefOptionsListBox】, %OptionTypes%
+	Gui, 23:Add, Text, x206 y50 , 命令选项:
+	Gui, 23:Add, CheckBox, x400 y45 w130 h20 %var_checked% v_cmdstr_bValid g【飞扬命令串_命令是否有效复选框】, 是否有效
+	Gui, 23:Add, ListBox, x206 y70 w360 h210 v_cmdstr_lbOptions    g【飞扬命令串_OptionsListBox】,  %DefOptions%
+	Gui, 23:Add, Text, x12 y270 , %previewText%
+	Gui, 23:Add, Edit, x12 y290 w554 h58 v_cmdstr_edtCmd, %var_preview%
+
+	Gui, 23:Add, Button, x460 y11 w55 h28 g【飞扬命令串_确定】, 确定
+	Gui, 23:Add, Button, x515 y11 w50 h28 g【飞扬命令串_取消】, 取消
+	Gui, 23:Add, Button, x151 y68 w45 h25 g【飞扬命令串_添加命令选项】, >>
+	Gui, 23:Add, Button, x151 y100 w45 h25 g【飞扬命令串_删除命令选项】, <<
+	Gui, 23:Add, Button, x151 y200 w45 h25 g【生成飞扬命令串】, 生成
+	Gui, 23:Add, Button, x151 y235 w45 h25 g【执行飞扬命令串】, 执行
+	; Generated using SmartGUI Creator 4.0
+	Gui, 23:Add, StatusBar,, 编辑飞扬命令串
+
+	Gui, 23:-SysMenu	;; 去掉最大化、最小化、关闭按钮
+
+	Gui, 23:Show, h377 w578, %var_title%
+
+
+	;; 设置热键
+	Hotkey, IfWinActive, %wintitle%
+	Hotkey, !F4, 	【飞扬命令串_取消】
+	Hotkey, ~Enter, 【飞扬命令串_回车消息响应】
+
+	loop
+	{
+		Sleep 200
+		IfWinNotExist %wintitle%
+		{
+			break
+		}
+	}
+
+	Return var_ret
+
+
+	【飞扬命令串_取消】:
+		var_ret =
+	23:GuiClose:
+		Gui, 23:destroy
+		_cmdstr_edtInput=
+		_cmdstr_edtOptions=
+		_cmdstr_lbDefOptions=
+		_cmdstr_bValid=
+		_cmdstr_lbOptions=
+		_cmdstr_edtCmd=
+	return
+
+	;;---响应右键消息------------------------------------------------------------
+	23:GuiContextMenu:  ; Launched in response to a right-click or press of the Apps key.
+		if A_GuiControl = _cmdstr_lbDefOptions
+		{
+			GuiControl,Text, _cmdstr_edtOptions,
+		}
+		RETURN
+
+
+	【飞扬命令串_选项编辑框】:  ;; 选项编辑框发生变化，自动搜索过滤选项列表
+		if not bAutoFilt
+		{
+			bAutoFilt := true
+			return   ;; 如果g_bAutoFilt=false，那么禁止自动过滤默认选项列表框
+		}
+		;; g_bAutoFilt=true 选项编辑框发生变化时，搜索过滤默认选项列表框_lbDefOptions
+		Gui, 23:Submit, NoHide
+		GuiControl, , _cmdstr_lbDefOptions, |
+		if _cmdstr_edtOptions =
+		{
+			GuiControl, , _cmdstr_lbDefOptions, %OptionTypes%
+		}
+		Else
+		{
+			var_temp =
+			loop parse, OptionTypes, |
+			{
+				IfInString A_LoopField, %_cmdstr_edtOptions%
+				{
+					var_temp = %var_temp%|%A_LoopField%
+				}
+			}
+			GuiControl, , _cmdstr_lbDefOptions, %var_temp%
+		}
+		Return
+
+	【飞扬命令串_DefOptionsListBox】:
+		Gui, 23:Submit, NoHide
+		bAutoFilt := false	;; 在点击默认选项列表框过程中，禁止自动搜索过滤默认选项列表框
+		if A_GuiEvent = DoubleClick
+		{
+			GuiControl, Text, _cmdstr_edtOptions, %_cmdstr_lbDefOptions%
+			gosub 【飞扬命令串_添加命令选项】
+		}
+		else if A_GuiEvent = Normal
+		{
+			GuiControl, Text, _cmdstr_edtOptions, %_cmdstr_lbDefOptions%
+		}
+
+		;; 设置状态栏提示信息
+		var_tip = 请选择命令选项类型
+		SB_SetText( var_tip )
+		return
+
+
+
+	【飞扬命令串_OptionsListBox】:
+		gosub 【生成飞扬命令串】
+		return
+
+
+	【飞扬命令串_命令是否有效复选框】:
+	【生成飞扬命令串】:
+		Gui, 23:Submit, nohide
+		ControlGet, OptionList, List, , ListBox2
+		StringReplace OptionList, OptionList, `n, |, all
+		if OptionList =
+			OptionList = %_cmdstr_bValid%
+		else
+			OptionList = %_cmdstr_bValid%|%OptionList%
+		GuiControl, Text, _cmdstr_edtCmd,  %OptionList%)%_cmdstr_edtInput%
+		return
+
+
+	【飞扬命令串_命令值编辑框】:
+		gosub 【生成飞扬命令串】
+		return
+
+
+	【飞扬命令串_添加命令选项】:
+		Gui, 23:Submit, nohide
+		if _cmdstr_edtOptions <>
+		{
+			ControlGet, OptionList, List, , ListBox2
+			StringReplace OptionList, OptionList, `n, |, all
+			var_option := _cmdstr_edtOptions
+			ifInstring var_option, :
+			{
+				;; 命令选项中有冒号，需要用户在冒号后面添加其他条件，弹出对话框输入
+				var_input := myinput( "请输入命令选项的条件", var_option, "" )
+				if var_input =
+					return
+
+				var_option = %var_option%%var_input%
+			}
+			else if var_option = gosub
+			{
+				;; 如果选择的是gosub则尚未输入命令值，则弹出列表对话框让用户选择功能模块
+				if _cmdstr_edtInput =
+				{
+					var_LabelList := GetHotkeyLables()
+					if var_LabelList <>
+					{
+						var_input := InputListBox( var_LabelList, "请选择gosub要执行的功能模块：" )
+						if var_input <>
+						{
+							GuiControl, Text, _cmdstr_edtInput, %var_input%
+						}
+					}
+				}
+			}
+
+			;; 不能有重复的选项
+			if InStrList( OptionList, var_option, "|" ) > 0
+			{
+				msgbox 命令选项 `"%var_option%`" 已经存在！
+				return
+			}
+
+
+			OptionList = %OptionList%|%var_option%
+			GuiControl ,  , _cmdstr_lbOptions, |
+			GuiControl ,  , _cmdstr_lbOptions, %OptionList%
+			GuiControl, Focus, _cmdstr_edtOptions   ;; 聚焦到选项编辑框，以便继续添加命令串选项
+
+			gosub 【生成飞扬命令串】
+
+			ControlSend , Edit2, ^A, %WinTitle%	;; 全选选项编辑框中的内容，方便直接重新编辑
+		}
+		return
+
+
+	【飞扬命令串_删除命令选项】:
+		Gui, 23:Submit, nohide
+		if 	_cmdstr_lbOptions <>
+		{
+			newOptionList =		;; 删除选中的命令选项之后的命令选项列表
+			ControlGet, OptionList, List, , ListBox2
+			loop parse, OptionList, `n
+			{
+				if ( a_loopfield != _cmdstr_lbOptions )
+				{
+					if newOptionList =
+						newOptionList := a_loopfield
+					else
+						newOptionList = %newOptionList%|%a_loopfield%
+				}
+			}
+			if ( newOptionList != OptionList )
+			{
+				GuiControl ,  , _cmdstr_lbOptions, |
+				GuiControl ,  , _cmdstr_lbOptions, %newOptionList%
+				gosub 【生成飞扬命令串】
+			}
+		}
+		return
+
+
+	【飞扬命令串_确定】:
+		Gui, 23:Submit, nohide
+		var_ret := _cmdstr_edtCmd
+		gosub 23:GuiClose
+		return
+
+	【执行飞扬命令串】:
+		Gui, 23:Submit, nohide
+		if CheckCmd( _cmdstr_edtCmd )
+		{
+			run_cmd( _cmdstr_edtCmd )
+		}
+		return
+
+	【飞扬命令串_回车消息响应】:
+		Gui, 23:submit, nohide
+		;GuiControlGet, var_FocusCtrl, Focusv
+		ControlGetFocus, var_FocusCtrl, %wintitle%
+		;; 当前在选项编辑框中回车
+		if var_FocusCtrl = Edit2 	;; _cmdstr_edtOptions
+		{
+			ControlGet, var_temp, List, , ListBox1, %wintitle%
+			;; 如果ListBox有选项，则自动选择第一项，填充到_cmdstr_edtOptions
+			if var_temp <>
+			{
+				loop parse, var_temp, `n
+				{
+					bautofilt := false
+					ControlSetText , Edit2, %a_loopfield%, %wintitle%
+					break
+				}
+			}
+			;; 自动点击 >> 按钮(Button4)
+			ControlClick, Button4,  %wintitle%
+		}
+		return
+}
+
+
+CheckCmd( cmdstr_ )
+{
+	bRet := true
+	cmdstr := cmdStringSplit( cmdstr_, opt )
+	if InStrList( opt, "0", "|" ) > 0
+	{
+		tooltip3( "命令设置为无效！" )
+		return false
+	}
+
+	if InStrList( opt, "send", "|" ) > 0
+	{
+		if cmdstr =
+		{
+			tooltip3( "send 类型的命令值不能为空！" )
+			return false
+		}
+	}
+	else if InStrList( opt, "gosub", "|" ) > 0
+	{
+		if not IsLabel( cmdstr )
+		{
+			tooltip3( "gosub 类型的命令值指定的功能模块无效！" )
+			return false
+		}
+	}
+	else if InStrList( opt, "menu", "|" ) > 0
+	{
+		iniMenumem := IniFileRead( "ShortcutMenu.ini" )
+		if SecArrayFromIniMem( iniMenumem, cmdstr, "TempArray" ) = 0
+		{
+			tooltip3( "尚未配置快捷菜单：" . cmdstr )
+			return false
+		}
+	}
+
+	if RegExMatch( opt, "i)(?<=IfExist:).*?(?=$|\)|\|)", var_martch ) > 0
+	{
+		ifExist %var_martch%
+			bRet := true
+		else
+			return false
+	}
+	if RegExMatch( opt, "i)(?<=IfExist:).*?(?=$|\)|\|)", var_martch ) > 0
+	{
+		ifExist %var_martch%
+			bRet := true
+		else
+			return false
+	}
+	if RegExMatch( opt, "i)(?<=IfWinActive:).*?(?=$|\)|\|)", var_martch ) > 0
+	{
+		IfWinActive %var_martch%
+			bRet := true
+		else
+			return false
+	}
+	if RegExMatch( opt, "i)(?<=IfWinNotActive:).*?(?=$|\)|\|)", var_martch ) > 0
+	{
+		IfWinNotActive %var_martch%
+			bRet := true
+		else
+			return false
+	}
+	if RegExMatch( opt, "i)(?<=IfWinExist:).*?(?=$|\)|\|)", var_martch ) > 0
+	{
+		IfWinExist %var_martch%
+			bRet := true
+		else
+			return false
+	}
+	if RegExMatch( opt, "i)(?<=IfWinNotExist:).*?(?=$|\)|\|)", var_martch ) > 0
+	{
+		IfWinNotExist %var_martch%
+			bRet := true
+		else
+			return false
+	}
+	if RegExMatch( opt, "i)(?<=runby:).*?(?=$|\)|\|)", var_martch ) > 0
+	{
+		bRet := false
+		ifexist %var_martch%
+			bRet := true
+		else
+			return false
+	}
+	else if RegExMatch( opt, "i)(?<=launchy:).*?(?=$|\)|\|)", var_martch ) > 0
+	{
+		var_read := read_ini( "launchy.ini", "file", var_martch, "" )
+		if var_read <>
+		{
+			;; var_file 可能的值为： abc.exe|exe|c:\work
+			loop parse, var_read, |
+			{
+				if a_loopfield <>
+				{
+					var_file := a_loopfield
+					ifExist %var_file%
+						bRet := true
+					else
+						return false
+				}
+				else
+				{
+					return false
+				}
+				break
+			}
+		}
+		else
+		{
+			return false
+		}
+	}
+
+	return true
+}
+
+
+
+/*
+#include .\inc\array.aik
+#include .\inc\window.aik
+#include .\inc\tip.aik
+#include .\inc\string.aik
+#include .\inc\cmdstring.aik
+*/

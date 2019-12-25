@@ -1,0 +1,57 @@
+
+OneNoteRButton()
+{
+		click right
+		    IfWinExist,%win_onenote%,MsoDockBottom
+		    { 	winGetPos,var_x,var_y,var_width,var_height,%win_onenote%,MsoDockBottom
+			if (var_height>400)
+			{
+			WinSet, Transparent, Off, %win_onenote%,MsoDockBottom 
+			return	
+			}
+			IfWinActive %win_onenote%,MsoDockBottom
+			{
+				WinSet, Transparent, 200, %win_onenote%,MsoDockBottom
+				winmove, %win_onenote%,MsoDockBottom,A_ScreenWidth-650-20,A_ScreenHeight-280,650,250
+			}
+			else
+			{
+				WinSet, Transparent, 100, %win_onenote% ,MsoDockBottom
+				winmove, %win_onenote%,MsoDockBottom,A_ScreenWidth-220,A_ScreenHeight-280,650,250
+			}
+		    }
+}
+
+
+
+;------- 将选中的内容直接拷贝到OneNote中 --------
+; var_temp 指明在复制之前输入空格或者输入之后输入回车
+; var_puretext 指明是否复制纯文本
+copytoOneNote(var_temp=1, var_puretext = 0 )
+{
+	SendEvent, {Control Down}{c}{Control up}
+	sleep 200
+	if var_puretext <> 0
+	{
+		var_buf := clipboard
+		clipboard := var_buf
+	}
+	 ifwinexist %win_onenote%,MsoDockBottom
+	{
+		winactivate
+		winWaitActive  %win_onenote%, MsoDockBottom, 1
+		if not ErrorLevel
+		{
+			if(var_temp=-1)
+			{
+			sendevent {space}
+			}
+			sendevent,{lctrl down}{v}{lctrl up}
+			if(var_temp=1)		
+			{
+			sendevent {enter}
+			}
+		}
+	}
+}
+

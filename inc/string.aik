@@ -1,0 +1,1429 @@
+#include .\inc\common.aik
+
+;; 得到字符串中第var_pos个字符
+StrGetAt( var_string, var_pos )
+{
+	StringMid var_char, var_string, %var_pos%, 1
+	return var_char
+}
+
+StrGetBetween( varString, startpos, endpos )
+{
+	if varString =
+		return
+	if startpos is not integer
+		return
+	if endpos is not integer
+		return
+	if ( startpos > 0 && endpos >= startpos )
+	{
+		StringMid _outword, varString, startpos, endpos - startpos + 1
+		return _outword
+	}
+	return
+}
+
+StrGetLeft( varString, endpos )
+{
+	if varString =
+		return
+	if endpos is not integer
+		return
+	if endpos < 1
+		return
+	StringLeft var_out, varString, endpos
+	return var_out
+}
+
+StrGetRight( varString, startpos )
+{
+	if varString =
+		return
+	if startpos is not integer
+		return
+	StringMid var_out, varString, startpos
+	return var_out
+}
+
+;; 去掉字符串左边的空白字符和指定字符, var_trimlist是将过滤掉的字符列表
+StrTrimLeft( byref _Haystack_, trimlist_="" )
+{
+	_Haystack_ := RegExReplace(_Haystack_, "^\s+", "" )
+	if trimlist_ <>
+	{
+		StringReplace, trimlist_, trimlist_, |, \|, All
+		Needle = ^(\s|%trimlist_%)+
+		_Haystack_ := RegExReplace(_Haystack_, Needle, "" )
+	}
+}
+
+;; 去掉字符串右边的空白字符和指定字符, var_trimlist是将过滤掉的字符列表
+StrTrimRight( byref _Haystack_, trimlist_="" )
+{
+	_Haystack_ := RegExReplace(_Haystack_, "\s+$", "" )
+	if trimlist_ <>
+	{
+		StringReplace, trimlist_, trimlist_, |, \|, All
+		Needle = (\s|%trimlist_%)+$
+		_Haystack_ := RegExReplace(_Haystack_, Needle, "" )
+	}
+}
+
+;; 去掉字符串左右两边的空白字符和指定字符, var_trimlist是将过滤掉的字符列表
+StrTrim( byref InputString, var_trimlist=""  )
+{
+	StrTrimLeft( InputString, var_trimlist )
+	StrTrimRight( InputString, var_trimlist )
+}
+
+;; 返回去除首末空白字符之后的字符串
+TrimSapce( Haystack_ )
+{
+	Haystack_ := RegExReplace(Haystack_, "^\s+", "" )
+	Haystack_ := RegExReplace(Haystack_, "\s+$", "" )
+	return Haystack_
+}
+
+
+∑删除字符串末尾的回车符号(byref string)
+{
+	loop
+	{
+		if string =
+		{
+			return
+		}
+		StringRight, var_char, string, 1
+		if ( var_char == "`r" || var_char == "`n" )
+		{
+			StringLeft string, string, strlen(string) -1
+		}
+		else
+		{
+			return
+		}
+	}
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 将字符串 SubStr_添加到_LongStr， IsEnter指定是否要添加之前先换行
+AddString(ByRef _LongStr, SubStr_, IsEnter)
+{
+	if IsEnter
+	{
+		_LongStr = %_LongStr%`r`n%SubStr_%
+	}
+	else
+	{
+		_LongStr = %_LongStr%%SubStr_%
+	}
+	return _LongStr
+}
+
+;;------将substr添加到_Longstr之后, 中间用ConnectStr_分隔-------------------
+∑连接字符串(Byref _LongStr, substr_, ConnectStr_="")
+{
+	if _LongStr =
+		_LongStr = %SubStr_%
+	else
+		_LongStr = %_LongStr%%ConnectStr_%%SubStr_%
+}
+
+
+; 将字符串varString中的第一个subString子串删除,
+SubtractString(byref varString, subString)
+{
+	StringReplace, varString, varString, %subString%,
+}
+
+StringReplaceAll(byref varString, SearchText, ReplaceText)
+{
+	StringReplace, varString, varString, %SearchText%, %ReplaceText%, All
+}
+
+∑返回全部替换后的字符串( varString, SearchText, ReplaceText)
+{
+	StringReplace, var_temp, varString, %SearchText%, %ReplaceText%, All
+	return var_temp
+}
+
+∑删除字符串中所有子串(byref varString, subString)
+{
+	StringReplace, varString, varString, %subString%, , All
+}
+
+StrReplaceAt( byref varString, pos, InsertText )
+{
+	if pos is not integer
+		return false
+	if ( pos > 0 && pos <= len )
+	{
+		StringLeft var_left, varString, pos - 1
+		StringRight var_right, varString, len - pos
+		varString = %var_left%%InsertText%%var_right%
+		return true
+	}
+	return false
+}
+
+StrInsertAt( byref varString, pos, InsertText )
+{
+	if pos is not integer
+		return false
+	;; 插入到varString头部
+	if pos <= 1
+	{
+		varString = %InsertText%%varString%
+		return true
+	}
+	len := strlen( varString )
+	;; 追加到varString末尾
+	if ( pos > len )
+	{
+		varString = %varString%%InsertText%
+		return true
+	}
+	;; 插入到varString中间
+	StringLeft var_left, varString, pos - 1
+	StringRight var_right, varString, len - pos + 1
+	varString = %var_left%%InsertText%%var_right%
+	return true
+}
+
+
+;; 将字符串指定区间的字符替换掉，举例：str = 123(ok)456
+;; StrReplaceBetween( str, "no", 4, 7 )
+;; 操作之后 str = 123no456
+StrReplaceBetween( byref varString, ReplaceText, startpos, endpos )
+{
+;;	msgbox StrReplaceBetween( %varString%`, %ReplaceText%`, %startpos%`, %endpos% )
+	len := strlen( varString )
+	if len <= 0
+		return false
+	if startpos =
+		startpos = 0
+	if startpos is not integer
+		return false
+	if endpos is not integer
+		return false
+	if ( endpos < startpos )
+		return false
+
+	if ( startpos = 0 )
+	{
+		if ( endpos >= len )
+		{
+            varString := ReplaceText    ;; 替换整个字符串
+            return true
+		}
+		if endpos > 0
+		{
+			StringRight var_right, varString, len - endpos
+			varString = %ReplaceText%%var_right%
+			return true
+		}
+		return false
+	}
+	else if ( endpos >= len )
+	{
+		stringleft var_left, varString, startpos -1
+		varString = %var_left%%ReplaceText%
+		return true
+	}
+	else
+	{
+		stringleft var_left, varString, startpos -1
+		stringRight var_right, varString, len - endpos
+		varString = %var_left%%ReplaceText%%var_right%
+		return true
+	}
+	return false
+}
+
+; 将字符串varString中的第一个subString子串删除,
+DelSubString(varString, subString)
+{
+	StringReplace, varTemp, varString, %subString%,
+	return varTemp
+}
+
+; 调试ahk文件时用, 将当前调试行所在的文件/函数/行的信息, 添加到要变量_LongStr之后
+AddString_LineInfo(ByRef _LongStr, LineFile, ThisFunc, LineNumber)
+{
+	AddString(_LongStr, "`n-------------------------------------", true)
+	var_temp = 当前运行文件 %LineFile%
+	AddString(_LongStr, var_temp, true)
+	var_temp = 当前所在函数 %ThisFunc%
+	AddString(_LongStr, var_temp, true)
+	var_temp = 当前所在行: [%LineNumber%]
+	AddString(_LongStr, var_temp, true)
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+StrLeft2Sub(varString,subString)
+{
+	StringGetPos, varPos, varString, %subString%
+	if  errorlevel
+	{
+		return ""
+	}
+	stringleft varReturn,varString,%varPos%
+	return %varReturn%
+;举例..............................
+;MyStringVar = squeezer::imageset
+;Var := StrLeft2Sub(MyStringVar,"::")
+;var 的值为squeezer
+}
+
+StrMid2Sub(varString,subString1,subString2)
+{
+	varTemp =
+	StringGetPos, varPos, varString, %subString1%
+	if ErrorLevel
+	{
+		return varTemp
+	}
+	varLen := strlen(subString1)
+	varTemp := substr(varString,varPos+varLen+1)
+
+	ifinstring varTemp,%subString2%
+	{
+		varTemp := StrLeft2Sub(varTemp,subString2)
+	}
+	else
+	{
+		varTemp =
+		return varTemp
+	}
+;	msgbox varTemp=%varTemp%
+	return varTemp
+;举例............................
+;str = [sec]
+;var := StrMid2Sub(str, "[", "]")
+;var 的值为 sec
+}
+
+;;--在varString中，从LR指定的方向搜索subString，并返回subString右边的字符串--
+StrRight2Sub(varString,subString, LR="R1")
+{
+	StringGetPos varPos, varString, %subString%, %LR%
+	if ErrorLevel
+	{
+		return ""
+	}
+	stringleft varTemp,varString,%varPos%
+	varLen := strlen(varTemp)
+	varLen := strlen(varString) - varLen - strlen(subString)
+	stringright varReturn,varString,%varLen%
+	return %varReturn%
+;举例..............................
+;MyStringVar = squeezer::imageset
+;fileExtVar = StrRight2Sub(MyStringVar,"::")
+;fileExtVar的值为"imageset"
+}
+
+StrSplit2Sub( varString, subString, byref OutStringLeft, byref OutStringRight )
+{
+	StringGetPos, varPos, varString, %subString%
+	if  errorlevel
+	{
+		return false
+	}
+	stringleft OutStringLeft, varString,%varPos%
+	stringMid, OutStringRight, varString, varPos + strlen(subString) + 1
+	return true
+;举例............................
+;str = cwin@live.cn
+;var := StrSplit2Sub(str, "@", var_left, var_right)
+;var_left 的值为 cwin, var_right 的值为 live.cn
+}
+
+∑字符串左右互换(varString, subString)
+{
+	ifinstring varString, %subString%
+	{
+		StrSplit2Sub( varString, subString, var_left, var_right)
+		var_temp = %var_right%%subString%%var_left%
+		return var_temp
+	}
+	return varString
+}
+
+;; 得到字符串中最后一个单词（指定长度的字符串）
+StrLastWord(InputString_, Count_)
+{
+	OutputVar =
+	if Count_ > 0	;; 返回字符串中，后面指定位数的子串
+	{
+		StringRight , OutputVar, InputString_, Count_
+	}
+	else 			;; 如果指定的单词长度小于等于0，那么自动寻找最后一个单词
+	{
+		varLen := strlen(InputString_)
+		var_index = 0
+		Loop %varLen%
+		{
+			var_index := varLen - a_index + 1
+			var_char := StrGetAt( InputString_, var_index )
+			if OutputVar =
+			{
+				if var_char is not space
+				{
+					Outputvar = %var_char%
+				}
+			}
+			else
+			{
+				if var_char is not space
+				{
+					Outputvar = %var_char%%Outputvar%
+				}
+				else
+				{
+					break	; 最后一个单词查找完毕，结束查找
+				}
+			}
+		}
+	}
+	return OutputVar
+}
+
+StrFirstWord(InputString_, Count_)
+{
+	StringLeft , OutputVar, InputString_, Count_
+	return OutputVar
+}
+
+;; 得到指定字符串中，第一个非空字符返回给var_char
+get_first_char( Haystack, byref var_char)
+{
+	return RegExMatch( Haystack, "^\S", var_char )
+}
+
+; 如果InputString 中第一个非空字符等于varChar则返回真
+equal_first_char( Haystack, Char_ )
+{
+	if RegExMatch( Haystack, "^\S", var_char ) > 0
+	{
+		if var_char = %Char_%
+			return true
+	}
+	return false
+}
+
+StrHaveChars( InputString, CharList="" )
+{
+	if CharList =
+	{
+		pos := instr( InputString, " " )
+		if pos > 0
+			return true
+		pos := instr( InputString, "	" )
+		if pos > 0
+			return true
+		return false
+	}
+
+	loop
+	{
+		len := Strlen( InputString )
+		if len <= 0
+			return false
+		StringMid var_char, InputString, 1, 1
+		ifinstring CharList, %var_char%
+		{
+			return true
+		}
+		StringReplace InputString, InputString, %var_char%, , All
+		continue
+	}
+	return false
+}
+
+StrHaveTerminatChar( InputString )
+{
+	CharList := GetTerminatingCharacters()
+	loop
+	{
+		len := Strlen( InputString )
+		if len <= 0
+			return false
+		StringMid var_char, InputString, 1, 1
+		ifinstring CharList, %var_char%
+		{
+			return true
+		}
+		StringReplace InputString, InputString, %var_char%, , All
+		continue
+	}
+	return false
+}
+
+;; 指定位置的字符是否结束符,
+;; 返回值：0 不是结束符; 1 是单字符结束符; 2 是双字节结束符;
+is_terminate_pos( InputString, pos, TerminatingCharacters="" )
+{
+	len := strlen( InputString )
+	;; 如果没有指定结束字符串，则取用默认的结束字符串
+	if TerminatingCharacters =
+	{
+		TerminatingCharacters := GetTerminatingCharacters()
+	}
+	;; 检查指定位置的单字节字符是不是结束字符
+	if ( pos > 0 && pos <= len )
+	{
+		StringMid var_char, InputString, %pos%, 1
+		if var_char is space
+		{
+			return 1
+		}
+		ifinstring TerminatingCharacters, %var_char%
+		{
+			return 1
+		}
+	}
+	;; 在没有查找到ASCII字符时，尝试查找双字节字符
+	if ( pos > 0 && pos < len )
+	{
+		StringMid var_char, InputString, %pos%, 2
+		ifinstring TerminatingCharacters, %var_char%
+		{
+			return 2
+		}
+	}
+	return 0
+}
+
+;; 从一个字符串的指定位置开始，向前查找最近的一个单词，并返回到_outword
+find_pre_word( InputString, offset, byref _outword, byref _startpos, byref _endpos )
+{
+	if offset < 2
+		return false
+
+	startpos =
+	endpos =
+	len := strlen(InputString)
+
+	;;---当Offset > strlen() 时， 认为查找最后一个单词---------------------------
+	if ( offset > len )
+	{
+		loop %len%
+		{
+			index := len - a_index + 1
+			var_re := is_terminate_pos( InputString, index )
+			if endpos =
+			{
+				if var_re = 0
+				{
+					if index > 1
+					{
+						if ( 2 == is_terminate_pos( InputString, index -1 ) )
+							continue
+					}
+					endpos := index
+				}
+			}
+			else if var_re = 1
+			{
+				startpos := index + 1
+			}
+			else if var_re = 2
+			{
+				startpos := index + 2
+			}
+		}
+		if endpos > 0
+		{
+			if startpos =
+				startpos = 1
+			if ( endpos >= startpos )
+			{
+				_startpos := startpos
+				_endpos := endpos
+				StringMid _outword, InputString, %startpos%, endpos - startpos + 1
+				return true
+			}
+		}
+		return false
+	}
+
+	;;---当 1 <= offset <= strlen() 时，正常查找前一位置的单词-------------------
+	Loop %offset%
+	{
+		index := offset - a_index +1
+;		StringMid var_char, InputString, %index%, 1
+		var_re := is_terminate_pos( InputString, index )
+		if endpos =
+		{
+			if var_re > 0
+			{
+				endpos = 找到分隔符
+			}
+			;; else do nothing
+		}
+		else if endpos = 找到分隔符
+		{
+			if var_re = 0 ;; 指定位置非结束符
+			{
+				if index <= 1
+				{
+					endpos := index  ;; 已经找到了前一单词的结束位置
+				}
+				else ;; 再检查前一个位置也不是双字节结束符时，才能确定index位置不是结束符
+				{
+					var_re := is_terminate_pos( InputString, index -1 )
+					if var_re = 2
+					{
+						continue ;; 虽然index位置的单个字符不是结束符，但index-1开始的两个字节的双字符是结束符
+					}
+					else
+					{
+						endpos := index  ;; 已经找到了前一单词的结束位置
+					}
+				}
+			}
+			; else endpos = 找到分隔符
+		}
+		else ;; 已经找到了结束符, 寻找单词的开始位置
+		{
+            if var_re = 1               ;; 遇到单字节结束符
+			{
+				startpos := index+1
+				break
+			}
+            else if var_re = 2          ;; 遇到双字节结束符
+			{
+				startpos := index + 2
+				break
+			}
+		}
+	}
+	;; 如果找到最前也没有找到单词开始符号，则认为开始符号就是第一个字符
+	if ( index == 1 && startpos =="" && endpos <> "找到分隔符" && endpos >= 1 )
+	{
+		startpos = 1
+	}
+
+	;; 如果成功找到了单词的开始字符与结束字符，那么返回开始字符到结束字符的子串
+	if startpos is integer
+	{
+		if endpos is integer
+		{
+			if ( endpos >= startpos && startpos > 0 && endpos <= offset )
+			{
+				_startpos := startpos
+				_endpos := endpos
+				StringMid _outword, InputString, %startpos%, endpos - startpos + 1
+				return true
+			}
+		}
+	}
+
+    return false
+}
+
+;; 从一个字符串的指定位置开始，向后查找最近的一个单词，并返回到_outword
+find_next_word( InputString, offset, byref _outword, byref _startpos, byref _endpos )
+{
+	if InputString =
+		return false
+
+	len := strlen(InputString)
+
+	if ( offset >= len )
+		return false
+
+	startpos =
+	endpos =
+
+	;;---当offset <= 0 时，则表示要查找InputString的第一个单词-------------------
+	if offset <= 0
+	{
+		loop %len%
+		{
+			var_re 	:= is_terminate_pos( InputString, a_index )
+			if startpos =
+			{
+				var_char := StrGetAt( InputString, a_index )
+				if ( var_re == 0 )
+				{
+					;; 确保a_index位置不是双字节结束符的组成部分
+					if a_index > 1
+					{
+						if ( 2 == is_terminate_pos( InputString, a_index -1 ) )
+							continue
+					}
+					startpos := a_index
+				}
+				else if ( var_char == "-" )
+				{
+					startpos := a_index
+				}
+			}
+		}
+		if  startpos > 0
+		{
+			if endpos =
+				endpos := len
+			if ( endpos >= startpos )
+			{
+				_startpos := startpos
+				_endpos := endpos
+				StringMid _outword, InputString, %startpos%, endpos - startpos + 1
+				return true
+			}
+		}
+
+		return false
+	}
+
+	;;--- 1 <= offset  <= len 的正常情况下，查找当前位置下一个单词----------------
+	loops := len - offset + 1
+	loop %loops%
+	{
+		index 	:= offset + a_index - 1
+		var_re 	:= is_terminate_pos( InputString, index )
+		if startpos =
+		{
+			if var_re > 0
+				startpos = 找到分隔符
+		}
+		else if startpos = 找到分隔符
+		{
+			if var_re = 0 ;; 指定位置非结束符
+			{
+				;; 再检查前一个位置也不是双字节结束符时，才能确定index位置不是结束符
+				var_re := is_terminate_pos( InputString, index -1 )
+				if var_re = 2
+				{
+					continue ;; 虽然index位置的单个字符不是结束符，但index-1开始的两个字节的双字符是结束符
+				}
+				else
+				{
+					startpos := index  ;; 已经找到了前一单词的结束位置
+				}
+			}
+		}
+		else
+		{
+            if var_re > 0               ;; 找到单词结束符
+            {
+				endpos := index - 1
+				break
+			}
+		}
+	}
+	;; 如果找到末尾还没有找到结束符，则认为该单词从startpos到字符串末尾
+	if ( endpos == "" && startpos <> "找到分隔符" && startpos >= 1 )
+	{
+		endpos := len
+	}
+	;; 如果成功找到了单词的开始字符与结束字符，那么返回开始字符到结束字符的子串
+	if startpos is integer
+	{
+		if endpos is integer
+		{
+			if ( endpos >= startpos && startpos >= offset && endpos <= len )
+			{
+				_startpos := startpos
+				_endpos := endpos
+				StringMid _outword, InputString, %startpos%, endpos - startpos + 1
+				return true
+			}
+		}
+	}
+	return false
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 对字符串队列的处理函数，字符串队伍如:
+;; 中国,美国,英国,日本,朝鲜,
+;; ∑增加字符串队列() 将新字符串newstr添加到strlist队列，返回值为是否在队列中找到相同的字符串
+;; strlist队列以%separator%分隔字符串，bFront指定添加到队列头部
+;; MaxCount 指明strlist队列中最大包含项的数量
+∑Add字符串队列( byref _strlist_, newstr_, separator, bFront = true, maxcount = 50 )
+{
+	Local var_count, var_item, var_newlist, nFind, i
+	if newstr_ =
+		return false
+
+	if _strlist_ =
+	{
+		_strlist_ = %newstr_%
+		return true
+	}
+	;; 
+	StrSplit( "TempArray", _strlist_, separator )
+	loops := maxcount 
+	if ( TempArray0 < loops )
+		loops := TempArray0
+
+	nFind := 0
+	loop %loops%
+	{
+		if ( a_index >= maxcount + nFind )
+		{
+			break
+		}
+		if bFront
+			i := a_index
+		else
+			i := loops - a_index + 1
+
+		var_item := TempArray%i%
+		if ( var_item <> newstr_ )
+		{
+			if var_newlist =
+				var_newlist = %var_item%
+			else if bFront
+				var_newlist = %var_newlist%%separator%%var_item%
+			else
+				var_newlist = %var_item%%separator%%var_newlist%
+		}
+		else
+		{
+			nFind++
+		}
+	}
+
+	if bFront
+		_strlist_ = %newstr_%%separator%%var_newlist%
+	else 
+		_strlist_ = %var_newlist%%separator%%newstr_%
+
+	return true
+
+}
+
+;;---添加newstr到队列strlist, bFront指定添加到队列头还是队列末尾------------
+;; 如果strlist中已经有newstr项, 则不再添加
+StrListAdd( byref strlist, newstr, separator, bFront = false )
+{
+	if newstr =
+	{
+		return false
+	}
+	if strlist =
+	{
+		strlist = %newstr%
+		return true
+	}
+
+	; 搜索队列中已经存在的newstr
+	if InStrList( strlist, newstr, separator ) > 0
+	{
+		Return false
+	}
+
+	if bFront	; 将新增的字符添加到队列首
+	{
+		strlist = %newstr%%separator%%strlist%
+	}
+	else		; 添加到队列末尾
+	{
+		strlist = %strlist%%separator%%newstr%
+	}
+	return true
+}
+
+
+;;---从strlist队列中删除包含Delstr的项--------------------------------------
+StrListDel( byref strlist, delstr, separator )
+{
+	if delstr =
+		return false
+
+
+	ifnotinstring strlist, %delstr%
+		return false
+
+
+	var_temp =
+	loop parse, strlist, %separator%
+	{
+		ifnotinstring a_loopfield, %delstr%
+		{
+			∑连接字符串( var_temp, a_LoopField, separator )
+		}
+	}
+	if ( strlist == var_temp )
+	{
+		return false
+	}
+	strlist := var_temp
+	return true
+}
+
+;;---从strlist队列中值等于Delstr的项----------------------------------------
+StrListDelete( byref strlist, delstr, separator )
+{
+	if delstr =
+		return false
+
+	ifnotinstring strlist, %delstr%
+		return false
+
+	var_temp =
+	loop parse, strlist, %separator%
+	{
+		if ( a_loopfield != delstr )
+		{
+			∑连接字符串( var_temp, a_LoopField, separator )
+		}
+	}
+	if ( strlist == var_temp )
+	{
+		return false
+	}
+	strlist := var_temp
+	return true
+}
+
+/** @brief	将队列strlist中等于oldstr的项修改为newstr
+ * @param[out]	strlist  字符串队列
+ * @param[in]	oldstr  待修改的项
+ * @param[in]	newstr  新值
+ * @param[in]	separator 分隔符
+ * @param[in]	bAdd  在没有找到oldstr项时, 将newstr添加到strlist末尾
+ */
+StrListMod( byref strlist, oldstr, newstr, separator, bAdd = false )
+{
+	if oldstr =
+		return
+	if (oldstr == newstr )
+		return
+
+	if (strlist == oldstr || strlist == "" )
+	{
+		strlist := newstr
+		return
+	}
+
+	ifnotinstring strlist, %oldstr%
+	{
+		if bAdd
+		{
+			strlist = %strlist%%separator%%newstr%
+		}
+		return
+	}
+
+	var_temp =
+	bFind := false
+	loop parse, strlist, %separator%
+	{
+		if ( a_loopfield == oldstr )
+		{
+			bFind := true
+			∑连接字符串( var_temp, newstr, separator )
+		}
+		else
+		{
+			∑连接字符串( var_temp, a_LoopField, separator )
+		}
+	}
+	if ( bFind == true && bAdd == true )
+	{
+		var_temp = %var_temp%%separator%%newstr%
+	}
+	strlist := var_temp
+}
+
+
+;; @brief	在队列strlist中查找值为searchstr的项
+∑Find字符串队列( strlist, searchstr, separator )
+{
+	return StrListFind( strlist, searchstr, separator )
+}
+
+StrListFind( strlist, searchstr, separator )
+{
+	loop parse, strlist, %separator%
+	{
+		if ( a_loopfield == searchstr )
+		{
+			return a_index
+		}
+	}
+	return 0
+}
+
+;; @brief	获取队列中指定序号的项的值
+∑GetAt字符串队列( strlist, var_index, separator )
+{
+	return StrListGetAt( strlist, var_index, separator )
+}
+
+StrListGetAt( strlist, var_index, separator )
+{
+	Loop parse, strlist, %separator%
+	{
+		if ( a_index == var_index )
+		{
+			return a_LoopField
+		}
+		else if ( a_index > var_index )
+		{
+			return
+		}
+	}
+}
+
+;; @brief	从队列中清除指定序号的项
+StrListEraseAt( byref strlist, var_index, separator )
+{
+	var_temp =
+	Loop parse, strlist, %separator%
+	{
+		if ( a_index != var_index )
+		{
+			∑连接字符串( var_temp, a_LoopField, separator )
+		}
+	}
+	strlist := var_temp
+}
+
+StrListSetAt( byref strlist, var_index, newstr, separator )
+{
+	if strlist =
+	{
+		strlist := newstr
+	}
+
+	var_temp =
+	Loop parse, strlist, %separator%
+	{
+		if ( a_index == var_index )
+		{
+			∑连接字符串( var_temp, newstr, separator )
+		}
+		else
+		{
+			∑连接字符串( var_temp, a_LoopField, separator )
+		}
+	}
+	strlist := var_temp
+}
+
+StrListInsertAt( byref strlist, var_index, newstr, separator )
+{
+	if strlist =
+	{
+		strlist := newstr
+	}
+	bInsert := false
+	var_temp =
+	Loop parse, strlist, %separator%
+	{
+		if ( a_index == var_index )
+		{
+			∑连接字符串( var_temp, newstr, separator )
+			bInsert := true
+		}
+
+		∑连接字符串( var_temp, a_LoopField, separator )
+	}
+
+	;; 如果还没有成功插入，则将新值插入到队列末尾
+	if not bInsert
+	{
+		∑连接字符串( var_temp, newstr, separator )
+	}
+
+	strlist := var_temp
+}
+
+;; @brief	将字符串中的回车符号统一成Windows风格
+∑将回车符统一成Windows风格( byref Hotstring )
+{
+	StringReplace, Hotstring, Hotstring, `r`n,$rn$, All
+	StringReplace, Hotstring, Hotstring, `r, $rn$, All
+	StringReplace, Hotstring, Hotstring, `n, $rn$, All
+	StringReplace, Hotstring, Hotstring, $rn$, `r`n, All
+}
+
+∑处理字符串中的转义字符( byref HotString, bEnter = false)
+{
+	StringReplace, Hotstring, Hotstring, ``, ````, All
+	StringReplace, Hotstring, Hotstring, %A_Tab%, ``t, All
+	StringReplace, Hotstring, Hotstring, `;, ```;, All
+	StringReplace, Hotstring, Hotstring, `%, ```%, All
+
+	;; 处理回车符号
+	if bEnter
+	{
+		StringReplace, Hotstring, Hotstring, `r`n,$rn$, All
+		StringReplace, Hotstring, Hotstring, `r, $rn$, All
+		StringReplace, Hotstring, Hotstring, `n, $rn$, All
+		StringReplace, Hotstring, Hotstring, $rn$, ``r``n, All
+	}
+}
+
+;; 在Haystack字符串中查找子串Needle, bRegEx指定是否使用正则表达式
+;; bRegEx = false 时，本函数等价于 InStr()
+;; bRegEx = true  时，本函数约等于 RegExMatch(), 只是没有返回匹配的值， 只返回了匹配位置
+;; return 0 表示没有匹配，否则有匹配
+InStrMatch( Haystack, Needle, bRegEx = false,  StartingPos = 1, CaseSensitive = false  )
+{
+	if bRegEx
+		return RegExMatch( Haystack, Needle , "", StartingPos )
+	return InStr( Haystack, Needle, CaseSensitive, StartingPos )
+}
+
+StrSplit( arrName, string, DelimiterStr_ , OmitChars = "", CaseSensitive = true )
+{
+	Local count, pos, var_temp, len
+
+	if string =
+		return false
+
+	if DelimiterStr_ =
+		return false
+
+	if strlen(DelimiterStr_) = 1
+	{
+		stringsplit %arrName%, string, %DelimiterStr_%, %OmitChars% 
+		return true
+	}
+
+	len := strlen( DelimiterStr_ )
+	count := %arrName%0
+	loop %count%
+	{
+		 %arrName%%a_index% =
+	}
+	%arrName%0 =
+	count := 0
+
+	loop
+	{
+		count++
+		%arrName%0 := count
+		pos := instr( string, DelimiterStr_, CaseSensitive )
+		if pos <= 0
+		{
+			%arrName%%count% := string
+			break
+		}
+		else
+		{
+			StringLeft %arrName%%count%, string, pos -1
+			StringMid string, string , pos + len 
+		}
+	}
+	return true
+}
+
+;; 举例 InStrList( "aaa|bbb|ccc", "bbb", "|" ) > 0
+InStrList( Haystack, NeedleList, Delimiters, CaseSensitive = false, StartingPos = 1  )
+{
+	local Needle,  var_pos, retPos, sperator
+	local bRet := true
+	sperator := StrToNeedleRegEx(Delimiters)
+	/*
+	if Delimiters = |
+		sperator := "\|?"
+	else if Delimiters = )
+		sperator := "\)?"
+	else
+		sperator = (%Delimiters%)?
+*/
+	StrSplit("NeedleArray", NeedleList, Delimiters )
+
+	loop %NeedleArray0%
+	{
+		Needle := NeedleArray%a_index%
+
+		if Needle <>
+		{
+			Needle := StrToNeedleRegEx(Needle)
+
+			NeedleRegEx = (?<=%sperator%|^)%Needle%(?=%sperator%|$)
+			if not CaseSensitive
+				NeedleRegEx = i)%NeedleRegEx%
+				
+			var_pos := RegExMatch(Haystack, NeedleRegEx , "", StartingPos )
+
+			if var_pos <= 0
+			{
+				retPos := 0
+				break
+			}
+			else if retPos =
+			{
+				retPos := var_pos
+			}
+		}
+	}
+	return retPos
+}
+
+;; strList1中是否包含strList2的字符串项
+StrListInStrList( strList1, Delimiter1, strList2, Delimiter2, CaseSensitive = false, CaseSpace = false )
+{
+	StringSplit arrA, strList1, %Delimiter1%
+	if arrA0 <= 0
+		return false
+
+	StringSplit arrB, strList2, %Delimiter2%
+	if arrB0 <= 0
+		return false
+
+	loop %arrA0%
+	{
+		str1 := arrA%a_index%
+		if ( str1 == "" && !CaseSpace )
+			Continue
+
+		loop %arrB0%
+		{
+			str2 := arrB%a_index%
+			if ( str2 == "" && !CaseSpace )
+				Continue
+			if CaseSensitive
+			{
+				if ( str1 == str2 )
+					return true
+			}
+			else
+			{
+				if str1 = %str2%
+					return true
+			}
+		}
+	}
+	return false
+}
+
+;; 为指定的字符串两端添加字符（默认为双引号）, 如果前面或后面已经有匹配的字符，则退出
+StrAddQuot( byref _str_, l_ = "", r_ = "" )
+{
+	if l_ =
+	{
+		l_ = `"
+		lNeedle = `"
+	}
+	else 
+	{
+		StringReplace, lNeedle, l_, |, \|, All
+	}
+	if r_ = 
+	{
+		r_ = `"
+		rNeedle = `"
+	}
+	else
+	{
+		StringReplace, rNeedle, r_, |, \|, All
+	}
+	lNeedle = ^\s*%lNeedle%
+	rNeedle = %rNeedle%\s*$
+	if RegExMatch( _str_, lNeedle  ) > 0
+		return false
+	if RegExMatch( _str_, rNeedle  ) > 0
+		return false
+	_str_ := l_ . _str_ . r_
+	return true
+}
+
+;; bool 
+StrInsert@( byref _str_, needle_, newtext_=" ", offset_=0, CaseSensitive_ = true )
+{
+	ifNotInstring needle_, @
+	{
+		return false
+	}
+	AutoTrim off
+
+	bRet := false
+	StringReplace needle1, needle_, @, , all
+	needle2 := needle_ 
+
+
+	;; 开始寻找位置并插入
+	loop 10000
+	{
+		var_re := RegExMatch( _str_, needle1, var_match  )
+;		msgbox [%var_re%] := RegExMatch( [%_str_%] [%needle1%] [%var_match%]  )
+
+		if var_re > 0
+		{
+			bFind := false
+			loops := strlen( var_match ) + 1 - offset_
+			loop %loops%
+			{
+				idx := a_index + offset_
+				StringLeft lstr, var_match, idx-1
+				StringMid rstr, var_match, idx
+				var_temp = %lStr%@%rstr%
+				var_re := RegExMatch( var_temp, needle2, var_match2  )
+;				msgbox [%var_re%] := RegExMatch( [%var_temp%] [%needle2%] [%var_match2%]  )
+				if var_re = 1
+				{
+					bFind := true
+					replaceText := lstr . newtext_ . rstr
+					break
+				}
+			}
+			if bFind
+			{
+				needle := StrToNeedleRegEx( var_match )
+				if not CaseSensitive_
+					needle := "i)" . needle
+
+				var_temp := RegExReplace( _str_, needle , replaceText )
+;msgbox RegExReplace( _str_`, [%needle%]`, [%replaceText%] ) `n`n%_str_%`n%var_temp%
+			;	StringReplace var_temp, _str_, %var_match%, %replaceText%, all
+				if ( var_temp <> _str_ )
+				{
+;					msgbox %_str_% `n`n%var_temp%
+					_str_ := var_temp
+					bRet := true
+					continue
+				}
+			}
+		}
+		break
+	}
+	AutoTrim on
+	return bRet
+}
+
+;; 对代码进行格式化处理
+∑调整代码空格( _code )
+{
+	if _code <>
+	{
+		AutoTrim, Off
+		
+		var_clip := _code
+
+		;; 将var_clip中的引号内容缓存到数组中, 完成插入之后再替换回来, 即引号内的内容不作处理
+		StrArray0 := 0
+		quoNeedle = (?<!\\)".*?[^\\]"
+		loop 10000
+		{
+			if RegExMatch( var_clip, quoNeedle, var_match ) > 0
+			{
+			;	msgbox RegExMatch(_str_`, quoNeedle`, %var_match% ) `n`n%_str_%
+
+				StrArray0 ++
+				StrArray%StrArray0% := var_match
+				Replacement = $quoStr%StrArray0%$
+				needle := StrToNeedleRegEx( var_match )
+				var_clip := RegExReplace( var_clip, needle, Replacement )
+			}
+			else
+			{
+				break
+			}
+		}		
+
+		;; 以下字符串不处理
+		bracketArray0 := 0
+		var_exlist = ()|(unsigned int)|(unsigned long)
+		loop parse, var_exlist, |
+		{
+			if a_loopfield =
+				continue
+			if instr(var_clip, a_loopfield, true ) > 0 
+			{
+				bracketArray0 ++
+				var_i := bracketArray0
+				bracketArray%var_i% := a_loopfield
+				Replacement = $bracket%var_i%$
+				needle := StrToNeedleRegEx( a_loopfield )
+				var_clip := RegExReplace( var_clip, needle, Replacement )			
+			}
+		}
+
+		;; 将var_clip中\W(some)括号中内容少于10的缓存到数组中，完成插入之后再替换回来
+		;; 即 像(*iter)、(int)这样的，括号( ) 之间不添加空格
+		
+		quoNeedle = (?<=\W)\([^\(]{1,10}?\)
+		loop 10000
+		{
+			if RegExMatch( var_clip, quoNeedle, var_match ) > 0
+			{
+			;	msgbox RegExMatch(_str_`, quoNeedle`, %var_match% ) `n`n%_str_%
+
+				bracketArray0 ++
+				var_i := bracketArray0
+				bracketArray%var_i% := var_match
+				Replacement = $bracket%var_i%$
+				needle := StrToNeedleRegEx( var_match )
+				var_clip := RegExReplace( var_clip, needle, Replacement )
+			}
+			else
+			{
+				break
+			}
+		}	
+
+		
+		;; 处理右边需要留空的符号
+        StrInsert@( var_clip, "[^\s\w]@\(", " " )   ;; 在 ( 之前插入空格 
+        StrInsert@( var_clip, "\(@\S", " " )        ;; 在 ( 之后插入空格
+        StrInsert@( var_clip, "\S@\)", " " )        ;; 在 ) 之前插入空格
+        StrInsert@( var_clip, "\)@\w", " " )        ;; 在 ) 之后插入空格
+        StrInsert@( var_clip, "`;@\S", " " )        ;; 在 ; 之后插入空格 
+        StrInsert@( var_clip, "`,@\S", " " )        ;; 在 , 之后插入空格
+        StrInsert@( var_clip, "\*@\w", " " )        ;; 在 * 之后插入空格
+		StrInsert@( var_clip, "\S@\*", " " )		;; 在 * 之前插入空格
+
+
+		;; 在 += -= *= \= &= |= != ^= %= ==之前插入空格
+		StrInsert@( var_clip, "\S@[\+\-/\&\|\^\%\!=]=", " " )
+		
+		
+		;; 处理等号(但排除==)，在=号前后插入空格
+		StrInsert@( var_clip, "=@[^\s=]", " " )
+		StrInsert@( var_clip, "\w@=", " " )
+
+		;; 处理 [], <>
+		StrInsert@( var_clip, "\w@\+[^\+]", " " )
+		StrInsert@( var_clip, "[^\+]\+@\w", " " )
+		StrInsert@( var_clip, "[^<]<@\w", " " )
+		StrInsert@( var_clip, "(?<!vecto|ma|lis)\w@<[^<]", " " )
+		StrInsert@( var_clip, "[^>-]>@\w", " " )
+		StrInsert@( var_clip, "\w@>[^>]", " " )
+
+		;; 处理if( 为 if (
+		StrInsert@( var_clip, "(?:\Wif|^if)@\(", " " )
+		StrInsert@( var_clip, "(?:\Wwhile|^while)@\(", " " )
+		StrInsert@( var_clip, "(?:\Wfor|^for)@\(", " " )
+		StrInsert@( var_clip, "(?:\Wswitch|^switch)@\(", " " )
+		StrInsert@( var_clip, "(?:\Wcatch|^catch)@\(", " " )
+
+		;; 处理 ? ... : ...
+		StrInsert@( var_clip, "\?@\S.+:.", " " )
+		StrInsert@( var_clip, "\S@\?.+:.", " " )
+		StrInsert@( var_clip, "\?.+\S@:.", " " )
+		StrInsert@( var_clip, "\?.+:@\S", " " )
+
+		;; 将_str_中的被替换的括弧内容替换回来
+		loop %StrArray0%
+		{
+			var_needle = $quoStr%a_index%$
+			Replacement := StrArray%a_index%
+			StringReplace var_clip, var_clip, %var_needle%, %Replacement%, all
+			StrArray%a_index% =
+		}		
+		StrArray0 =		
+
+		;; 将_str_中的被替换的引号内容替换回来
+		loop %bracketArray0%
+		{
+			var_needle = $bracket%a_index%$
+			Replacement := bracketArray%a_index%
+			StringReplace var_clip, var_clip, %var_needle%, %Replacement%, all
+			bracketArray%a_index% =
+		}		
+		bracketArray0 =
+
+		;; 将处理完毕的内容粘贴到原文
+		return var_clip
+	}
+	return
+}
+

@@ -1,0 +1,436 @@
+#include .\inc\common.aik
+#include .\inc\string.aik
+#include .\SubUI\20MuiltiBox.aik
+
+;; 读写ini文件
+read_ini(Filename_, Section_, Key_, Default_ = "")
+{
+	IniRead var_temp, %Filename_%, %Section_%, %Key_%, %Default_%
+	if ( var_temp == "ERROR" )
+		var_temp := Default_
+	Return var_temp
+}
+ReadTempIni( var_sec, var_key, var_default = "" )
+{
+	IniRead var_temp, temp.ini, %var_sec%, %var_key%, %var_default%
+	if ( var_temp == "ERROR" )
+		var_temp := var_default
+	Return var_temp
+}
+; write_ini() 向指定的ini文件中写入一个key的值，
+; isAsk指定如果已经存在key时，是否要询问用户替换？false 表示直接替换
+write_ini(Filename_, Section_, Key_, Value_, isAsk = false )
+{
+	if isAsk
+	{
+		var_read := read_ini( Filename_, Section_, Key_, "" )
+		if var_read <>
+		{
+			if (var_read == Value_) 
+			{
+				return true  ;; 如果要保存的值没有变化，而无需更新，直接返回true
+			}
+			else
+			{
+				prompt = %Filename_%文件的%Section_%节中，`n%Key_%已经存在，要替换吗 ？
+				var_text = <%Key_%>的值将从`n原始值：%var_read%`n`n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>`n替换为：%Value_%
+				if not MsgTipBox( "ini文件存在重复的key", prompt, var_text, 600, 350 )
+				{
+					return false
+				}
+			}
+		}
+	}
+	IniWrite, %Value_%, %Filename_%, %Section_%, %Key_%
+	return true
+}
+
+WriteTempIni( var_sec, var_key, var_value )
+{
+	IniWrite, %var_value%, temp.ini, %var_sec%, %var_key%
+}
+
+
+del_ini( Filename_, Section_, Key_, isAsk = false )
+{
+	if Key_ <>
+	{
+		if isAsk
+		{
+			var_read := read_ini( Filename_, Section_, Key_, "" )
+			prompt = 即将删除{ %Filename_% }文件的[%Section_%]节中单词<%Key_%>，`n`n其值如下，确定要删除<%Key_%>吗 ？
+			if not MsgTipBox( "ini文件删除key", prompt, var_read, 600, 350 )
+			{
+				return false
+			}
+		}
+		IniDelete %Filename_%, %Section_%, %Key_%
+	}
+	else
+	{
+		if isAsk
+		{
+			var_text = 准备删除%Filename_%文件的[%Section_%]`n`n你确定要删除整个Section 吗 ？
+			MsgBox, 4, Ini文件删除Section,  %var_text%
+			IfMsgBox No
+			{
+				return false
+			}
+		}
+		IniDelete %Filename_%, %Section_%
+	}
+	return true
+}
+
+;; 从INI文件中，读取整个section的key
+read_seckeys( byref OutSeckeys, Filename_, Section_ , bCaseSense = false )
+{
+	return read_sec( OutSeckeys, Filename_, Section_ , bCaseSense, true )
+}
+
+;; 从INI文件中，读取整个section
+read_sec( byref var_sec, Filename_, Section_ , bCaseSense = false, bKeysOnly = false )
+{
+	count = 0
+	if  bCaseSense = 1
+	{
+		StringCaseSense, On
+	}
+
+	bFindSec := false
+	var_sec =
+	cur_sec =
+	Loop, read, %Filename_%
+	{
+		; 寻找Section
+		var_pos := get_first_char(A_LoopReadLine, var_char)
+ 		If ( var_char == "[" )
+		{
+			IfInString A_LoopReadLine, ]
+			{
+;				tooltip [%a_index%] %A_LoopReadLine% cur_sec[%cur_sec%] , 0, 20
+				cur_sec := StrMid2Sub( A_LoopReadLine, "[", "]" )
+;				msgbox cur_sec[%cur_sec%] section[%section_%]
+;				tooltip
+				continue
+			}
+		}
+		; 找到了Section
+		if ( cur_sec == Section_ )
+		{
+			StringGetPos, varPos, A_LoopReadLine, =
+			if not errorlevel
+			{
+				count++
+				if bKeysOnly = 1
+				{
+					stringleft var_key, A_LoopReadLine, %varPos%
+					var_sec = %var_sec%`n%var_key%
+	;				if (var_key == "xxx")
+	;				msgbox xxx [%a_index%] cur_sec[%cur_sec%] section[%section_%]
+				}
+				else
+				{
+					var_sec = %var_sec%%A_LoopReadLine%`n
+				}
+			}
+		}
+	}
+	StringCaseSense, Off
+
+;	; 去掉行首的回车符
+;	stringLeft var_firstWord, var_sec, 1
+;	var_return = `n
+;	if ( var_firstWord == var_return )
+;	{
+;		StringMid var_sec, var_sec, 2
+;	}
+
+	return count
+}
+
+
+
+;; 从INI文件中，读取整个文件的section, 连接成字符串队列
+read_sections( byref var_secqueue, inifile, separator = "|", CaseSense = false )
+{
+	ifnotexist %inifile%
+	{
+		return
+	}
+	count = 0
+	var_secqueue =
+	if  bCaseSense = 1
+	{
+		StringCaseSense, On
+	}
+
+	bFindSec := false
+	var_sec =
+	cur_sec =
+	Loop, read, %inifile%
+	{
+		var_pos := get_first_char(A_LoopReadLine, var_char)
+ 		If ( var_char == "[" )
+		{
+			IfInString A_LoopReadLine, ]
+			{
+				cur_sec := StrMid2Sub( A_LoopReadLine, "[", "]" )
+				if cur_sec <>
+				{
+					count++
+					∑连接字符串( var_secqueue, cur_sec, separator )
+				}
+			}
+		}
+	}
+	StringCaseSense, Off
+	return count
+}
+
+
+
+;; 从INI文件中，读取整个文件的keys
+read_inikeys( byref var_keys, Filename_, bCaseSense = false )
+{
+	count = 0
+	if  bCaseSense = 1
+	{
+		StringCaseSense, On
+	}
+
+	var_keys =
+	Loop, read, %Filename_%
+	{
+		StringGetPos, varPos, A_LoopReadLine, =
+		if not errorlevel
+		{
+			stringleft var_key, A_LoopReadLine, %varPos%
+			var_keys = %var_keys%%var_key%`n
+			count++
+		}
+	}
+	StringCaseSense, Off
+
+	return count
+}
+
+
+;; 读取Ini文件到内存，过滤掉无关的行，行与行之间用`n间隔（非`r`n间隔）
+IniFileRead( var_fileName )
+{
+	FileRead var_fileContent, %var_fileName%
+	if ErrorLevel
+	Return
+
+	if var_fileContent =
+	Return
+
+	var_newContent =                        ;; 处理之后的IniFile内容
+	StringReplace var_fileContent, var_fileContent, `r, , All
+	loop parse, var_fileContent, `n
+	{
+		if a_loopfield =
+		Continue
+
+		;; 删除注释, 以 ; 开头的认为是注释
+		var_line := RegExReplace( a_loopfield, "(\s|^)`;`;.*", "" )
+		if var_line =
+			continue
+
+
+		;; 删除不包含[] 和 = 的行
+		IfNotInString var_line, =
+		{
+			if ( RegExMatch( var_line, "^\[.+\]") == 0 )
+			{
+				Continue
+			}
+		}
+		var_newContent = %var_newContent%%var_line%`n
+	}
+	Return var_newContent
+}
+
+;; 从保存Ini内容的内存中，找到_section节下的内容，
+;; 并且保存到_arrname指令的数组中, 返回_arrname的个数
+SecArrayFromIniMem( _inimem, _section, _arrname )
+{
+	global
+	local loops := %_arrname%0
+	local var_sec =
+	local i
+	local var_line
+	local var_match
+	loop %loops%
+	{
+		%_arrname%%a_index% =
+	}
+	%_arrname%0 := 0
+
+	if _inimem =
+		Return 0
+
+	if _section =
+		Return 0
+
+	;; 逐行处理
+	Loop parse, _inimem, `n
+	{
+		if a_loopfield =
+			continue 
+
+		var_line := A_LoopField
+		;; 如果是[分节]
+		if ( RegExMatch( var_line, "^\[.+\]", var_match ) > 0 )
+		{
+			var_sec := RegExReplace(var_match,"[\[\]]","")
+		}
+		else if var_sec = %_section%
+		{
+			%_arrname%0 ++
+			i := %_arrname%0
+			%_arrname%%i% := var_line
+		}
+	}
+	i := %_arrname%0
+	return i
+}
+
+
+;; 从保存Ini内容的内存中，找到_section节下的内容，
+;; 并且保存key到_arrkey指令的数组中, 保存Value到_arrvalue数组中。
+;; 返回_arrkey的个数
+SecValueArrayFromIniMem( _inimem, _section, _arrkey, _arrvalue )
+{
+	global
+	local loops := %_arrkey%0
+	local var_sec =
+	local i
+	local var_line, var_key, var_value
+	local var_match
+	loop %loops%
+	{
+		%_arrkey%%a_index% =
+	}
+	%_arrkey%0 := 0
+
+	;; 清空数组_arrvalue
+	loops := %_arrvalue%0
+	loop %loops%
+	{
+		%_arrvalue%%a_index% =
+	}
+	%_arrvalue%0 := 0
+
+	if _inimem =
+		Return 0
+
+	if _section =
+		Return 0
+
+	;; 逐行处理
+	Loop parse, _inimem, `n
+	{
+		if a_loopfield =
+			continue 
+
+		var_line := A_LoopField
+		;; 如果是[分节]
+		if ( RegExMatch( var_line, "^\[.+\]", var_match ) > 0 )
+		{
+			var_sec := RegExReplace(var_match,"[\[\]]","")
+		}
+		else if var_sec = %_section%
+		{
+			%_arrkey%0 ++
+			%_arrvalue%0 ++
+			i := %_arrkey%0
+			var_key=
+			var_value=
+			if StrSplit2Sub(var_line, "=", var_key, var_value)
+			{
+				%_arrkey%%i% := var_key
+				%_arrvalue%%i% := var_value
+			}
+		}
+	}
+	i := %_arrkey%0
+	return i
+}
+
+
+
+
+;; 从保存Ini内容的内存中，找到所有的section节，并以|作为连接符连接成字符串
+AllSecFromIniMem( _inimem )
+{
+	loops := %_arrname%0
+	var_sec =
+	var_line =
+	var_match =
+	var_ret =
+
+	if _inimem =
+		Return 
+
+	;; 逐行处理
+	Loop parse, _inimem, `n
+	{
+		if a_loopfield =
+			continue 
+
+		var_line := A_LoopField
+		;; 如果是[分节]
+		if ( RegExMatch( var_line, "^\[.+\]", var_match ) > 0 )
+		{
+			var_sec := RegExReplace(var_match,"[\[\]]","")
+
+			if var_sec <>
+			{
+				if var_ret <>
+					var_ret = %var_ret%|
+				var_ret = %var_ret%%var_sec%
+			}
+		}
+	}
+	return var_ret
+}
+
+;; 从保存Ini内容的内存中，找到并返回_section节下_keyName的值，查找失败则返回默认值
+FindFromIniMem( _inimem, _section, _keyName, _default = "" )
+{
+	if _inimem =
+		Return _default
+
+	if _section =
+		Return _default
+
+	if _keyName =
+		Return _default
+
+	;; 逐行处理
+	Loop parse, _inimem, `n
+	{
+		var_line := A_LoopField
+		;; 如果是[分节]
+		if ( RegExMatch( var_line, "^\[.+\]", var_match ) > 0 )
+		{
+			var_sec := RegExReplace(var_match,"[\[\]]","")
+		}
+		else if var_sec = %_section%
+		{
+			varPos := InStr( var_line, "=" )
+			if varPos > 0
+			{
+				stringleft keyname, var_line, varPos - 1
+				if keyname = %_keyName%
+				{
+					StringMid keyvalue, var_line, varPos + 1
+					Return keyvalue
+				}
+			}
+		}
+	}
+	return _default
+}

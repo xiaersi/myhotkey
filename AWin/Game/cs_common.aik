@@ -1,0 +1,77 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 一起玩平台客户端
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;#ifwinactive ahk_class TMainForm
+;F7::
+;	MsgBox test
+;	return
+;F5::	; 切换到CS1.5客户端窗口
+;	if not g_CS15Group
+;	{
+;	GroupAdd, g_CS15Group, ahk_class Half-Life
+;	}
+;	tooltip7("切换到CS1.5客户端窗口")
+;	GroupActivate, g_CS15Group
+;	return 
+;	
+;F6::	; 切换到CS1.6客户端窗口
+;	if not g_CSGroup
+;	{
+;	GroupAdd, g_CSGroup, ahk_class Valve001
+;	}
+;	tooltip7("切换到CS1.6客户端窗口")
+;	GroupActivate, g_CSGroup
+;	return
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; CS的服务端
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#ifwinactive Console ahk_class ConsoleWindowClass
+
+esc::
+	sendinput quit{enter}
+	return
+	
+#!numpad1::	; 将服务端窗口移动到右下角
+	WinGetActiveStats,title_ActiveWindow,var_width,var_height,var_x,var_y
+	winmove,%title_ActiveWindow%,,0,460
+	return
+	
+
+#!space::
+!2::
+	GroupActivate, g_CSGroup
+	sleep 500
+	GroupActivate, g_CSGroup
+	sleep 500 
+!1::
+	GroupActivate, g_CSGroup
+	return
+	
+::runcs::
+	run D:\Program Files\一起玩平台FPS类游戏\CS1.6\cstrike.exe, D:\Program Files\一起玩平台FPS类游戏\CS1.6, , pid_cs1
+	sleep 200
+	run C:\Documents and Settings\Administrator\桌面\讯游CS DOD竞技平台.lnk
+	return
+	
+F5::
+	send sv_restart 1{enter}
+	Return
+	
+F6::
+^tab::	; 切换到CS客户端窗口
+	if not g_CSGroup
+	{
+	GroupAdd, g_CSGroup, ahk_class Valve001
+	}
+	GroupActivate, g_CSGroup
+	return
+	
+#ifwinactive
+
+
+#IfWinExist Console ahk_class ConsoleWindowClass
+#!NUMPAD0:
+	MsgBox 激活Console
+	WinActivate Console ahk_class ConsoleWindowClass
+	return 
+#IfWinExist

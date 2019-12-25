@@ -1,0 +1,32 @@
+; 远程桌面
+
+;; 远程桌面
+#ifwinactive ahk_class TscShellContainerClass ;; ahk_class TSSHELLWND ;; old
+numpadleft::
+!left::
+	WinGetActiveStats,title_ActiveWindow,var_width,var_height, var_x, var_y
+	var_height -= 12
+	鼠标点一下回去(30, var_height)
+	return
+NumpadRight::
+!right::
+	WinGetActiveStats,title_ActiveWindow,var_width,var_height, var_x, var_y
+	鼠标点一下回去( var_width - 50, var_height - 12 )
+	return
+NumpadUp::
+!up::
+	WinGetActiveStats,title_ActiveWindow,var_width,var_height, var_x, var_y
+	鼠标点一下回去( var_width - 12, 55 )
+	return
+NumpadDown::
+!down::
+	WinGetActiveStats,title_ActiveWindow,var_width,var_height, var_x, var_y
+	鼠标点一下回去( var_width - 12, var_height - 50 )
+	return
+
+
+!NumpadDot::	; 最小化远程桌面
+	WinMinimize, A 
+	return
+
+#ifwinactive

@@ -1,0 +1,1321 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; IfWinActive
+
+【最小化我的小字典】:	;; 最小化窗口
+	∑最小化窗口()
+	RETURN
+
+【快捷键打开收藏】:
+	iFavorite := 0
+	loop 12
+	{
+		if a_ThisHotkey = !f%a_index%
+			iFavorite := a_index
+	}
+	sleep 200
+	if iFavorite > 0
+	{
+		StringSplit, tempArray, g_FAVORITE, |
+		var_dic := tempArray%iFavorite%
+		IfExist %var_dic%
+		{
+			GuiControl , Text, _keyName
+			GuiControl , Text, _Section			;; 清空Setion编辑框
+			GuiControl , Text, _keyValue		;; 清空KeyValue编辑框
+			SetIniFile( var_dic )
+
+			ifnotexist %g_INIFILE%
+			{
+				g_Sections =
+				msgbox 字典文件%g_INIFILE%不存在, 加载字典失败!
+				RETURN
+			}
+			else if ( g_INIFILE != read_ini("temp.ini", "我的字典", "file", "dict.dic") )
+			{
+				write_ini("temp.ini", "我的字典", "file", g_INIFILE, false)
+				GoSub 【读取ini文件】
+			}
+		}
+	}
+	RETURN
+
+【初始化所有编辑框】:
+	g_bAutoSearch := true
+	g_CurKey =
+	g_ShowDetail := false
+	g_IsHelp := false
+	GoTo 【清空所有编辑框】
+	RETURN
+
+【下拉收起搜索历史记录】:
+	if g_ShowDropDown
+	{
+		Control HideDropDown, , ComboBox1, %g_wintitle%
+		g_ShowDropDown := false
+	}
+	else
+	{
+		Control ShowDropDown, , ComboBox1, %g_wintitle%
+		g_ShowDropDown := true
+	}
+	RETURN
+
+
+;; 回车消息响应
+【回车响应】:
+	Gui, Submit, NoHide
+	GuiControlGet, var_FocusCtrl, Focusv
+
+	;; 在搜索框中回车，展开第一个单词
+	if var_FocusCtrl = _KeyName
+	{
+		if not g_ShowDetail
+		{
+			LV_GetText( var_sec, 1, 1 )
+			LV_GetText( var_key, 1, 2 )
+			LV_GetText( var_keyValue, 1, 3 )
+			if ( var_sec !="" && var_key !="" )
+			{
+				g_bAutoSearch := false
+				GuiControl, Text, _keyName, %var_key%
+				GuiControl, Text, _Section, %var_sec%
+				g_bAutoSearch := true
+				∑展开单词项( var_sec, var_key, var_keyValue )
+			}
+		}
+	}
+	;; 在ListView列表框内回车，则展开选中的词条
+	else if var_FocusCtrl = _KeyListView
+	{
+		RowNumber := LV_GetNext(RowNumber)
+		if not RowNumber
+			return
+		LV_GetText( var_sec, RowNumber, 1 )
+		LV_GetText( var_key, RowNumber, 2 )
+		LV_GetText( var_keyValue, RowNumber, 3 )
+		if ( var_sec !="" && var_key !="" )
+		{
+			g_bAutoSearch := false
+			GuiControl, Text, _keyName, %var_key%
+			GuiControl, Text, _Section, %var_sec%
+			g_bAutoSearch := true
+			∑展开单词项( var_sec, var_key, var_keyValue)
+		}
+	}
+	;; 在keyValue编辑框内回车，则将该编辑框中的内容显示到RichEdit编辑框（详细展开显示）
+	else if var_FocusCtrl = _KeyValue
+	{
+		if ∑keyValue显示多行()	;; 多行
+		{
+			;SendPlay {enter}			;; 直接sendplay有时会失效
+			ControlSend , Edit2, {enter}, %g_WinTitle%  ;; 可以确保发送回车消息
+			/*
+			if a_thishotkey = NumpadEnter
+				SendPlay {enter}
+			Else
+				ShowKeyValue( _KeyValue, false ) 	;; 切换为单行
+			*/
+		}
+		Else					;; =25单行
+		{
+			GuiControlGet, hKeyValue, Hwnd , _keyValue
+
+			ShowKeyValue( _KeyValue, true ) 	;; 切换为多行
+
+			;; 设置光标位置到最末尾
+			DllCall("SendMessage", "UInt", hKeyValue, "UInt", 0xB1, "Int", strlen(_KeyValue), "Int", -1)	; EM_SETSEL
+			
+		}
+	}
+	else if IsFormVisible( g_hRichEdit )
+	{
+		ShowText()  ;; 隐藏RichEdit控件，显示_KeyListView
+	}
+	Return
+
+
+【ALT回车响应】:
+	Gui, Submit, NoHide
+	GuiControlGet, var_FocusCtrl, Focusv
+	if var_FocusCtrl = _KeyValue
+	{
+		if ∑keyValue显示多行()	;; 多行
+		{
+			ShowKeyValue( _KeyValue, false ) 	;; 切换为单行
+		}
+		Else					;; =25单行
+		{
+			GuiControlGet, hKeyValue, Hwnd , _keyValue
+
+			ShowKeyValue( _KeyValue, true ) 	;; 切换为多行
+
+			;; 设置光标位置到最末尾
+			DllCall("SendMessage", "UInt", hKeyValue, "UInt", 0xB1, "Int", strlen(_KeyValue), "Int", -1)	; EM_SETSEL
+			
+		}
+	}
+	return
+
+【Alt_J响应】:	;; Alt+j消息响应
+	Gui, Submit, NoHide
+	GuiControlGet, var_FocusCtrl, Focusv
+	if var_FocusCtrl = _keyName
+	{
+		GuiControl, Focus, _KeyListView			;; 当在搜索框输入Alt+j时，激活ListView控制，在列表里选择
+		sleep 100
+	}
+	send {down}	;; 按下↓方向键
+	return
+
+【keyValue显示单行】:
+	Gui, Submit, NoHide
+	ShowKeyValue( _KeyValue, false )	;; 切换为单行
+	Return
+
+【keyValue显示多行】:
+	Gui, Submit, NoHide
+	ShowKeyValue( _KeyValue, true )	;; 切换为单行
+	Return
+
+;; 将KeyValue复制粘贴到激活小字典的窗口中, 按住Ctrl不放，将会转化成大写后输出
+【复制KeyValue不包含注释的值到父窗口】:
+	Gui submit, nohide
+	var_clip =
+	curRow := LV_GetNext(0, "Focused")
+	LV_GetText( var_clip, curRow, 3 )
+	if var_clip =
+		var_clip := _KeyValue
+	IfWinExist %g_OLDTITLE%
+	{
+		WinActivate
+	}
+	Sleep 100
+	;;___去掉注释内容________________________________________________________
+	LOOP
+	{
+		IfInString var_clip, `/*
+		{
+			StrSplit2Sub( var_clip, "`/*", var_left, var_right )
+			IfInString var_right, *`/
+			{
+				var_right := StrRight2Sub( var_right, "*`/", "")
+				var_clip = %var_left% %var_right%
+			}
+		}
+		else
+		{
+			BREAK
+		}
+	}
+	;; 提示复制了内容...
+	if strlen(var_clip) > 100
+	{
+		StringLeft var_tip, var_clip, 100
+		var_tip = %var_tip%......
+	}
+	else
+	{
+		var_tip := var_clip
+	}
+	tooltip 复制`n%var_tip%
+
+	;; 将 | 替换成回车键，然后粘贴到外面的窗口
+	clipboard := ∑返回全部替换后的字符串( var_clip, "|", "`r`n" )
+	Sleep 100
+	Sleep 200
+
+	IfWinExist %g_OLDTITLE%
+	{
+		IfWinNotActive %g_OLDTITLE%
+		{
+			WinActivate
+			WinWaitActive
+		}
+		;; 如果按下了Shift的键，则将英文单词转化成大写之后再输出
+		if is_key_down("Ctrl")
+		{
+			StringUpper, clipboard, clipboard
+		}
+		send ^v
+	}
+	Sleep 300
+	tooltip
+	RETURN
+
+;; 如果ListView正在展开单词项显示详细内容，按退格键收起单词项。
+【退格键收起单词项】:
+	GuiControlGet, var_FocusCtrl, FocusV
+	if IsFormVisible( g_hRichEdit )
+	{
+		g_IsHelp := false
+		ShowText()  ;; 隐藏RichEdit控件，显示_KeyListView
+	}
+	else if var_FocusCtrl = _KeyListView   ;; ListView
+	{
+		if ( g_ShowDetail )  ;; 当前控件为展开显示的ListView，退格返回收缩状态
+		{
+			g_DBClickListView := false
+			Gosub 【搜索KeyName】
+		}
+		else  ;; 当前控件处于收缩状态，则清空搜索框
+		{
+			Gosub  【清空搜索框】
+		}
+	}
+	return
+
+
+【ListView上一行】:
+	controlfocus SysListView321, %g_WINTITLE%
+	send {up}
+	return
+
+【ListView下一行】:
+	controlfocus SysListView321, %g_WINTITLE%
+	send {down}
+	return
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 窗口热键
+;; 设置半透明和置顶
+
+;; 让窗口去掉半透明和置顶
+【取消置顶和半透明】:
+	tooltip7("取消置顶和半透明")
+    Control UNCheck, , button10, %g_WINTITLE%          ;; 取消置顶
+	Control UNCheck, , button11, %g_WINTITLE%			;; 取消半透明
+	RETURN
+
+
+
+【关闭Timer_延时展开并提示内容】:
+	tooltip ,,,,7
+	settimer [延时展开并提示内容], off
+	return
+
+【鼠标左键单击响应】:
+	g_ShowTip := false
+	MouseGetPos, g_MouseX, g_MouseY, OutputVarWin, OutputVarControl, 0
+	tooltip ,,,,7
+	settimer [延时展开并提示内容], off
+
+	if OutputVarControl = SysListView321
+	{
+		;; 否则如果是单击鼠标，则当内容超过50时，用tooltip提示完整内容
+		Sleep 50
+		curRow := LV_GetNext(0, "Focused")
+		g_tip7 =
+
+		if curRow > 0
+		{
+			LV_GetText( var_KeyValue, curRow, 3 )
+            	g_bAutoSearch := false          ;; 避免在设置_KeyValue的值时自动执行【KeyValueEdit】
+			Guicontrol,,_KeyValue, %var_KeyValue%
+
+			;; 得到当前鼠标点击的是第几列
+			bNeedTip := false
+			GetLVCellUnderMouse( g_GuiID, g_LVName, var_CurRow, var_CurCol, var_CellX, var_CellY, var_CellW, var_CellH )
+			if var_CurCol = 1
+			{
+				if g_bShortCol1
+				{
+					LV_GetText( sTip, curRow, 1 )
+					len := strlen( sTip )
+					if len > 20
+						bNeedTip := true
+
+				}
+			}
+			else if var_CurCol = 2
+			{
+				if g_bShortCol2
+				{
+					LV_GetText( sTip, curRow, 2 )
+					len := strlen( sTip )
+					if len > 20
+						bNeedTip := true
+				}
+			}
+			else ;; if var_CurCol = 3
+			{
+				;; 将var_KeyValue设置到_KeyValue编辑框
+				GuiControl, Text, _KeyValue, %var_KeyValue%
+
+				;; 检查是否太长而需要用Tooltip提示
+				sTip := var_KeyValue
+				len := strlen( sTip )
+				if len > 50
+					bNeedTip := true
+			}
+			;; 如果keyValue的值太长需要Tooltip显示
+			if bNeedTip
+			{
+				var_temp =
+				LOOP parse, sTip, |
+				{
+					if a_Index > 15
+					{
+						g_tip7 = %g_tip7%......`r`n..: 按住shift键可以保持提示，松开消除提示 :..
+						BREAK
+					}
+					var_temp := a_LOOPField
+					var_len := strlen( var_temp )
+
+					;; 如果一行太长，则将其分成多行显示
+					if ( var_len > g_TIPMAXLINE )
+					{
+						;; var_temp2 临时存储 var_temp 分行后的字符串
+						StringLeft var_temp2, var_temp, g_TIPMAXLINE
+						var_temp2 = %var_temp2%
+						var_LOOP := var_len // g_TIPMAXLINE
+						var_LOOP := var_LOOP
+						LOOP %var_LOOP%
+						{
+							StringMid, var_buf, var_temp, g_TIPMAXLINE * a_Index, g_TIPMAXLINE
+							var_temp2 = %var_temp2%`r`n`t%var_buf%
+						}
+						var_temp := var_temp2
+					}
+					g_tip7 = %g_tip7%%var_temp%`r`n>
+				}
+                		g_ShowTip := true       ;; 使延时提示[延时展开并提示内容]失效
+				settimer [延时展开并提示内容], 500
+			}
+			else
+			{
+				tooltip7( "", 10 )		;; 清除正在显示的tooltip
+			}
+			;; g_bAutoSearch = false 延时10毫秒，目的在于避免单击ListView并将选中的值给
+			;; KeyValue编辑框赋值时自动执行【KeyValueEdit】而加亮相同的其他行
+			;; 只允许用户在KeyValue编辑框手工输入值时，执行【KeyValueEdit】且加亮搜索到的行
+			Sleep 10
+			g_bAutoSearch := true
+		}
+	}
+	else
+	{
+		g_MouseX =
+		g_MouseY =
+	}
+	RETURN
+
+
+[延时展开并提示内容]:
+	if g_ShowTip
+	{
+		;; 当鼠标几乎没有移动时，显示详细提示，如果有移动，则取消显示
+		if ( g_MouseX !="" && g_MouseY != "" )
+		{
+			MouseGetPos, mx, my
+			if ( mx - g_MouseX > -30 && mx - g_MouseX < 30
+			  && my - g_MouseY > -15 && my - g_MouseY < 15 )
+
+			{
+				tooltip %g_tip7%,,,7
+				SetTimer, [延时清除详细字典内容提示], 100
+			}
+		}
+	}
+	g_ShowTip := false
+	settimer [延时展开并提示内容], off
+	RETURN
+
+
+[延时清除详细字典内容提示]:
+	SetTimer, [延时清除详细字典内容提示], Off
+	keywait shift, D T2
+	if is_key_down( "shift" )
+	{
+		keywait shift
+	}
+	tooltip ,,,,7
+	RETURN
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; IfWinExist
+【复制其他窗口选中的内容到飞扬小字典】:
+	clipboard =
+	sleep 20
+	send ^c
+	WinActivate ahk_id %g_GuiID%
+	Menu, ClipToDictMenu, show
+	return
+
+【粘贴到飞扬小字典指定编辑框】:
+	if clipboard =
+	{
+		tipx( 3, "剪贴板没有内容！" )
+		return
+	}
+
+	if a_ThisMenuItemPos in 1,2,3
+	{
+		var_clip := clipboard
+		if a_ThisMenuItemPos = 1
+		{
+			∑设置keyName的值( var_clip )
+		}
+		else if a_ThisMenuItemPos = 2
+		{
+			∑粘贴到飞扬小字典的keyValue框( var_clip )
+		}
+		else if a_ThisMenuItemPos = 3
+		{
+			∑粘贴为keyValue的注释( var_clip )
+		}
+	}
+	return
+
+
+【粘贴到飞扬小字典KeyName框】:
+	clipboard =
+	sleep 20
+	send ^c
+	sleep 100
+	if clipboard =
+	{
+		tipx( 3, "剪贴板没有内容！" )
+		return
+	}
+	∑设置keyName的值( clipboard )
+	return
+
+
+【粘贴到飞扬小字典KeyValue辑框】:
+	clipboard =
+	sleep 20
+	send ^c
+	sleep 100
+	if clipboard =
+	{
+		tipx( 3, "剪贴板没有内容！" )
+		return
+	}
+	∑粘贴到飞扬小字典的keyValue框( clipboard )
+	return
+
+
+【粘贴为飞扬小字典KeyValue框的注释】:
+	clipboard =
+	sleep 20
+	send ^c
+	sleep 100
+	if clipboard =
+	{
+		tipx( 3, "剪贴板没有内容！" )
+		return
+	}
+	∑粘贴为keyValue的注释( clipboard )
+	return 
+
+
+【复制其他窗口选中的内容到字典的搜索框中】:
+	send ^c
+	winactivate %g_WINTITLE%
+	var_clip := clipboard
+	winwaitactive
+	∑删除字符串中的回车符(var_clip)
+	clipboard := var_clip
+	GuiControl, Text, _KeyName,  %clipboard%
+	;ControlSetText edit1, %clipboard%, %g_WINTITLE%
+	Gosub 【搜索keyName】
+	RETURN
+
+
+【复制其他窗口选中的内容到字典的搜索框中搜索】:
+	send ^c
+	winactivate %g_WINTITLE%
+	var_clip := clipboard
+	winwaitactive
+	∑删除字符串中的回车符(var_clip)
+	clipboard := var_clip
+	GuiControl, Text, _KeyName, %clipboard%
+	GuiControl, Text, _KeyValue,
+	sleep 100
+	Gosub 【搜索KeyName】
+	RETURN
+
+
+
+【复制其他窗口选中的内容到字典的KeyValue框中】:
+	send ^c
+	ClipWait, 2, Text
+	winactivate %g_WINTITLE%
+	winwaitactive
+	GuiControl, focus, _KeyValue
+;	controlfocus edit2, %g_WINTITLE%
+	;∑删除字符串中的回车符(var_clip)
+	g_bAutoSearch := false
+	;GuiControl, Text, _KeyValue,  %var_clip%
+	ShowKeyValue( Clipboard, true, false )
+	g_bAutoSearch := true
+	;; 需要让ListView失去焦点，否则从其他窗口切换回来的时候，_keyValue编辑框会自动给定ListView选中的值，这将影响Alt+3添加注释的功能
+	LV_Modify( 0, "-Select")
+	LV_Modify( 0, "-Focus")
+	RETURN
+
+
+【从其他窗口复制选中内容到我的小字典的KeyValue框中】:
+	send ^c
+	winactivate %g_WINTITLE%
+	StringReplace var_clip, clipboard, `n, |, All
+	StrTrimRight( var_clip, "`|" )
+	winwaitactive
+	∑删除字符串中的回车符(var_clip)
+	clipboard := var_clip
+	g_bAutoSearch := false
+	GuiControl, Text, _keyValue, %clipboard%  ;; 【%clipboard%】
+	g_bAutoSearch := true
+	RETURN
+
+
+【复制其他窗口中的内容到KeyValue框末尾作为注释】:
+	gui submit, nohide
+	clipboard =
+	send ^c
+	clipwait, 1, 1
+	winactivate %g_WINTITLE%
+	winwaitactive
+	var_clip := clipboard
+	∑删除字符串中的回车符(var_clip)
+	if var_clip <>
+	{	sleep 100
+		var_comment = `/*%var_clip%*`/
+		g_bAutoSearch := false
+		if _keyValue = _keyValue
+		{
+			GuiControl, Focus, _KeyValue
+		;	controlfocus edit2, %g_WINTITLE%
+			send {end}   ^v
+		}
+		else
+		{
+			;; 在KeyValue与 /*注释*/ 之间插入不同个数的空格，可以使注释对齐，更加美观
+            nmod := 8 - mod( strlen(_keyValue), 8)      ;; 需要添加空格的个数
+			var_temp := _keyValue						;; 先添加KeyValue部分
+			loop %nmod%								    ;; 再添加若干个空格
+			{
+				var_temp := var_temp . " "
+			}
+			var_temp = %var_temp%%var_comment%			;; 最后添加注释部分
+			GuiControl, Text, _keyValue, %var_temp%
+		}
+		g_bAutoSearch := true
+	}
+	RETURN
+
+
+
+【批量添加选中的内容到我的小字典】:
+	clipboard =
+	Sleep 20
+	send ^c
+	sleep 100
+	GoTo 【批量增加按钮】
+	RETURN
+
+
+【复制其他窗口选中的内容_转化为大写后粘贴到字典的搜索框中】:
+	clipboard =
+	Sleep 100
+	send ^c
+	winactivate %g_WINTITLE%
+	winwaitactive
+	var_clip := clipboard
+	∑删除字符串中的回车符(var_clip)
+	StringUpper var_clip, var_clip
+	g_bAutoSearch := false
+	GuiControl, Text, _keyValue, %var_clip%
+	g_bAutoSearch := true
+	RETURN
+
+
+【复制其他窗口选中的内容_作为注释添加到KeyValue框末尾并自动添加】:
+	clipboard =
+	send ^c
+	clipwait, 1, 1
+	winactivate %g_WINTITLE%
+	winwaitactive
+	var_clip := clipboard
+	∑删除字符串中的回车符(var_clip)
+	if var_clip <>
+	{
+		var_clip = `/*%var_clip%*`/
+		clipboard := var_clip
+		GuiControl, focus, _KeyValue
+	;	controlfocus edit2, %g_WINTITLE%
+		send {end} ^v
+		controlclick button4, %g_WINTITLE%	;; button4 添加按钮
+	}
+	RETURN
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Buttons 的响应Lable
+
+;;---响应插入按钮------------------------------------------------------------
+【插入按钮】:
+	Gui submit, hide
+	var_clip := _KeyValue
+	;;___去掉注释内容________________________________________________________
+	LOOP
+	{
+		IfInString var_clip, `/*
+		{
+			StrSplit2Sub( var_clip, "`/*", var_left, var_right )
+			IfInString var_right, *`/
+			{
+				var_right := StrRight2Sub( var_right, "*`/", "")
+				var_clip = %var_left% %var_right%
+			}
+		}
+		else
+		{
+			BREAK
+		}
+	}
+	clipboard := ∑返回全部替换后的字符串( var_clip, "|", "`r`n" )
+	Sleep 100
+	send ^v
+	ExitApp
+	RETURN
+
+
+;;---响应复制按钮------------------------------------------------------------
+【复制按钮】:
+	Gui submit, nohide
+	var_clip := _KeyValue
+	send !{tab}
+	Sleep 100
+	;;___去掉注释内容________________________________________________________
+	LOOP
+	{
+		IfInString var_clip, `/*
+		{
+			StrSplit2Sub( var_clip, "`/*", var_left, var_right )
+			IfInString var_right, *`/
+			{
+				var_right := StrRight2Sub( var_right, "*`/", "")
+				var_clip = %var_left% %var_right%
+			}
+		}
+		else
+		{
+			BREAK
+		}
+	}
+	;; 提示复制了内容...
+	if strlen(var_clip) > 100
+	{
+		StringLeft var_tip, var_clip, 100
+		var_tip = %var_tip%......
+	}
+	else
+	{
+		var_tip := var_clip
+	}
+	tooltip 复制`n%var_tip%
+
+	;; 将 | 替换成回车键，然后粘贴到外面的窗口
+	clipboard := ∑返回全部替换后的字符串( var_clip, "|", "`r`n" )
+	Sleep 100
+	Sleep 200
+
+	send ^v
+
+	Sleep 300
+	tooltip
+	RETURN
+
+;;---Add按钮-----------------------------------------------------------------
+【增加按钮】:
+	Gui submit, nohide
+
+	∑删除字符串中的回车符(_section)
+	∑删除字符串中的回车符(_KeyName)
+
+	if ∑keyValue显示多行()
+	{
+		var_KeyValue := EncodeToString( _KeyValue )
+		Gosub  【keyValue显示单行】
+	}
+	Else
+	{
+		var_KeyValue := _KeyValue
+		∑删除字符串中的回车符(_KeyValue)
+	}
+
+	if g_INIFILE =
+	{
+		tooltip7("添加新词汇失败! 请给定字典!", 800 )
+		RETURN
+	}
+	if _section =
+	{
+		tooltip7("添加新词汇失败! 请指定分类!", 800 )
+		RETURN
+	}
+	if _KeyName =
+	{
+		tooltip7("添加新词汇失败! 关键字不能为空!", 800 )
+		RETURN
+	}
+	if var_KeyValue =
+	{
+		tooltip7("添加新词汇失败! KeyValue不能为空!", 800 )
+		RETURN
+	}
+	g_iLocalPos := -1                       ;; -1表示要定位到最后一行
+
+	var_read := read_ini( g_INIFILE, _section, _KeyName, "" )
+	var_temp := ∑FindIniContent( _section, _KeyName )
+	if ( var_read <> var_temp )
+	{
+		var_prompt = 单词<%_KeyName%>在缓存与文件中的值有冲突,`n如果强制修改，可能会导致文件内容丢失！`n确定要强制修改吗？
+		var_text =
+(
+｛%g_INIFILE%｝[%_section%] <%_KeyName%> 的值有冲突,
+
+ 注意:
+ 如果强制修改，可能会导致文件内容丢失！
+ 建议重新加载字典文件再修改！
+
+缓存中value:
+--------------------------------------------------------
+%var_temp%.
+
+
+而在文件中value:
+--------------------------------------------------------
+%var_read%.
+
+)
+
+		If MsgTipBox( "单词值有冲突！", var_prompt, var_text )
+		{
+			Return                                  ;; 用户选择了放弃添加
+		}
+	}
+
+	if not StrListAdd( var_read, var_KeyValue, "|", false)
+	{
+		MsgBox false = StrListAdd( %var_read%`, %var_KeyValue%,` "|"`, false)
+		Return
+	}
+
+	write_ini( g_INIFILE, _section, _KeyName, var_read, false )
+
+	var_CurKey := _KeyName
+	if ( g_ShowDetail )
+	{
+		g_CurKey := _KeyName
+		g_DBClickListView := true  ;; 详细显示
+	}
+	else
+	{
+		;; 使用数字+键添加单词项时，添加之后展开显示刚添加的单词项
+		if A_ThisHotkey = NumpadAdd 
+		{
+			g_CurKey := _KeyName
+			g_ShowDetail := true
+			g_DBClickListView := true  ;; 详细显示
+		}
+		;; 其他方式添加的单词项，则清空搜索框。
+		else
+		{
+			ControlSetText Edit1, , %g_WINTITLE%
+			g_CurKey =
+		}
+	}
+	g_CurSelectLine++
+
+	;; 定位到ListView最后一行
+
+	GoSub 【重新加载数据并搜索】
+
+	;; 将输入框定位到单词输入框，以便手工添加下一个单词
+	GuiControl, focus, _KeyName
+
+	RETURN
+
+
+;; 在搜索关键字时，同时搜索关键字的值
+【需要搜索KeyValue】:
+	Gui submit, nohide
+	GoSub 【搜索KeyName】
+	RETURN
+
+【初始化编辑框】:
+	ControlSetText, Edit1, , %g_WINTITLE%		;; 清空KeyName搜索框
+	ControlSetText, Edit3, , %g_WINTITLE%		;; 清空Setion编辑框
+	ControlSetText, Edit2, , %g_WINTITLE%		;; 清空KeyValue编辑框
+	RETURN
+
+
+【窗口置顶】:
+	Gui submit, nohide
+	if _SetWinTop
+		WinSet AlwaysOnTop, On, %g_WINTITLE%
+	else
+		WinSet AlwaysOnTop, off, %g_WINTITLE%
+	RETURN
+
+【设置半透明】:
+	Gui submit, nohide
+	if _SetWinTrans
+	{
+		WinSet, Transparent, 200,  %g_WINTITLE%
+		Control Check, , button10, %g_WINTITLE%
+	}
+	else
+		WinSet, Transparent, off,  %g_WINTITLE%
+	RETURN
+
+
+
+
+【延时备份打开的文件】:
+	;; 备份文件内容
+	if  g_TempContent <>
+	{
+		if dir =                                ;; dir 是从g_inifile分离出来的路径
+		{
+			;; 将字典备份写到BAK文件夹中。
+			var_inibak = .\bak\%name_no_ext% %a_yyyy%%a_mm%%a_dd%.~%ext%
+
+			;; 如果bak文件夹不存在，则创建之
+			ifNotExist .\bak\
+			{
+				FileCreateDir, .\bak\
+			}
+			;; 如果bak文件夹已经存在，则检查是否已经存在相同内容的备份文件，
+			;; 如果已经有相同内容的备份文件，则将var_inibak设置为空，将跳过备份
+			Else
+			{
+				var_bakfiles =
+				loop , .\bak\%name_no_ext% *.~%ext%
+				{
+					if A_LoopFileName <>
+					{
+						var_bakfiles = %var_bakfiles%%A_LoopFileName%`n
+					}
+				}
+				Sort var_bakfiles, R
+				Loop parse, var_bakfiles, `n
+				{
+					var_Contents =
+					FileRead, var_Contents, .\bak\%A_LoopField%
+					if ( var_Contents = g_TempContent )
+					{
+						; MsgBox 已经存在相同内容的备份文件 .\bak\%A_LoopField%
+						var_inibak =
+						break
+					}
+					var_Contents =
+					;; 只比较最近3个备份文件，再更旧的文件与当前字典内容相同的可能性更小。
+					if a_index >= 3
+					{
+						break
+					}
+				}
+			}
+		}
+		else
+		{
+			var_inibak = %dir%\%name_no_ext%.~%ext%
+		}
+		if var_inibak <>
+		{
+			IfExist %var_inibak%
+			{
+				FileDelete %var_inibak%
+			}
+			FileCopy, %g_INIFILE%, %var_inibak%, 1
+		}
+		;; 清空加载的文件缓存
+		g_TempContent =
+	}
+	SetTimer 【延时备份打开的文件】, off
+	Return
+
+
+∑加载INI文件( seclist_ = "" )
+{
+	Local var_fileContent, var_line, keyName, var_match, iCurSec, var_sec, bValidSec
+	FileRead g_TempContent, %g_inifile%
+	if ErrorLevel
+	Return false
+
+	if g_TempContent =
+	Return false
+
+	;; 清空内容
+	g_secList =
+	ClearArray("g_IniArray")
+	ClearArray("g_iSecArray")
+
+	bValidSec := false  ;; 当前的Sec是否要保留（不被过滤掉）
+	StringReplace var_fileContent, g_TempContent, `r, , All
+	loop parse, var_fileContent, `n
+	{
+		if a_loopfield =
+		Continue
+
+		;; 删除注释, 以 ; 开头的认为是注释
+		var_line := RegExReplace( a_loopfield, "(\s|^)`;.*", "" )
+		if var_line =
+		Continue
+
+		;; 如果是[分节]
+		if ( RegExMatch( var_line, "^\[.+\]", var_match ) > 0 )
+		{
+			var_sec := RegExReplace( var_match, "[\[\]]", "" )
+			if ( seclist_ = "" )
+				bValidSec := true
+			else if var_sec in %seclist_%
+				bValidSec := true
+			else
+				bValidSec := false
+
+			if bValidSec
+			{
+				AppendArray( "g_IniArray", var_line )
+
+				iCurSec := g_IniArray0
+				AppendArray( "g_iSecArray", iCurSec )   ;; 将Section在g_IniArray数组中的序号保存到g_iSecArray
+
+				;; 得到当前的Section，并保存到g_secList = sec1|sec2|....
+
+				StrListAdd( g_secList, var_sec, "|" )
+			}
+		}
+		else IfInString var_line, =
+		{
+			if bValidSec
+			{
+				AppendArray( "g_IniArray", var_line )
+
+				;; 将keyName 添加到 分节的后面，如[section]|keyName1|keyName2|...
+				if iCurSec > 0
+				{
+					keyName := StrLeft2Sub(var_line, "=")
+					g_IniArray%iCurSec% := g_IniArray%iCurSec%  . "|" . keyName
+				}
+			}
+		}
+		;; else 不包含[] 和 = 的行 被忽略
+	}
+	var_fileContent =                        ;; 释放内存
+	;; 将文件原始内容临时保存到中，以便后面执行备份
+	SplitPath, g_INIFILE, name, dir, ext, name_no_ext
+	SetTimer 【延时备份打开的文件】, 500
+	ControlSetText , Edit1, , %g_winfile%
+	Return true
+}
+
+【搜索KeyName】:
+	Gui, Submit, NoHide
+
+	;; 如果ListView隐藏，则显示之
+	if IsFormVisible( g_hRichEdit )
+	{
+	 	ShowText()
+	}
+	;; 如果_keyValue显示多行，则切换至单行
+	GuiControlGet, EditPos, pos, _keyValue
+	if EditPosH > 25
+		ShowKeyValue( _keyValue, false, false )
+
+
+	; 清空Section ListBox
+	GuiControl,, _SecListBox, |
+	GuiControl, -Redraw,  _KeyListView   ;; 停止自动重绘ListView，提高速度
+	GuiControl, +Grid,    _KeyListView      ;; 展开单词项时, ListView要显示网格
+    GuiControl,,_lbl_KeyValue, KeyValue: -收起-
+	g_ShowDetail := false               ;; 显示的是没有展开的信息
+	LV_Delete()
+
+	;; 如果搜索的关键字为空，则显示所有的分类
+	if _keyName =
+	{
+		if _Section =
+		{
+			GuiControl,, _SecListBox, |
+			GuiControl,, _SecListBox, %g_secList%
+			Return
+		}
+	}
+	loop %g_iSecArray0%
+	{
+		idx := g_iSecArray%A_Index%
+		var_line := g_IniArray%idx%
+
+		if ( StrSplit2Sub(var_line,"|", var_sec, var_keyList ) )
+		{
+			;; 去掉分节中的[]符号
+			var_sec := RegExReplace( var_sec, "[\[\]]", "" )
+
+			;; 如果用户没有选择搜索单词项
+			if ( !_SearchKeyValue  )
+			{
+				;; 先从var_keyList搜索是否存在待搜索的词汇, 没有搜索到则搜索下一个分类
+
+				if _keyName =
+				{
+					GuiControl,, _SecListBox, %var_sec%
+				}
+				else if ( InStrMatch( var_keyList, _keyName, _UseRegEx ) = 0 )
+				{
+					Continue
+				}
+				Else if var_sec <>
+				{
+					GuiControl,, _SecListBox, %var_sec%
+				}
+				;; 搜索框不为空且其值不等于当前var_sec，跳过搜索关键字
+				if _Section <>
+				{
+					if _Section <> %var_sec%
+					{
+						Continue
+					}
+				}
+			}
+
+			;; 当选择搜索单词项 or 分类搜索框为空 or 搜索框内的分类值=var_sec时，需要进一步搜索匹配的关键字
+			;; 在var_sec的词汇中寻找该词汇, 先准备好var_sec分节下词汇的条数loops
+			if ( A_Index == g_iSecArray0)
+				loops := g_IniArray0 - idx
+			else
+			{
+				nextIndex := A_Index + 1
+				loops := g_iSecArray%nextIndex% - idx
+			}
+			;; 搜索关键字, 并将搜索到的值添加到ListView中
+			bFind := false  ;; 如果搜索成功，则将该值置为True
+			loop %loops%
+			{
+				i := idx + A_Index
+				var_line := g_IniArray%i%
+				if StrSplit2Sub(var_line, "=", key, value )
+				{
+					if _SearchKeyValue
+					{
+						var_pos := InStrMatch( key, var_line, _UseRegEx )
+						if ( _keyName = "" or InStrMatch( var_line, _keyName, _UseRegEx ) > 0 )
+						{
+							bFind := true
+							if ( _Section = "" or _Section = var_sec )
+								LV_Add( "", var_sec, key, value )
+						}
+					}
+					else if ( _keyName = "" or InStrMatch( key, _keyName, _UseRegEx ) )
+					{
+						bFind := true
+						if ( _Section = "" or _Section = var_sec )
+							LV_Add( "", var_sec, key, value )
+					}
+				}
+			}
+			;; 在var_sec分类中搜索词汇成功，将该var_sec添加到ListBox中
+			if ( _SearchKeyValue and bFind and var_sec <> "" )
+				GuiControl,, _SecListBox, %var_sec%
+		}
+	}
+
+	;; 如果指定了分类，则在ListBox中定位到该分类上
+	if _section <>
+	{
+		GuiControl, ChooseString, _SecListBox, %_section%
+	}
+
+	;; 自动调整ListView列宽，且保证前两列的宽度要小于窗口宽度的1/5, 1/3
+	MAXWIDTH := g_WindowWidth / 6
+	g_bShortCol1 := false				;; 第一列宽度在自动调整后，再次缩小
+	g_bShortCol2 := false				;;
+	LV_ModifyCol(1)                     ;; 自动调整ListView中第1列的宽度
+	LV_ModifyCol(2)                     ;; 自动调整ListView中第2列的宽度
+	if ( GetLVColumnWidth( g_GuiID, g_LVName, 1 ) > MAXWIDTH )
+	{
+		g_bShortCol1 := true
+		LV_ModifyCol( 1, MAXWIDTH )
+	}
+	MAXWIDTH := g_WindowWidth / 4
+	if ( GetLVColumnWidth( g_GuiID, g_LVName, 2 ) > MAXWIDTH )
+	{
+		g_bShortCol2 := true
+		LV_ModifyCol( 2, MAXWIDTH )
+	}
+	var_Width := g_WindowWidth - 250
+	LV_ModifyCol(3, var_Width)
+
+	if g_iLocalPos > 0
+	{
+		LV_Modify( g_iLocalPos, "Select")
+		LV_Modify( g_iLocalPos, "Vis")  ;; 滚动垂直滚动条到指定位置
+		g_bLocalPos := 0
+	}
+	else if g_iLocalPos = -1
+	{
+		LV_Modify( LV_GetCount(), "Select")
+		LV_Modify( LV_GetCount(), "Vis")  ;; 滚动垂直滚动条到指定位置
+		g_bLocalPos := 0
+	}
+	GuiControl, +Redraw,  _KeyListView   ;; 停止自动重绘ListView，提高速度
+	Return
+
+
+【延时搜索KeyName】:
+	gosub 【搜索KeyName】
+	SetTimer, 【延时搜索KeyName】, Off
+	Return
+
+
+【拖拽文本到其他窗口】:
+	IfWinNotActive ahk_id %g_GuiID%
+		Return
+
+	;; g_dragprase_state = 0  ;; 拖拽粘贴的状态 0初始状态  1开始拖拽:寻找窗口  2选好窗口:确定输入位置
+	if g_dragprase_state > 0
+	{
+		return
+	}
+
+
+
+	g_dragprase_state := 0
+
+	;; 得到鼠标下的窗口
+	MouseGetPos, g_MouseX, g_MouseY, OutputVarWin, OutputVarControl, 0
+	if ( OutputVarWin != g_GuiID )
+	{
+		goto 【结束拖拽文本】
+	}
+
+	;; 得到选中的文本内容
+	var_clip =   ;; 将要拖拽到其他窗口的内容
+	if OutputVarControl = SysListView321
+	{
+		Sleep 20   ;; 延时一点执行，否则取到的将是点击之前所在行
+		curRow := LV_GetNext( 0, "Focused" )
+		if curRow > 0
+		{
+			LV_GetText( var_clip, curRow, 3 )
+			var_clip := DecodeToText( var_clip ) ;; 将|替换成换行符`n
+
+			;; 去掉注释
+			var_clip := RegExReplace( var_clip, "/\*.*?\*/" )
+		}
+	}
+	else if OutputVarControl = Edit1  ;; 搜索框
+	{
+		ControlGetText, var_clip, Edit1
+		GuiControl, Focus, _KeyName
+	}
+	Else if OutputVarControl = Edit2  ;; keyValue
+	{
+		ControlGetText, var_clip, Edit2
+		GuiControl, Focus, _keyValue
+
+		;; 判断如果var_clip是尚未展开（即多项以|进行分隔），则展开之
+		IfInString var_clip, |
+		{
+			IfNotInString var_clip, `n
+			{
+				var_clip := DecodeToText( var_clip )
+			}
+		}
+		;; 去掉注释
+		var_clip := RegExReplace( var_clip, "/\*.*?\*/" )
+	}
+	Else if OutputVarControl = Edit3   ;; 分类
+	{
+		ControlGetText, var_clip, Edit3
+		GuiControl, Focus, _Section
+	}
+	Else if OutputVarControl = RICHEDIT50W1 ;; RichEdit 查看状态编辑框
+	{
+		var_clip := RichEdit_GetText(	g_hRichEdit, "-", "-", "" )
+		if var_clip =
+			var_clip := RichEdit_GetText(	g_hRichEdit, "0", "-1", "" )
+	}
+
+	if var_clip =
+		goto 【结束拖拽文本】
+	Else
+		StringReplace var_clip, var_clip, `n, `r`n, all
+
+	g_dragprase_state := 1
+	settimer 【定时器_拖拽粘贴提示】, 100
+
+	;; 等待释放鼠标左键
+	keywait LButton
+
+	;; 如果LCtrl在鼠标左键之前已经释放，则取消拖拽粘贴
+	GetKeyState, state, LCtrl, p
+	if state <> D
+	{
+		goto 【结束拖拽文本】
+	}
+
+	g_dragprase_state := 2
+	MouseGetPos, g_MouseX, g_MouseY, OutputVarWin, OutputVarControl, 0
+	if ( OutputVarWin == g_GuiID || OutputVarWin == ""  )
+	{
+		goto 【结束拖拽文本】
+	}
+	else
+	{
+		WinActivate ahk_id %OutputVarWin%
+	}
+
+	;; 等待释放LCtrl键
+	keywait LCtrl
+
+	;; 如果鼠标在活动窗口之中，则执行拖拽粘贴
+	MouseGetPos, g_MouseX, g_MouseY, OutputVarWin, OutputVarControl, 0
+	ifWinActive ahk_id %OutputVarWin%
+	{
+		if ( OutputVarWin != g_GuiID )
+			sendByClip( var_clip )
+	}
+	else
+	{
+		g_dragprase_state := 0
+		tooltip 【取消拖拽粘贴】`n鼠标不在编辑区
+		sleep 600
+	}
+
+	;sendinput %var_clip%
+	;Control, EditPaste, var_clip,  %OutputVarControl%, ahk_id %OutputVarWin%
+
+	goto 【结束拖拽文本】
+	Return
+
+【结束拖拽文本】:
+	g_dragprase_state := 0
+	settimer 【定时器_拖拽粘贴提示】, off
+	tooltip
+	return
+
+【定时器_拖拽粘贴提示】:
+	if g_dragprase_state = 1
+	{
+		tooltip 拖拽粘贴: 寻找窗口
+		GetKeyState, state, LCtrl, p
+		if state <> D
+		{
+			goto 【结束拖拽文本】
+		}
+	}
+	else if g_dragprase_state = 2
+	{
+		tooltip 拖拽粘贴: 确定输入位置
+	}
+	else
+	{
+	;	gosub 【结束拖拽文本】
+	}
+	return

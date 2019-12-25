@@ -1,0 +1,132 @@
+
+【添加飞扬个性短语】:
+	WinGetActiveTitle, _XString_title
+	WinGetClass, _XString_class, A
+	_XString_text := clipboard
+	gosub 【飞扬个性输入之增加短语】
+	return
+
+
+【飞扬个性输入之增加短语】:
+	g_XString_title = 飞扬个性输入：增加短语
+
+	_XString_caseview=
+(
+ItemType:1
+WinFlag:1
+AhkClass:%_XString_class%
+WinTitle:%_XString_title%
+)
+
+	Gui, 26:Add, Text, x16 y30 w70 h20 +Right, 定义单词：
+	Gui, 26:Add, Edit, x86 y27 w250 h20 v_XString_word,
+	Gui, 26:Add, Button, x526 y20 w90 h30 +default g【飞扬个性输入之确定按钮响应】, 确  定
+	Gui, 26:Add, Button, x646 y20 w90 h30 g【飞扬个性输入之取消按钮响应】, 取  消
+	Gui, 26:Add, Text, x16 y80 w70 h20 +Right, 窗口类：
+	Gui, 26:Add, Edit, x376 y80 w400 h20 v_XString_title g【飞扬个性输入之刷新选项预览】, %_XString_title%
+	Gui, 26:Add, Text, x346 y80 w30 h20 , 标题
+	Gui, 26:Add, Edit, x86 y80 w250 h20 v_XString_class g【飞扬个性输入之刷新选项预览】,  %_XString_class%
+	Gui, 26:Add, Text, x16 y120 w70 h20 +Right, 窗口条件：
+	Gui, 26:Add, DropDownList, x86 y120 w250 h20 R5 Choose2 AltSubmit v_XString_winflag g【飞扬个性输入之刷新选项预览】, 无限制|IfWinActive|IfWinExist|IfWinNotActive|IfWinNotExist
+	Gui, 26:Add, Text, x16 y160 w70 h20 +Right, 结束字符：
+	Gui, 26:Add, DropDownList, x86 y160 w250 h10 R4 Choose1 AltSubmit v_XString_endchar g【飞扬个性输入之刷新选项预览】, 全部|空格|回车|Tab
+	Gui, 26:Add, Text, x346 y120 w30 h60 , 　　选项　　预览
+	Gui, 26:Add, Edit, x376 y120 w400 h60 v_XString_caseview, %_XString_caseview%
+	Gui, 26:Add, Text, x346 y30 w30 h20 , 类型
+	Gui, 26:Add, Edit, x6 y200 w780 h360 v_XString_text, %_XString_text%
+	Gui, 26:Add, GroupBox, x6 y60 w780 h130 , 
+	Gui, 26:Add, DropDownList, x376 y27 w120 h20 R3 Choose1 AltSubmit v_XString_itemtype g【飞扬个性输入之刷新选项预览】, 文本|飞扬命令串|XML命令串
+	; Generated using SmartGUI Creator 4.0
+	Gui, 26:-SysMenu	;; 去掉最大化、最小化、关闭按钮
+	Gui, 26:Show, h568 w794, %g_XString_title%
+	Return
+
+26:GuiClose:
+【飞扬个性输入之取消按钮响应】:
+	Gui, 26:destroy
+	Return
+
+
+【飞扬个性输入之确定按钮响应】:
+	Gui, 26:submit, nohide
+	if _XString_text=
+	{
+		msgbox 内容不能为空！
+		return
+	}
+
+	if _XString_word = 
+	{
+		msgbox 请为文本指定缩略单词！
+		return 
+	}
+
+	If _XString_word contains `,, ,`n,`t
+	{
+		msgbox 缩略单词中不能包含 `, 空格 回车 Tab 等非法字符！
+		return 
+	}
+
+	if not g_HotXString_isLoad
+	{
+		∑加载飞扬个性输入数据()
+	}
+
+	if not g_HotXString_isLoad
+	{
+		msgbox 飞扬个性输入的数据文件未能加载！
+		return
+	}
+
+	StringReplace var_case, _XString_caseview, `r, , all
+	StringReplace var_case, var_case, `n, |, all
+	if AddXString( g_HotXString_XMLObject, _XString_word, _XString_text, var_case )
+	{
+		msgbox 成功添加个性短语！
+
+		SaveXString( g_HotXString_XMLObject )
+
+		Goto 【飞扬个性输入之取消按钮响应】
+	}
+	else
+	{
+		msgbox 添加个性短语失败！
+		return
+	}
+	return
+
+
+【飞扬个性输入之刷新选项预览】:
+	Gui, 26:submit, nohide
+	var_temp =
+	var_temp = ItemType:%_XString_itemtype%
+
+	;; 生成EndChar
+	if _XString_endchar=2
+		var_temp = %var_temp%`nEndChar:1   ;; 空格
+	else if _XString_endchar=3
+		var_temp = %var_temp%`nEndChar:2   ;; 回车
+	else if _XString_endchar=4
+		var_temp = %var_temp%`nEndChar:4   ;; Tab
+
+	;; 生成WinFlag (无限制|IfWinActive|IfWinExist|IfWinNotActive|IfWinNotExist)
+	if ( _XString_winflag >=2 && _XString_winflag <= 5 )
+	{
+		if _XString_winflag=2                   ;; IfWinActive
+			var_temp = %var_temp%`nWinFlag:1
+		else if _XString_winflag=3				;; IfWinExist
+			var_temp = %var_temp%`nWinFlag:2
+		else if _XString_winflag=4				;; IfWinNotActive
+			var_temp = %var_temp%`nWinFlag:-1
+		else if _XString_winflag=5				;; IfWinNotExist
+			var_temp = %var_temp%`nWinFlag:-2
+
+		if _XString_class <>
+			var_temp = %var_temp%`nAhkClass:%_XString_class%
+
+		if _XString_title <>
+			var_temp = %var_temp%`nWinTitle:%_XString_title%
+ 	}
+	;; 将拼接好的选项字符串设置到“选项预览”文本框中
+	Guicontrol, , _XString_caseview, %var_temp%
+	return

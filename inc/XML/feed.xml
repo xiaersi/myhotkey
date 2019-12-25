@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<root>
+  <_section>sec</_section>
+  <_word>
+    <title>word</title>
+  </_word>
+  <word NAME="word1">word111111</word>
+  <word NAME="word2">word22222</word>
+  <word NAME="word3" />
+</root>
+  <books>
+    <book>hello</book>
+  </books>
+  <HotXString>
+    <Word NAME="test1">
+      <Win TITLE="title1">
+        <Item WINFLAG="0" ENDCHAR="3">xxxxxxxxxx</Item>
+        <Item>222222222222222</Item>
+      </Win>
+    </Word>
+    <Word NAME="myword">
+      <Win TITLE="title1">
+        <Item ENDCHAR="2">²âÊÔÎÄ±¾1</Item>
+        <Item ENDCHAR="2">²âÊÔÎÄ±¾2</Item>
+      </Win>
+      <Win TITLE="title2">
+        <Item ENDCHAR="3">²âÊÔÎÄ±¾3</Item>
+      </Win>
+    </Word>
+  </HotXString>

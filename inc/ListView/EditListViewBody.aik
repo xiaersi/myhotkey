@@ -1,0 +1,137 @@
+;; 本文件配合GuiAddEditListView.aik 使用， 主要用于响应相关的点击
+
+
+#include .\inc\listview\lvfunc.aik
+
+;TODO:
+;singleclick in listview not reliable - find another way other than "Normal" maybe "C" with other condition
+;can't highlight text in edit1 with mouse, just calls 【点击MyListView】
+;maybe use arrow keys with a static control cell overlay to emulate cell highlighting? - partially done
+【点击MyListView】:
+   CoordMode,MOUSE,RELATIVE
+   MouseGetPos,mx,my,oID,oCNN
+   If(A_GuiEvent = "DoubleClick")
+   {   Gosub 【双击ListView】
+   }
+   Else If(A_GuiEvent = "Normal" && EnableSingleClick )
+   {   	 
+   		Gosub 【单击ListView】
+   }
+   Else If A_GuiEvent In S,s,RightClick,ColClick,D,d,e      ;hide edit on these events
+   {   
+   		GuiControl,Hide,%LV_ST%   ;hide static control
+       	GuiControl,Hide,%LV_ED%   ;hide edit control
+   }
+   
+Return
+
+【双击ListView】:
+   GuiControl,Hide,%LV_ED%   ;hide edit control
+   GuiControl,Hide,%LV_ST%   ;hide static control
+   DispControl := LV_ED      ;make edit1 the default control
+   spacer =
+   Gosub CellReSize
+   Gosub CellPosition
+   GuiControl,Focus,%DispControl%   ;set focus   
+   SetTimer,isEditFocused,75   ;start edit focus monitor
+Return
+
+【单击ListView】:
+   GuiControl,Hide,%LV_ED%   ;hide edit control
+   GuiControl,Hide,%LV_ST%   ;hide edit control
+   DispControl := LV_ST   ;make static1 the default control
+   spacer = %A_Space%
+   Gosub CellReSize
+   Gosub CellPosition
+   GuiControl,Focus,%EditingLV%   ;set focus   
+Return
+
+【调整ListView大小】:
+	GetLVCellUnderMouse( g_GuiID, EditingLV, currRow, currCol, RowX, RowY, currColWidth, currColHeight )
+	GetLVInfo( g_GuiID, EditingLV, TotalNumOfRows, NumOfRows, topIndex )
+	return
+
+【通过Edit实时修改MyListView对应单元格的值】:
+    Gui,Submit,NoHide
+    CellX_save = Col%CellX_LV%
+    LV_Modify(CellY_LV,CellX_save,CellEdit)
+    Return
+
+
+#IfWinActive ahk_group editKeypress
++Enter::
+Enter::
+NumpadEnter::
+【修改MyListView单元格并退出编辑状态】:
+	GuiControlGet,fControl,Focus   ;get control with focus
+	If(fControl = DispControl)   ;if Edit, save any changes
+	{   Gui,Submit,NoHide
+		CellX_save = Col%CellX_LV%
+		LV_Modify(CellY_LV,CellX_save,CellEdit)
+		Gosub CellHide
+	}
+	Return
+
+Esc::
+   Gosub CellHide   ;cancel
+Return
+
+#IfWinActive
+
+
+CellHide:
+   ; GuiControl,Hide,%DispControl% ;; 用Hide命令会使得其他Edit获得焦点并全选，不如将其移到窗口之外
+   GuiControl, MoveDraw, CellEdit, Y-100
+   GuiControl, MoveDraw, CellHighlight, Y-100
+   GuiControl,Focus, %EditingLV%   ;set focus   
+Return
+
+isEditFocused:
+   GuiControlGet,cFoc,Focus
+   If(cFoc != DispControl)
+   {   SetTimer,isEditFocused,Off
+      Gosub CellHide
+   }
+Return
+
+
+CellReSize:
+	ControlGetPos,lx,ly,lw,lh,%EditingLV%,ahk_id %g_GuiID%   ;get info on listview
+	GetLVInfo( g_GuiID, EditingLV, TotalNumOfRows, NumOfRows, topIndex )
+	GetLVCellUnderMouse( g_GuiID, EditingLV, currRow, currCol, RowX, RowY, currColWidth, currColHeight )
+		
+   	If(RowX < lx)   ;make sure the cell is in view, then get the cell x coord again if it wasn't
+   	{   
+      	RowX    := GetMovedCellX( g_GuiID, EditingLV, currRow, currCol, RowX )
+      	
+   	}
+   	scrollWidth := TotalNumOfRows > NumOfRows ? SM_CXVSCROLL : 0   ;0 if no vscroll, else = SM_CXVSCROLL
+   	If(RowX+currColWidth > lx+lw-scrollWidth)   ;if edit will be too wide, shrink it
+   	{   
+		currColWidth -= ((RowX+currColWidth) - (lx+lw-scrollWidth)) + 3
+   	}
+Return
+
+CellPosition:
+   CellX_LV := currCol                          ;get cell column
+   CellY_LV := currRow                          ;get cell row
+   LV_GetText(coltxt,CellY_LV,CellX_LV)         ;get the text
+   edW := currColWidth                        	;get control width
+   edH := currColHeight + 1                     ;get control height
+   edX := RowX + 2                              ;get control x pos
+   edY := RowY + 1                              ;get control y pos
+   
+   ControlMove,%DispControl%,edX,edY,edW,edH   	;move and size control
+   GuiControl,,%DispControl%,%spacer%%colTxt%   ;set the text
+   GuiControl,Show,%DispControl%                ;show control
+   ;; 选中可编辑的内容
+   settimer 【延时选中可编辑的内容】, 55
+Return
+
+【延时选中可编辑的内容】:
+	if ( DispControl == LV_ED )
+	{
+		send {home}{shift down}{end}{shift up}
+	}
+	settimer 【延时选中可编辑的内容】, off
+Return

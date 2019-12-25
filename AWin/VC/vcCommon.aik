@@ -1,0 +1,157 @@
+;;#include .\inc\common.aik
+esc & space::	;; 关闭当前文档
+esc & numpadenter:: 
+;; ^w::	; 取消^w 关闭文档的功能, 因为这个热键可用来选择单词, 而且^F4也有关闭当前文档的功能
+	send ^{f4}
+	return
+
+
+
+::==;:: 	;;判断比较，常量放在左边
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	varstring=$clip$ == 
+	StringGetPos, posVar, varstring, $clip$
+	if not errorlevel
+	{ 
+	sleep 200
+	InputBox, tempclipboard, 剪贴板, 可以修改剪贴板的内容,,,120,,,,,%clipboard%
+	StringReplace, varstring, varstring, $clip$, %tempclipboard%, All
+	}
+	clipboard:=varstring
+	sleep 200
+	sendevent,^v
+	send {space}
+	Clipboard = %oldclipboard%
+	return
+	
+::{};::		; 输入函数体{}
+	send {{}{enter}{}}{up}{enter}
+	return
+	
+::-.::
+	send ->
+	return
+::-t::
+	send _T(""){left 2}
+	KeyWait, Control ,D T5
+	if Errorlevel
+	return
+	send {end}`;
+	return
+!'::
+	Clipboard = ;
+	send ^x
+	send _T(""){left 2}
+	send ^v{right 2}
+	keywait esc,D T3
+	if Errorlevel
+	return
+	send ^z^z^z^z^z
+	return	
+
+
+!+,::
+	send {space}<{space}
+	return 
+!+.::
+	send {space}>{space}
+	return 
+!;::
+^;::
+	send {end}`;
+	return
+!.::
+	send {end}.
+	return 
+!\::
+	send {end}
+	return
+^+\::	; 替换\为\\
+	Clipboard = ;
+	send ^x
+	sleep 500
+;	mystring := clipboard
+;	msgbox %clipboard%
+	StringReplace, clipboard, clipboard, \, \\, All 
+;	msgbox %clipboard%
+	send ^v
+	return
+!=::
+	send {end}{space}={space}
+	return
+
+!+=::
+	tempval := " += "
+	send 	{end}
+	sendraw %tempval%
+	return
+!delete::
+	send +{end}{delete 2}
+	return
+!+delete::
+	send +{end}{delete 2}{down}
+	return
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+Send_InputBox(vartitle,varPrompt,varDefault="",maxlen=30)
+{
+	varUser := MyInputBox(vartitle,varPrompt,varDefault)
+	sleep 200
+	if (strlen(varUser) > maxlen)
+	   send `n
+	else
+	   send {space}
+	send //{space}
+	sendbyclip(varUser)
+}
+
+
+;;-------------------------------------------------------
+:://mod::
+	sendinput // Mod by teshorse, %a_year%-%a_mon%-%a_dd% %a_hour%:%a_min% %a_tab% 
+	; Send_InputBox("添加注释","可以添加注释","")
+	return
+
+:://add::
+	sendinput // Add by teshorse,  %a_year%-%a_mon%-%a_dd% %a_hour%:%a_min% %a_tab% 
+	; Send_InputBox("添加注释","可以添加注释","")
+	return
+
+:://del::
+	sendinput // Del by teshorse, %a_year%-%a_mon%-%a_dd% %a_hour%:%a_min% %a_tab% 
+ 	; Send_InputBox("添加注释","可以添加注释","")
+	return
+
+:://end::
+	sendinput // END teshorse ......................................
+	return
+
+
+:R:case;::
+	
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	varstring=`t`tcase $clip$:`r`n`t`t`t{`r`n`t`t`t}`r`n`t`t`tbreak`;
+	StringGetPos, posVar, varstring, $clip$
+	if not errorlevel
+	{ 
+	sleep 200
+	InputBox, tempclipboard, 剪贴板, 可以修改剪贴板的内容,,,120,,,,,%clipboard%
+	StringReplace, varstring, varstring, $clip$, %tempclipboard%, All
+	}
+	clipboard:=varstring
+	sleep 200
+	sendevent,^v
+	Clipboard = %oldclipboard%
+	sleep 100
+	send {up 2}
+	return
+
+::static<::
+::static<>::
+	sendinput static_cast<>()`;
+	send {left 4}
+	return
+

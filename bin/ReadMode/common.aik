@@ -1,0 +1,299 @@
+
+
+sc07D::
+space::	
+;	click
+	tooltip 《返回》
+	tooltip 1000
+	ExitApp
+	return
+
+LWIN::
+	return
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 键盘映射
+
+a::left		;向左
+b::		;;滚轮向下滚动
+	MouseClick, WheelDown, , , 2
+	return
+
+c::
+	GetKeyState, state, LButton  
+	if state = D
+	{
+	    send ^c{LButton up}
+	    	var_tooltip = 《复制成功》
+		sleep 2000
+		var_tooltip = 《阅读模式》
+
+	}
+	else
+	{
+	   	if(var_tooltip ="已按下左键，再按C复制...")
+		{
+		    send {LButton up}
+		    var_tooltip = 《阅读模式》
+		}
+		else
+		{
+		    send {LButton down}
+		    	var_tooltip = 已按下左键，再按C复制...
+		}
+	}
+	return
+
+d::right	;向右
+e::end		;End
+f::
+	MouseClick, WheelDown, , , 4
+	var_now := a_now
+	var_now -= var_pretime, seconds
+	if var_now > 1 
+	{
+		click
+	}
+	var_pretime := a_now
+	return
+
+g::		;;滚轮向上滚动
+	MouseClick, WheelUp, , , 2
+	return
+h:: return 
+i::Numpad5	;;数字键5
+j::Numpad1	;;数字键1
+k::Numpad2	;;数字键2
+l::Numpad3	;;数字键3
+m::Numpad0 	;;数字键0
+n:: return
+o::Numpad6	;;数字键6
+p::NumpadMult	;;数字键*
+q:: return
+r::
+	MouseClick, WheelUp, , , 4
+	var_now := a_now
+	var_now -= var_pretime, seconds
+	if var_now > 1 
+	{
+		click
+	}
+	var_pretime := a_now
+	return
+s::down		;向下
+/*
+t::		;Alt+Tab切换窗口
+	sendevent,{alt down}{tab}
+	keywait,f,D
+	sendevent,{alt up}
+	return
+*/
+
+u::Numpad4	;;数字键4
+v::		;;粘贴
+	GetKeyState, state, LButton  
+	if state = D
+	{
+	    send ^c!{tab}
+	    	var_tooltip = 《复制成功》
+		sleep 2000
+		var_tooltip = 《阅读模式》
+	    return
+	}
+	send ^v
+	return
+w::up
+x::  ; 确认关闭当前窗口
+	WinGetActiveTitle, OutputVar 
+	msgbox 4,关闭窗口-[%OutputVar%],活动窗口-[ %OutputVar% ]`n确定要关闭它吗？,5
+	IfMsgBox Yes
+	{
+		winclose A
+	}
+	return
+
+y::return
+
+z::	;查看热键
+
+【帮助提示】:
+
+	var_tooltip = 
+(
+<wsad上下左右><gb/rf=↑↓2/4> 
+<jkluio789m=数字键1234567890>  
+<q/e=home/end><cc/v=复制/粘贴> <[/]=后退/前进>
+<Ctrl+方向键=移动光标><Alt+方向键=慢速移动光标>
+<Ctrl+Alt+方向键=快速移动光标><Alt+Shift+方向键=微步移动光标>
+<Z=help><x=关闭><#!方向键=移动窗口><空格=退出>
+)
+     
+    tooltip %var_tooltip% 
+	sleep 5000
+	var_tooltip = 《阅读模式》
+	return
+
+7::Numpad7	;;数字键7
+8::Numpad8	;;数字键8
+9::Numpad9	;;数字键9
+/::NumpadDiv	;;数字键\
+.::NumpadDot	;;数字键.
+[::Browser_Back	;;后退
+]::Browser_Forward	;;前进
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+esc::
+	GetKeyState, state, LButton  
+	if state = D
+	{
+	    send {LButton up}
+	}
+	if not(	var_tooltip = "《阅读模式》")
+		var_tooltip =《阅读模式》
+
+	return
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  Lwin+方向键 移动窗口
+
+<#!up::
+	keywait,w,D L T0.3
+	WinGetActiveStats,title_ActiveWindow,var_width,var_height,var_x,var_y
+	if ((var_y+var_height)>45) var_y:=var_y-35
+	winmove,%title_ActiveWindow%,,%var_x%,%var_y%
+	return
+
+<#!left::
+	keywait,a,D L T0.3
+	WinGetActiveStats,title_ActiveWindow,var_width,var_height,var_x,var_y
+	if ((var_x+var_width)>60) var_x:=var_x-50
+	winmove,%title_ActiveWindow%,,%var_x%,%var_y%
+	return
+
+<#!right::
+	keywait,d,D L T0.3
+	WinGetActiveStats,title_ActiveWindow,var_width,var_height,var_x,var_y
+	if ((A_ScreenWidth-var_x)>20) var_x:=var_x+50
+	winmove,%title_ActiveWindow%,,%var_x%,%var_y%
+	return
+<#!down::
+	keywait,s,D L T0.3
+	WinGetActiveStats,title_ActiveWindow,var_width,var_height,var_x,var_y
+	if ((A_screenwidth-var_y)>25) var_y:=var_y+35
+	winmove,%title_ActiveWindow%,,%var_x%,%var_y%
+	return
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Win+Alt+数字  调整窗口大小
+#!0::	;; 很小窗口
+	WinGetActiveStats,title_ActiveWindow,var_width,var_height,var_x,var_y
+	winmove,%title_ActiveWindow%,,%var_x%,%var_y%,350,250
+;	ResetActiveWindowRect(350,250)
+	return
+#!1::	;; 小窗口
+	WinGetActiveStats,title_ActiveWindow,var_width,var_height,var_x,var_y
+	winmove,%title_ActiveWindow%,,%var_x%,%var_y%,640,400
+;	ResetActiveWindowRect(640,400)
+	return
+#!2::	;; 中窗口
+	WinGetActiveStats,title_ActiveWindow,var_width,var_height,var_x,var_y
+	winmove,%title_ActiveWindow%,,%var_x%,%var_y%,800,600
+;	ResetActiveWindowRect(800,600)
+	return
+#!3::	;; 大窗口
+	WinGetActiveStats,title_ActiveWindow,var_width,var_height,var_x,var_y
+	winmove,%title_ActiveWindow%,,%var_x%,%var_y%,1024,768
+;	ResetActiveWindowRect(1024,768)
+	return
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 移动光标
+
+;大幅度移动
+^!Left::MouseMove -200,0,,R
+^!Right::MouseMove 200,0,,R
+^!Up::MouseMove 0,-200,,R
+^!Down::MouseMove 0,200,,R
+
+;中等幅度移动
+^Left::MouseMove -50,0,,R
+^Right::MouseMove 50,0,,R
+^Up::MouseMove 0,-50,,R
+^Down::MouseMove 0,50,,R
+
+;小幅度移动
+!Left::MouseMove -10,0,,R
+!Right::MouseMove 10,0,,R
+!Up::MouseMove 0,-10,,R
+!Down::MouseMove 0,10,,R
+
+;微微小移动
+!+Left::MouseMove -1,0,,R
+!+Right::MouseMove 1,0,,R
+!+Up::MouseMove 0,-1,,R
+!+Down::MouseMove 0,1,,R
+
+;击键
+^Enter::
+	click
+	return
+
++Enter::
+	click right
+	return
+
+^+Enter::
+	click
+	click
+	return
+
+
+/*復制：
+按住左鍵不放拖動鼠標進行選擇（如瀏覽器里的文字、資源管理器里的文件夾或文件、Word里的圖片
+等），然后點右鍵將進行復制。
+
+粘貼：按住右鍵不放，點左鍵將進行粘貼。
+
+代码：
+*/
+#IfWinNotActive ahk_class ConsoleWindowClass
+bAllowOverride := False
+
+~LButton::   
+	GetKeyState, keystate, RButton   
+	If (keystate = "D")   
+	{      
+		SendInput {RButton Up} 
+		SendInput {Escape}        
+		SendInput ^v        
+		bAllowOverride := True   
+	}   
+	Return
+
+RButton:: 
+	GetKeyState, keystate, LButton   
+	If (keystate = "D")    
+	{      
+	SendInput {LButton Up}    
+	    SendInput ^c       
+	bAllowOverride := True      
+	Return   
+	}    
+	SendInput {RButton Down}   
+	Return
+	
+RButton Up::   
+	GetKeyState, keystate, LButton    
+	If (keystate = "D") 
+	{     
+	   Return 
+	}   
+	If (bAllowOverride) 
+	{     
+	   bAllowOverride := False     
+	   Return 
+	} 
+	SendInput {RButton Up} 
+	Return
+

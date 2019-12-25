@@ -1,0 +1,240 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- saved from url=(0120)file:///D:/Program%20Files/MyHotkey/inc/ListView/ListViews%20%20Color%20individual%20rows,%20multiple%20LV%20support.htm -->
+<html dir="ltr"><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+
+<meta http-equiv="Content-Style-Type" content="text/css">
+
+
+<link rel="top" href="http://www.autohotkey.com/forum/index.php" title="AutoHotkey Community Forum Index">
+<link rel="search" href="http://www.autohotkey.com/forum/search.php" title="Search">
+<link rel="help" href="http://www.autohotkey.com/forum/faq.php" title="FAQ">
+<link rel="author" href="http://www.autohotkey.com/forum/memberlist.php" title="Memberlist">
+<link rel="prev" href="http://www.autohotkey.com/forum/ptopic54200.html" title="View previous topic">
+<link rel="next" href="http://www.autohotkey.com/forum/ntopic54200.html" title="View next topic">
+<link rel="up" href="http://www.autohotkey.com/forum/forum-2.html" title="Scripts &amp; Functions">
+<link rel="chapter forum" href="http://www.autohotkey.com/forum/forum-1.html" title="Ask for Help">
+<link rel="chapter forum" href="http://www.autohotkey.com/forum/forum-2.html" title="Scripts &amp; Functions">
+<link rel="chapter forum" href="http://www.autohotkey.com/forum/forum-3.html" title="Bug Reports">
+<link rel="chapter forum" href="http://www.autohotkey.com/forum/forum-4.html" title="Wish List">
+<link rel="chapter forum" href="http://www.autohotkey.com/forum/forum-8.html" title="Developers">
+<link rel="chapter forum" href="http://www.autohotkey.com/forum/forum-6.html" title="Announcements">
+<link rel="chapter forum" href="http://www.autohotkey.com/forum/forum-7.html" title="Utilities &amp; Resources">
+<link rel="chapter forum" href="http://www.autohotkey.com/forum/forum-5.html" title="General Chat">
+
+<title>ListViews: Color individual rows, multiple LV support</title>
+<link rel="stylesheet" href="file:///D:/Program%20Files/MyHotkey/inc/ListView/ListViews%20%20Color%20individual%20rows,%20multiple%20LV%20support_files/subSilver.css" type="text/css">
+<link rel="alternate" type="application/rss+xml" title="AutoHotkey Forum RSS" href="http://www.autohotkey.com/forum/rss.php">
+
+</head>
+<body bgcolor="#E5E5E5" text="#000000" link="#006699" vlink="#5493B4">
+
+<a name="top"></a>
+
+<table width="100%" cellspacing="0" cellpadding="10" border="0" align="center">
+	<tbody><tr>
+		<td class="bodyline"><table width="100%" cellspacing="0" cellpadding="0" border="0">
+			</table>
+
+		<br>
+
+<script type="text/javascript" src="file:///D:/Program%20Files/MyHotkey/inc/ListView/ListViews%20%20Color%20individual%20rows,%20multiple%20LV%20support_files/code.js" defer="defer"></script>
+
+
+
+
+
+<table class="forumline" width="100%" cellspacing="1" cellpadding="3" border="0">
+	<tbody>
+	
+	
+	<tr>
+		
+		<td class="row1" width="100%" height="28" valign="top"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+			<tbody><tr>
+				<td width="100%"><a href="http://www.autohotkey.com/forum/post-329767.html#329767"><img src="file:///D:/Program%20Files/MyHotkey/inc/ListView/ListViews%20%20Color%20individual%20rows,%20multiple%20LV%20support_files/icon_minipost.gif" width="12" height="9" alt="Post" title="Post" border="0"></a><span class="postdetails">Posted: Fri Feb 05, 2010 11:31 pm<span class="gen">&nbsp;</span>&nbsp; &nbsp;Post subject: ListViews: Color individual rows, multiple LV support</span></td>
+				<td valign="top" nowrap="nowrap"><a href="http://www.autohotkey.com/forum/posting.php?mode=quote&p=329767"><img src="file:///D:/Program%20Files/MyHotkey/inc/ListView/ListViews%20%20Color%20individual%20rows,%20multiple%20LV%20support_files/icon_quote.gif" alt="Reply with quote" title="Reply with quote" border="0"></a>   </td>
+			</tr>
+			<tr>
+				<td colspan="2"><hr></td>
+			</tr>
+			<tr>
+				<td colspan="2"><span class="postbody"><span style="color: blue"><span style="font-size: 18px; line-height: normal">This set of functions allows to change the default color of the text and/or background of any row in any listview.</span></span>
+<br>
+
+<br>
+Last updated: 15 mar 2010
+<br>
+
+<br>
+Listviews and treeviews can be colored simultaneously with <a href="http://www.autohotkey.net/~yook/Lib/LTVCustomColors.ahk" target="_blank" class="postlink">LTVCustomColors script</a>, which combines listview coloring functions described in this topic and <a href="http://www.autohotkey.com/forum/viewtopic.php?t=55709" target="_blank" class="postlink">treeview coloring functions</a>.
+<br>
+
+<br>
+The code is based on <a href="http://www.autohotkey.com/forum/topic9266.html" target="_blank" class="postlink">evl's Listview colors for individual lines (e.g. highlighting)</a>, originally from shimanov, but it supports <span style="font-weight: bold">multiple</span> listviews on multiple GUIs.
+<br>
+
+<br>
+<span style="font-weight: bold">Instructions:</span><ul>- There are two types of coloring:<ul>- colors that will be attached to a line and won't follow the row when reordering the listview (e.g. alternatively colored background to improve readability), let's call them <span style="font-weight: bold">static colors</span>,
+<br>
+- colors that will follow the rows when reordering the listview, which will overwrite static colors, let's call them <span style="font-weight: bold">dynamic colors</span>.</ul>
+<br>
+- Dynamic colors require that one column (you can choose which one for each listview, see LV_Change (or LV_Initialize(...) ) ) of the listview contains a list of indexes, which are strictly positive integers. If not, dynamic colors will not be displayed at all.
+<br>
+Note that, as a side effect, if you reuse the same index in several rows, changes made on one row will affect all rows sharing the same number.
+<br>
+
+<br>
+- Before coloring a listview, you will need to call LV_Change(...) (or LV_Initialize) at least once for this listview.
+<br>
+
+<br>
+- Use LV_Change(...) to choose upon which listview color changes are operated.
+<br>
+
+<br>
+- To customize text and/or background color of a row or the entire listview, use LV_ColorChange(...).
+<br>
+
+<br>
+- As LV_Initialize(...) won't change which listview is operated upon, you will need to call LV_Change(...) even if you used LV_Initialize(...)</ul>
+<br>
+
+<br>
+<span style="font-weight: bold">Other remarks:</span><ul>- Specify <span style="font-style: italic">GuiControl, N:-Redraw, ListViewName</span> prior to make a consequent number of color changes, and <span style="font-style: italic">GuiControl, N:+Redraw, ListViewName</span> afterward.
+<br>
+
+<br>
+- It happened that a script froze when I tried to resize a column of a listview using custom colors. To prevent column resizing, uncomment related code snippet in WM_NOTIFY().
+<br>
+
+<br>
+- If your script is monitoring WM_NOTIFY messages, you will need to merge your code for these messages with the one in WM_NOTIFY() function (at comment 'ADD YOUR CODE HERE').</ul>
+<br>
+
+<br>
+<span style="font-weight: bold">List of functions:</span><ul><span style="font-weight: bold">LV_Change(Gui_Number=1, Control=1, Select=1, Column=1)</span> OR <span style="font-weight: bold">LV_Change(Ctrl_hWnd, "", Select=1, Column=1)</span>
+<br>
+Changes the listview on which color changes will be applied. If the listview has not been initialized, LV_Change() will call LV_Initialize() for the listview.
+<br>
+<ul><span style="font-weight: bold">Returns:</span> 1 upon success, nothing if there was a problem (typically: the specified listview was not found).
+<br>
+<span style="font-weight: bold">Parameters:</span>
+<br>
+- Ctrl_hWnd: handle of the listview. Second parameter must be omitted.
+<br>
+- Gui_Number: gui containing the listview. Defaults to 1 if omitted.
+<br>
+- Control: instance number of the listview in the gui OR ClassNN OR associated variable name. Defaults to the first listview of specified gui if omitted.
+<br>
+- Select: set to 1 (default) to also make the listview passed in parameter the one operated upon (by means of <span style="font-style: italic">Gui, ListView, ListViewName</span>). This also will change the GUI operated upon to the one containing the listview (by means of <span style="font-style: italic">Gui, N:Default</span>).
+<br>
+- Column: column of the listview which contains indexes for dynamic colors. The column can be changed at any time. If omitted, it will not update the column.</ul>
+<br>
+<span style="font-weight: bold">LV_SetColor(Index="", TextColor="", BackColor="", Redraw=1)</span>
+<br>
+Changes the text and/or background color.
+<br>
+<ul><span style="font-weight: bold">Returns:</span> 1 upon success, nothing if there was a problem (typically: no listview to operate upon).
+<br>
+<span style="font-weight: bold">Parameters:</span>
+<br>
+- Index: Index of a row or line number. Specify a positive number (index) to operate upon dynamic colors, specify a negative number (- line number) to operate upon static colors. Specify 0 or leave parameter blank to modify dynamic colors on the entire listview, specify "-0" or "-" to modify static colors on the entire listview.
+<br>
+- TextColor: new text color of the row. Specify a negative number to reset the text color. If omitted, it will not be modified.
+<br>
+- BackColor: new background color of the row. Specify a negative number to reset the background color. If omitted, it will not be modified.
+<br>
+- Redraw: try to set this parameter to 0 in case of slowness problems.</ul>
+<br>
+<span style="font-weight: bold">LV_GetColor(Index, WhatColor="Text")</span>
+<br>
+Retrieves the color of the provided row index or line number.<ul><span style="font-weight: bold">Returns:</span>the color as it was entered via SetColor().
+<br>
+<span style="font-weight: bold">Parameters:</span>
+<br>
+- Index: Specify a positive number (index) to retrieve the dynamic color, specify a negative number (- line number) to retrieve the static color.
+<br>
+- WhatColor: (case insensitive) specify "text" (default)  to retrieve text color, specify "back" to retrieve back color.</ul>
+<br>
+<span style="font-weight: bold">LV_Destroy(Gui_Number=1, Control=1, DeactivateWMNotify="")</span> OR <span style="font-weight: bold">LV_Destroy(Ctrl_hWnd, "", DeactivateWMNotify= "")</span>
+<br>
+Destroys all variables associated with a listview. You may want to use this function when destroying a listview containing a large amount of colored items. You will need to reinitialize a 'destroyed' listview to further change its colors. This function will work even if the control doesn't exist anymore (typically destroyed by means of <span style="font-style: italic">Gui, N:Destroy</span>). The only exception to that is if you use LV_Destroy with the control's variable name without having previously called LV_Change (or LV_Initialize) using the variable name.
+<br>
+<ul><span style="font-weight: bold">Returns:</span> 1 upon success, nothing if there was a problem (typically: the specified listview was not found).
+<br>
+<span style="font-weight: bold">Parameters:</span>
+<br>
+- Ctrl_hWnd: see LV_Change.
+<br>
+- Gui_Number: see LV_Change.
+<br>
+- Control: see LV_Change.
+<br>
+- DeactivateWMNotify: for compatibility with scripts that may call WM_NOTIFY for other purposes, this parameter allows to choose whether to deactivate calls if no more ListView is to be monitored.</ul>
+<br>
+<span style="font-weight: bold">LV_Initialize(Gui_Number=1, Control=1, Column=1) </span>OR <span style="font-weight: bold">LV_Initialize(Ctrl_hWnd, Control="", Column=1)</span>
+<br>
+This function has become internal, so you usually will not need to use it. Initializes (sets variables required for color changes) the specified listview. Does not change the listview currently operated upon.
+<br>
+<ul><span style="font-weight: bold">Returns:</span> 1 upon success, nothing if the listview was already initialized or there was a problem (typically: the specified listview was not found).
+<br>
+<span style="font-weight: bold">Parameters:</span>
+<br>
+- Ctrl_hWnd: see LV_Change.
+<br>
+- Gui_Number: see LV_Change.
+<br>
+- Control: see LV_Change.
+<br>
+- Column:  column of the listview which contains indexes for dynamic colors. The column CANNOT be changed at any time using LV_Initialize (use LV_Change instead).</ul></ul>
+<br>
+Download:<ul><a href="http://www.autohotkey.net/~yook/Lib/LVCustomColors.ahk" target="_blank" class="postlink">LVCustomColors.ahk</a></ul>
+<br>
+Example:</span><table width="90%" cellspacing="1" cellpadding="3" border="0" align="center"><tbody><tr> 	  <td><span class="genmed"><b>Code (<a href="javascript:;" onclick="javascript:expand(this);">Collapse</a>):</b></span></td>	</tr>	<tr>	  <td class="code"><div style="height: 100%; overflow-x: hidden; overflow-y: hidden; ">#Include LVCustomColors.ahk<br><br><span style="color: #008000">;This listview shows a background color linked to rows</span><br>gui, 1:add, listview, , 1|2|3<br><br><span style="color: #008000">;This listview shows a fixed background color (i.e. which won't follow rows when reordering) and a text color linked to rows.</span><br>gui, 1:add, listview, vLV2, 1|2|3<br><br><span style="color: #008000">;This listview shows a background color linked to rows, the same index is used several times: lines with same indexes share same color properties.</span><br>gui, 2:add, listview, , 1|2|3<br><br><span style="color: #008000">;This listview shows a background color linked to rows, indexes are in 3rd column.</span><br>gui, 2:add, listview, HWNDhLV4, 1|2|3<br><br>gui, 3:add, Button, gAddItems, Add items to listviews<br>gui, 3:add, Button, gChangeColors, Change items color<br>gui, 3:add, Button, gReset, Reset colors<br>gui, 3:add, Button, gGetColors, get colors in 2nd LV<br>gui, 3:add, Button, gDestroy, Destroy 4th LV<br><br>gui, 1:show, x0 y0, gui1<br>gui, 2:show, x300 y0, gui2<br>gui, 3:show, x0 y300, commands<br><br><span style="color: #008000">;Adding items in all LV</span><br>gosub AddItems<br><br><span style="color: #008000">;Adding colors on items of first (hidden) LV</span><br>LV_Change()&nbsp; &nbsp; &nbsp; <span style="color: #008000">;Defaults to Gui1 and SysListView321</span><br>p = 0<br>Loop, % LV_GetCount()/2<br>{<br>&nbsp; &nbsp;p++<br>&nbsp; &nbsp;LV_SetColor(p, "", 0x0080FF)<br>&nbsp; &nbsp;p++<br>&nbsp; &nbsp;LV_SetColor(p, "", 0x0000FF)<br>}<br>return<br><br><br>AddItems:<br><br>LV_Change()&nbsp; &nbsp; &nbsp; <span style="color: #008000">;Defaults to Gui1 and SysListView321</span><br><br>If !j<br>&nbsp; &nbsp;j=1<br>Else<br>&nbsp; &nbsp;j++<br>LV_Add("", j, "e")<br>j++<br>LV_Add("", j, "f")<br><br>LV_Change("", "lv2")&nbsp; &nbsp; &nbsp; <span style="color: #008000">;Defaults to Gui1 and selects the control which associated variable is lv2 (SysListView322 works too)</span><br><br>If !i<br>&nbsp; &nbsp;i=1<br>Else<br>&nbsp; &nbsp;i++<br>LV_Add("", i, "b")<br>i++<br>LV_Add("", i, "c")<br>LV_SetColor(-i, "", 0x555555)&nbsp; &nbsp; &nbsp; <span style="color: #008000">;-i fixes color change on line number i</span><br><br>LV_Change(2, 1)&nbsp; &nbsp; &nbsp; <span style="color: #008000">;Selects Gui2 and ListView1</span><br><br>If !k<br>&nbsp; &nbsp;k=1<br>Else<br>&nbsp; &nbsp;k++<br>LV_Add("", k, "k")<br>k++<br>LV_Add("", k, "m")<br>LV_Add("", k, "m")<br><br>LV_Change(hLV4, "", "", 3)&nbsp; &nbsp; &nbsp; <span style="color: #008000">;Selects the control which hWnd is hLV4</span><br><br>If !l<br>&nbsp; &nbsp;l=1<br>Else<br>&nbsp; &nbsp;l++<br>LV_Add("", "z", "n", l)<br>l++<br>LV_Add("", "y", "p", l)<br><span style="color: #008000">;*/</span><br>Return<br><br><br><br>ChangeColors:<br>LV_Change()&nbsp; &nbsp; &nbsp; <span style="color: #008000">;Defaults to Gui1 and SysListView321</span><br><br>p = 0<br><br>Loop, % LV_GetCount()/2<br>{<br>&nbsp; &nbsp;p++<br>&nbsp; &nbsp;LV_SetColor(p, "", 0x0080FF)<br>&nbsp; &nbsp;p++<br>&nbsp; &nbsp;LV_SetColor(p, "", 0x0000FF)<br>}<br><br>LV_Change("", "lv2")&nbsp; &nbsp; &nbsp; <span style="color: #008000">;Defaults to Gui1 and selects the control which associated variable is lv2 (SysListView321 works too)</span><br><br>p = 0<br>Loop, % LV_GetCount()/2<br>{<br>&nbsp; &nbsp;p+=2<br>&nbsp; &nbsp;LV_SetColor(p, 0x9965F0)<br>}<br><br>LV_Change(2, 1)&nbsp; &nbsp; &nbsp; <span style="color: #008000">;Selects Gui2 and ListView1</span><br><br>p = 0<br>Loop, % LV_GetCount()/2<br>{<br>&nbsp; &nbsp;p++<br>&nbsp; &nbsp;LV_SetColor(p, 0, 0xA3F003)&nbsp; &nbsp; &nbsp; <span style="color: #008000">;Here, 0 means 0x000000 (black)</span><br>&nbsp; &nbsp;p++<br>&nbsp; &nbsp;LV_SetColor(p, 0xFFFFFF, 0xA01F08)<br>}<br><br>LV_Change(hLV4, "", "", 3)&nbsp; &nbsp; &nbsp; <span style="color: #008000">;Selects the control which hWnd is hLV4</span><br><br>p = 0<br>Loop, % LV_GetCount()/2<br>{<br>&nbsp; &nbsp;p++<br>&nbsp; &nbsp;LV_SetColor(p, "", 0xFF4000)<br>&nbsp; &nbsp;p++<br>&nbsp; &nbsp;LV_SetColor(p, "", 0xFFF000)<br>}<br><br>Return<br><br>Destroy:<br>LV_Destroy(hLV4)<br>Return<br><br><br>GetColors:<br>LV_Change("", "lv2")&nbsp; &nbsp; &nbsp; <span style="color: #008000">;Defaults to Gui1 and selects the control which associated variable is lv2 (SysListView321 works too)</span><br>CL :=&nbsp; "Static bgd colors:"<br>Loop, % LV_GetCount()<br>CL .= "`n'" LV_GetColor(-A_Index, "bAcK") "'"<br>CL .=&nbsp; "`n`nDynamic text colors:"<br>Loop, % LV_GetCount()<br>CL .= "`n'" LV_GetColor(A_Index, "teXT") "'"<br>MsgBox %CL%<br>Return<br><br><br><br>Reset:<br><br>LV_Destroy()&nbsp; &nbsp; &nbsp; <span style="color: #008000">;= LV_Destroy(1,1)&nbsp; &nbsp; &nbsp; Resets all and cleans memory. You will need to reinitialize the control to further cistomize its colors</span><br>LV_Destroy(2,2)&nbsp; &nbsp; &nbsp; <span style="color: #008000">;Resets all and cleans memory. Same remark as above.</span><br><br>LV_Change(1,2)<br>LV_SetColor("",-1,-1)&nbsp; &nbsp;<span style="color: #008000">;Resets all colors moving with rows</span><br>LV_SetColor(-0,-1,-1)&nbsp; &nbsp;<span style="color: #008000">;Resets all colors fixed to lines</span><br><br>LV_Change(2,1)<br>LV_SetColor("",0x808080,-1)&nbsp; &nbsp;<span style="color: #008000">;Changes text color to 808080 and resets background in all rows</span><br><br>Return<br><br><br><br>GuiClose:<br>2GuiClose:<br>3GuiClose:<br>4GuiClose:<br>GuiEscape:<br>2GuiEscape:<br>3GuiEscape:<br>4GuiEscape:<br>ExitApp<br>Return<br></div></td>	</tr></tbody></table><span class="postbody">
+<br>
+<span style="font-size: 9px; line-height: normal">Last updated: 15 mar 2010
+<br>
+<ul>Added Column to LV_Change, making the use of LV_Initialize() internal only.
+<br>
+Other improvements in code.</ul>
+<br>
+9 mar 2010:
+<br>
+<ul>Renamed LV_ColorChange to LV_SetColor
+<br>
+Added LV_GetColor
+<br>
+LV_SetColor is now independant from the default GUI (set by means of <span style="font-style: italic">Gui, N:Default</span>) and default ListView (set by means of <span style="font-style: italic">Gui, ListView, ListViewName</span>)
+<br>
+Hence, an option has been added in LV_Change in order to choose whether to change GUI and ListView operated upon as well.
+<br>
+Previously, LV_Destroy deactivated WM_NOTIFY calls if no more ListView is to be monitored. For compatibility with scripts that may call WM_NOTIFY for other purposes, LV_Destroy has an extra parameter allowing to choose whether to deactivate calls if no more ListView is to be monitored.
+<br>
+Other improvements in code.</ul>
+<br>
+Released: 7 feb 2010[/list]</span></span><span class="gensmall"></span></td>
+			</tr>
+		</tbody></table></td>
+	</tr>
+	
+	<tr>
+		<td class="spaceRow" colspan="2" height="1"><img src="file:///D:/Program%20Files/MyHotkey/inc/ListView/ListViews%20%20Color%20individual%20rows,%20multiple%20LV%20support_files/spacer.gif" alt="" width="1" height="1"></td>
+	</tr>
+	
+</tbody></table>
+
+
+
+
+
+
+
+		</td>
+	</tr>
+</tbody></table>
+
+
+
+
+
+</body></html>

@@ -1,0 +1,336 @@
+g_VarNameArray =
+g_VarLeftArray =
+g_VarRightArray =
+g_VarArrayCount =
+g_VarPrefix = g_var_                    ;; 用户设置的变量，自动将$替换成该前缀
+	
+;; 检查表达式相关的设置是否正确
+CheckExpSetting()
+{
+	global
+	if g_rawArray0 <= 0
+	{
+		msgbox 请先打开文本文件！
+		return false
+	}
+	if g_viewArray0 <= 0
+	{
+		msgbox 请先进行过滤操作！
+		return false	
+	}
+	g_VarArrayCount = 0
+	gui, submit, nohide
+	if _expStart =
+	{
+		msgbox 请指定循环开始条件！
+		return false
+	}
+	if _express = 
+	{
+		msgbox 请输入表达式!
+		return false
+	}
+	if ( LV_GetCount() <= 0 )
+	{
+		msgbox 还没有设置任何变量!
+		return false
+	}
+	Loop % LV_GetCount()
+	{
+	    LV_GetText(var_name, 	A_Index, 1)
+	    LV_GetText(var_left, 	a_index, 2)
+	    LV_GetText(var_right, 	a_index, 3 )
+	    LV_GetText(var_re, 		a_index, 4 )
+	    LV_GetText(var_fi, 		a_index, 5 )
+	    StrTrim( var_name )
+	    if var_name =
+	    {
+	    	g_VarArrayCount = 0
+	    	msgbox 第 %a_index% 行的变量名为空！
+	    	return false
+	    }
+	    if var_left =
+	    {
+	    	g_VarArrayCount = 0
+	    	msgbox 第 %a_index% 行的变量左边的字符为空！
+	    	return false
+	    }
+	    if var_right =
+	    {
+	    	g_VarArrayCount = 0
+	    	msgbox 第 %a_index% 行的变量名右边的字符为空！
+	    	return false
+	    }
+	    ;; 将用户设置的变量前缀$替换成 g_var_
+	    if ( equal_first_char( var_name, "$" ) )
+	    {
+	    	StringReplace, var_name, var_name, $ , g_var_
+	    }
+	    if g_VarArrayCount > 0
+	    {
+	    	loop %g_VarArrayCount%
+	    	{
+	    		if ( g_VarNameArray%a_index% == var_name )
+	    		{
+	    			g_VarArrayCount = 0
+	    			msgbox 第 %a_index% 行的变量名重复！
+	    			return false
+	    		}
+	    	}
+	    }
+	    g_VarArrayCount++
+		g_VarNameArray%g_VarArrayCount% 	:= var_name
+		g_VarLeftArray%g_VarArrayCount% 	:= var_left
+		g_VarRightArray%g_VarArrayCount% 	:= var_right
+		g_VarReArray%g_VarArrayCount%		:= var_re
+		g_VarFiArray%g_VarArrayCount%		:= var_fi
+	}	
+	return true
+}
+
+;; 遍历缓存数据， 求表达式并根据flag的值显示不同的内容
+;; flag = 0 显示满足表达式的所有记录
+;; flag = 1 显示表达式值最大的记录
+;; flag = 2 显示表达式值最小的记录
+CalcExpress( flag )
+{
+	global
+	
+;msgbox CalcExpress( %flag% )
+	
+	;; 清空变量的内容
+	loop %g_VarArrayCount%
+	{
+		var_name := g_VarNameArray%a_index%
+		%var_name% =
+	}	
+					
+	if ( CheckExpSetting() )
+	{
+		local var_show 
+		local var_temp
+		local var_buf
+		local var_name 
+		local var_left
+		local var_right
+		local var_min = 2147483647
+		local var_max = -2147483648
+		local cur_text = ;; 保存本次循环的内容
+;		local pre_text = ;; 保存上一次循环的内容
+		local bHaveEmptyVar := false
+		
+		;; 从控件中获取表达式，并将变量名的前缀 $ 替换成 g_var_
+		ifnotinstring _express, $
+		{
+			msgbox 4, 没有$符号, 是否忘记在变量名前添加前缀 $ 了?
+			ifmsgbox yes
+				return
+		}
+		
+		var_express := _express
+		StringReplace, var_express, var_express, $ , g_var_ , ALL
+;	msgbox 表达式: %_express% --> %var_express%
+
+		StringSplit arrStart, _expStart, |
+		
+		Loop %g_viewArray0%
+		{
+			line := g_viewArray%a_index%
+			
+			if line =
+				continue
+			
+			;; 行检查当前行，是否满足开始新循环的条件
+			bNewRound := true
+			loop %arrStart0%
+			{
+				var_temp := arrStart%a_index%
+				if var_temp =
+					continue
+					
+				ifnotinstring line, %var_temp%
+				{
+					bNewRound := false
+					break
+				}
+			}
+			
+			;; 如果当前行开启了新循环，则意味着上一循环结束
+			if bNewRound
+			{
+				
+; msgbox 进入新循环
+				;; 检查所有的变量是否都有值，都有值则计算表达式
+				bHaveEmptyVar := false
+				loop %g_VarArrayCount%
+				{
+					var_name := g_VarNameArray%a_index%
+					var_temp := %var_name%
+					if var_temp is not number
+					{
+                        bHaveEmptyVar := true   ;; 存在某个变量的值尚未设置
+; msgbox    %var_name% = [%var_temp%]  某个变量的值尚未设置                   
+						break
+					}
+				}
+				if not bHaveEmptyVar
+				{
+					;; 如果所有的变量都已经赋值，则计算表达式
+					var_exp := mycalc1( var_express )
+;  msgbox %var_exp% := mycalc1( %var_express% )
+
+					if var_exp is number
+					{
+						;; 成功地计算了表达式
+						;; 【表达式】按钮
+						if ( flag == 0 && var_exp != 0 )
+						{
+							var_show = %var_show%`n----表达式 =【%var_exp%】-------------------------------`n%cur_text%`n
+						}
+                        else if ( flag == 1 && var_exp > var_max )       ;; 【最大化】按钮
+						{
+							var_max := var_exp
+							var_show = ----表达式最大值 =【%var_exp%】-------------------------------`n%cur_text%
+						}
+                        else if ( flag == 2 && var_exp < var_min )       ;; 【最小化】按钮
+						{
+							var_min := var_exp
+							var_show = ----表达式最小值 =【%var_exp%】-------------------------------`n%cur_text%
+						}
+					}
+				}
+				
+				;; 遇到循环开始的行, 初始化变量
+				cur_text = 
+				
+				;; 清空变量的内容
+				loop %g_VarArrayCount%
+				{
+					var_name := g_VarNameArray%a_index%
+					%var_name% =
+				}				
+			}
+			;; 如果line为空，则说明是从循环外面goto [计算表达式的值并根据flag操行不同的操作] 进来的，
+			;; 处理完计算表达式后，就退出循环, 避免死循环
+			if line =
+				break
+				
+			;; 本行没有被过滤掉，则分析本行是否包含某个变量的值
+			loop %g_VarArrayCount%
+			{
+				var_temp := GetVarFromLine( line, g_VarLeftArray%a_index%, g_VarRightArray%a_index%, g_VarReArray%a_index%, g_VarFiArray%a_index% )
+				if var_temp is number
+				{
+					var_name := g_VarNameArray%a_index%
+					%var_name% := var_temp
+; msgbox %var_name% = %var_temp% `n= GetVarFromLine(%line%)
+				}
+			}
+			cur_text = %cur_text%%line%`n
+		}
+		;; 内容已经分析完毕，但最后一轮有可能没有参与计算，分析并进行最后一轮计算
+		bHaveEmptyVar := false
+		loop %g_VarArrayCount%
+		{
+			var_name := g_VarNameArray%a_index%
+			var_temp := %var_name%
+			if var_temp is not number
+			{
+                bHaveEmptyVar := true   ;; 存在某个变量的值尚未设置
+				break
+			}
+		}
+		;; 如果在分析完毕之后，所有的变量都还有值，进行最后一次计算
+		if not bHaveEmptyVar
+		{
+			var_exp := mycalc1( var_express )
+; msgbox 所有的变量都还有值，进行最后一次计算 %var_exp% := mycalc1( %var_express% )
+			if var_exp is number
+			{
+                if ( flag == 0 && var_exp != 0 )	;; 【表达式】按钮
+				{
+					var_show = %var_show%`n----表达式 =【%var_exp%】-------------------------------`n%cur_text%`n
+				}
+                else if ( flag == 1 && var_exp > var_max )       ;; 【最大化】按钮
+				{
+					var_max := var_exp
+					var_show = ----表达式最大值 =【%var_exp%】-------------------------------`n%cur_text%
+				}
+                else if ( flag == 2 && var_exp < var_min )       ;; 【最小化】按钮
+				{
+					var_min := var_exp
+					var_show = ----表达式最小值 =【%var_exp%】-------------------------------`n%cur_text%
+				}
+			}
+		}
+		;; 将得到的结果显示到 日志显示框
+		SB_SetText("表达式 查找完毕, 准备显示结果......")
+		ShowTempText( var_show )
+		var_show =
+	}	
+}
+
+【ListView中增加变量】:
+	gui submit, nohide
+	if ( _expVar == "" || _expVar == "变量名" )
+	{
+		msgbox 请先输入变量名!
+		return
+	}
+	if _expL =
+	{
+		msgbox 请输入变量左边字符!
+		return	
+	}
+	if _expR =
+	{
+		msgbox 请输入变量右边字符!
+		return	
+	}
+	if not equal_first_char( _expVar, "$" )
+	{
+		_expVar = $%_expVar%
+	}
+	LV_Add("", _expVar, _expL, _expR )
+	return
+	
+【删除ListView选中的变量】:
+	GetLVInfo( g_GuiID, EditingLV, TotalNumOfRows, NumOfRows, topIndex )
+	if ( currRow > 0 && currRow <= TotalNumOfRows )
+	{
+		if ( currRow >= topIndex && currRow <= topIndex + NumOfRows )
+		{
+			LV_Delete( currRow )
+		}
+		else
+		{
+			msgbox 当前行不在显示范围内！
+		}
+	}
+	return
+	
+	
+【求满足表达式的数据】:
+	SB_SetText("正在查找满足 表达式 的数据......")
+	GuiControl, Disable, _btn_express 
+	CalcExpress( 0 )
+	GuiControl, Enable, _btn_express 
+	SB_SetText("表达式 查找完毕!")
+	return
+	
+【显示表达式最大值的记录】:
+	SB_SetText("正在查找使 表达式最大值 的记录......")
+	GuiControl, Disable, _btn_expmax  
+	CalcExpress( 1 )
+	GuiControl, Enable, _btn_expmax  
+	SB_SetText("最大值查找完毕!")
+	return
+	
+	
+【显示表达式最小值的记录】:
+	SB_SetText("正在查找使 表达式最小值 的记录......")
+	GuiControl, Disable, _btn_expmin
+	CalcExpress( 2 )
+	GuiControl, Enable, _btn_expmin  	
+	SB_SetText("最小值查找完毕!")
+	return

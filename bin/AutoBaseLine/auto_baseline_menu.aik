@@ -1,0 +1,149 @@
+【创建菜单】:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 主菜单定义
+Menu, FileMenu, Add, &Open      飞扬小字典打开, 【飞扬小字典打开】
+Menu, FileMenu, Add, &Edit        编辑器配置文件, 	【用文本编辑器编辑】
+Menu, FileMenu, Add, &Reload    重新加载 , 			【reload】
+Menu, FileMenu, Add,
+Menu, FileMenu, Add, E&xit     退出程序       ESC, GuiClose
+
+Menu, HelpMenu, Add, 操作说明(&1), MenuHandler
+Menu, HelpMenu, Add, 快捷键说明(&2), MenuHandler
+Menu, HelpMenu, Add, 注意事项(&3), MenuHandler
+Menu, HelpMenu, Add, 关于 (&0),  MenuHandler
+
+Menu, SitMenu, Add, &New当前产品基线, 【新建产品基线】
+Menu, SitMenu, Add, 设置&SIT相对路径, 【设置SIT相对路径】
+
+Menu, UatMenu, Add, 设置&UAT相对路径, 【设置UAT相对路径】
+
+Menu, ToolMenu, Add, 创建新项目文档路径, 【创建新项目文档路径】
+
+Menu, MyMenuBar, Add, &File, :FileMenu
+Menu, MyMenuBar, Add, &SIT基线, :SitMenu
+Menu, MyMenuBar, Add, &UAT基线, :UatMenu
+Menu, MyMenuBar, Add, &Mail邮件, MenuHandler
+Menu, MyMenuBar, Add, Setting, MenuHandler
+Menu, MyMenuBar, Add, Tool, :ToolMenu
+Menu, MyMenuBar, Add, &Help, :HelpMenu
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 快捷菜单定义
+; Create the popup menu by adding some items to it.
+Menu, FullPathMenu, Add, &O打开, 【完整路径快捷菜单处理】
+Menu, FullPathMenu, Add, &C复制, 【完整路径快捷菜单处理】
+Menu, FullPathMenu, Add, &R刷新, 【完整路径快捷菜单处理】
+Menu, FullPathMenu, Add, &S发送, 【完整路径快捷菜单处理】
+Menu, FullPathMenu, Add, &Uat基线, 【完整路径快捷菜单处理】
+;Menu, FullPathMenu, Add, &T状态, 【完整路径快捷菜单处理】
+
+
+; Create another menu destined to become a submenu of the above menu.
+Menu, SysListMenu, Add, &1修改, 【系统模块列表快捷菜单处理】
+Menu, SysListMenu, Add, &2刷新, 【系统模块列表快捷菜单处理】
+
+
+return
+
+MenuHandler:
+MsgBox You selected %A_ThisMenuItem% from the menu %A_ThisMenu%.
+return
+
+【完整路径快捷菜单处理】:
+ 	if  A_ThisMenuItem = &C复制
+	{
+		gosub 【复制完整路径】
+	}
+	else if A_ThisMenuItem = &S发送
+	{
+	;	gosub 【复制完整路径】
+		sleep 100
+		send !{tab}
+		sleep 500
+		send ^v
+	}
+	else if A_ThisMenuItem = &R刷新
+	{
+		gosub 【生成完整路径】
+	}
+	else if A_ThisMenuItem = &O打开
+	{
+		Gui submit, nohide
+		svn_view(_topath)
+	}
+	else if A_ThisMenuItem = &T状态
+	{
+		Gui submit, nohide
+		svn_status(_topath)
+	}
+	else if A_ThisMenuItem = &Uat基线
+	{
+		Gui submit, nohide
+		if _radio_thunk		;; 主干UAT基线，将主干代码copy到UAT基线上
+		{
+			from_ = %_productpath%trunk
+			msg_ = [%_project%]第%_buildnum_uat%次UAT基线[第%_buildnum_thunk%次演练基线]
+		}
+		else				;; 其他UAT基线，将SIT基线copy到UAT基线上
+		{
+			from_ := _topath
+			msg_ = [%_project%]第%_buildnum_uat%次UAT基线
+		}
+		StringReplace, to_, _topath, 1-sit, 2-uat
+		StringReplace, to_, to_, _sit_, _uat_
+		
+		svn_copy(from_, to_, msg_)
+	}
+ 	return
+
+【系统模块列表快捷菜单处理】:
+ 	if  A_ThisMenuItem = &1修改
+	{
+		gosub 【添加系统模块】
+	}
+	else if A_ThisMenuItem = &2刷新
+	{
+		guicontrol, , _sysmodule, 
+		gosub 【清空系统模块控件_除树形控件】
+		gosub 【生成完整路径】
+	}
+	return
+
+
+【飞扬小字典打开】:
+	var_root := ∑获取根目录()
+	var_file = %var_root%\bin\dict\dict.ahk
+	var_param = file:自动发基线.ini
+	ifexist 自动发基线.ini
+	{
+		run_ahk( var_file, var_param, a_workingdir )	
+	}
+	return
+
+【用文本编辑器编辑】:
+	run 自动发基线.ini
+	return
+
+【reload】:
+	reload
+	return
+
+
+【设置SIT相对路径】:
+	var_temp := MyInput("设置SIT相对路径","http://10.79.11.211/svn/产品/???",g_sit_path)
+	if var_temp <>
+	{
+		write_ini(g_inifile, ".", "SIT_PATH", var_temp, false )
+		g_sit_path := var_temp
+	}
+	return
+
+
+【设置UAT相对路径】:
+	var_temp := MyInput("设置UAT相对路径","http://10.79.11.211/svn/产品/???",g_uat_path)
+	if var_temp <>
+	{
+		write_ini(g_inifile, ".", "UAT_PATH", var_temp, false )
+		g_uat_path := var_temp
+	}
+	return	

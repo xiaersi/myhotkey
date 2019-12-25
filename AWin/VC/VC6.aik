@@ -1,0 +1,11 @@
+#ifwinactive
+#SingleInstance ignore
+;#include .\inc\functions.aik
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 	VC++ 6.0
+#ifwinactive ahk_class Afx:400000:8:10011:0:de0489
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+#include .\AWin\VC\vcCommon.aik
+
+#ifwinactive

@@ -1,0 +1,237 @@
+; #include .\inc\common.aik
+#include .\AWin\game\cs_common.aik
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; CS1.6客户端
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#ifwinactive ahk_class Valve001
+
+;; 连接到cs1.6服务器, 指定IP, 将弹出窗口输入端口即可
+connectcs16(ip)
+{
+	sleep 100
+	var_temp = connect %ip%:
+	sendinput %var_temp%
+	
+	var_keyname = port%ip%
+	var_temp = %var_temp%[你要输入的端口号]
+	var_tempport := read_ini("temp.ini", "cs16", var_keyname, "27016")
+	var_port := MyInput("输入端口号", var_temp, var_tempport)
+	sendinput %var_port%
+	IniWrite, %var_port%, temp.ini, cs16, %var_keyname%
+;	send {enter}
+	return
+}
+; 使所有的CS窗口非激活
+!esc::
+F4::
+	if not g_TrayWndGroup
+	{
+	GroupAdd, g_TrayWndGroup, ahk_class Shell_TrayWnd
+	}
+	GroupActivate, g_TrayWndGroup
+	return 
+	
+;; 连接本机
+!F1::
+	send ``
+	sleep 300
+	IniRead, var_port, temp.ini, cs16, local_port, Error
+	if var_port = "Error"
+	{
+		var_port := MyInput("输入端口号", "connect 127.0.0.1:[你要输入的值]", "27016")
+		IniWrite, %var_port%, temp.ini, cs16, local_port
+	}
+	sendinput connect 127.0.0.1:%var_port%
+	Sleep 100
+	send {enter}
+	return
+	
+; 连接本地CS服务器
+::conthis::
+::connectthis::
+::``this::
+	connectcs16("127.0.0.1")
+	return 
+	
+::conw3::
+	connectcs16("61.183.15.22")
+	return
+!F2::
+	send ``
+	sleep 300
+::``test::
+	sleep 100
+	var_temp := "connect 121.14.144.172:"
+	sendinput %var_temp%
+
+	var_temp := read_ini("temp.ini", "cs16", "temp_port", "27016")
+	var_port := MyInput("输入端口号", "connect 121.14.144.172:[你要输入的值]", var_temp)
+	sendinput %var_port%
+	IniWrite, %var_port%, temp.ini, cs16, temp_port
+;	send {enter}
+	return
+
+F6::	
+^tab::	; 切换到CS服务器窗口
+	if not g_CSSGroup
+	{
+	GroupAdd, g_CSSGroup, Console ahk_class ConsoleWindowClass
+	}
+	GroupActivate, g_CSSGroup
+	return
+	
+; 连接测试服务器
+F8::
+	send {enter}
+	sleep 500
+	send 2
+	sleep 200
+	send 2
+	send !{tab}
+	sleep 500
+	ifwinactive ahk_class Valve001
+	{
+	send {enter}	
+	sleep 500
+	send 1
+	sleep 200
+	send 1
+	sleep 2000
+	send y
+	sleep 200
+	send s12
+	}
+	return
+	
+; 测试
+f9::
+	send y
+	sleep 100
+	send test{enter}
+	return
+	
+f10::
+	send ``
+	inputbox var_temp, 请输入Message Index, 请输入Message Index 例如 TE_SPRITE的序号为 17,,360,120
+	sleep 100
+	if (var_temp = 3)
+	{
+		var_Prompt = 请指定 TE_EXPLOSION 爆炸效果的最后一个参数Flag
+		var_Prompt = %var_Prompt% `n 0        // All flags clear makes default Half-Life explosion
+		var_Prompt = %var_Prompt% `n 1        // Sprite will be drawn opaque (ensure that the sprite you send is a non-additive sprite)
+		var_Prompt = %var_Prompt% `n 2        // Do not render dynamic lights
+		var_Prompt = %var_Prompt% `n 4        // Do not play client explosion sound
+		var_Prompt = %var_Prompt% `n 8        // Do not draw particles
+		inputbox var_param, 输入参数Flag,  %var_Prompt%, ,360, 230
+	}
+	else if (var_temp = 108)
+	{
+		var_Prompt = 请指定 TE_BREAKMODEL 最后一个参数Flag
+		inputbox var_param, 输入参数Flag,  %var_Prompt%, ,360, 120
+	}
+	sleep 200
+	send say msgtest %var_temp% %var_param%
+	sleep 200
+	send {enter}
+	sleep 200
+	send ``
+	return
+	
+; 将窗口移动到左上角
+#!numpad7::
+	WinGetActiveStats,title_ActiveWindow,var_width,var_height,var_x,var_y
+	winmove,%title_ActiveWindow%,,0,0
+	return
+	
+; 将窗口移动到左边之外
+#!numpad4::
+	WinGetActiveStats,title_ActiveWindow,var_width,var_height,var_x,var_y
+	winmove,%title_ActiveWindow%,,-200,0
+	return
+	
+; 将窗口移动到右下角
+#!numpad3::
+	WinGetActiveStats,title_ActiveWindow,var_width,var_height,var_x,var_y
+	winmove,%title_ActiveWindow%,,500,260
+	return
+	
+; 右上角
+#!numpad9::
+	WinGetActiveStats,title_ActiveWindow,var_width,var_height,var_x,var_y
+	winmove,%title_ActiveWindow%,,500,0
+	return
+
+; 左下角 
+#!numpad1::
+	WinGetActiveStats,title_ActiveWindow,var_width,var_height,var_x,var_y
+	winmove,%title_ActiveWindow%,,0,260
+	return
+
+!2::
+	if not g_CSGroup
+	{
+	GroupAdd, g_CSGroup, ahk_class Valve001
+	}
+	GroupActivate, g_CSGroup
+	sleep 500
+	GroupActivate, g_CSGroup
+	return
+!1::
+	if not g_CSGroup
+	{
+	GroupAdd, g_CSGroup, ahk_class Valve001
+	}
+	GroupActivate, g_CSGroup
+	return
+
+;;------ 以下使用数字键为测试Amxx时使用 ----------------------------------
+;; 模拟输入t1~t5 以调用 MyTest1()~MyTest5()
+NUMPAD1::
+	send y
+	sleep 100
+	send t1{enter}
+	return
+
+NUMPAD2::
+	send y
+	sleep 100
+	send t2{enter}
+	return
+
+NUMPAD3::
+	send y
+	sleep 100
+	send t3{enter}
+	return
+
+NUMPAD4::
+	send y
+	sleep 100
+	send t4{enter}
+	return
+
+NUMPAD5::
+	send y
+	sleep 100
+	send t5{enter}
+	return
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#ifwinexist ahk_class Valve001
+#!NUMPAD6::
+	if not g_CSGroup
+	{
+	GroupAdd, g_CSGroup, ahk_class Valve001
+	}
+	GroupActivate, g_CSGroup
+	tooltip7("激活CS窗口")
+	return
+	
+#ifwinexist
+
+
+#ifwinactive 

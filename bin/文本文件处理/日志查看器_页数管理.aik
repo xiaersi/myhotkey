@@ -1,0 +1,354 @@
+【Page1】:
+	GuiControlGet, nPage , , _lbl1
+	ShowPage( g_PageSource, nPage )
+	return
+【Page2】:
+	GuiControlGet, nPage , , _lbl2
+	ShowPage( g_PageSource, nPage )
+	return
+【Page3】:
+	GuiControlGet, nPage , , _lbl3
+	ShowPage( g_PageSource, nPage )
+	return
+【Page4】:
+	GuiControlGet, nPage , , _lbl4
+	ShowPage( g_PageSource, nPage )
+	return
+【Page5】:
+	GuiControlGet, nPage , , _lbl5
+	ShowPage( g_PageSource, nPage )
+	return
+【Page6】:
+	GuiControlGet, nPage , , _lbl6
+	ShowPage( g_PageSource, nPage )
+	return
+【Page7】:
+	GuiControlGet, nPage , , _lbl7
+	ShowPage( g_PageSource, nPage )
+	return
+【Page8】:
+	GuiControlGet, nPage , , _lbl8
+	ShowPage( g_PageSource, nPage )
+	return
+【Page9】:
+	GuiControlGet, nPage , , _lbl9
+	ShowPage( g_PageSource, nPage )
+	return
+【Page10】:
+	GuiControlGet, nPage , , _lbl10
+	ShowPage( g_PageSource, nPage )
+	return
+
+【上一页】:
+	GuiControlGet, nPage , , _lblCur
+	ShowPage( g_PageSource, nPage - 1 )
+	return
+	
+【下一页】:
+	GuiControlGet, nPage , , _lblCur
+	ShowPage( g_PageSource, nPage + 1 )
+	return
+
+【上十页】:
+	GuiControlGet, nPage , , _lblCur
+	ShowPage( g_PageSource, nPage - 10 )
+	return
+	
+【下十页】:
+	GuiControlGet, nPage , , _lblCur
+	ShowPage( g_PageSource, nPage + 10 )
+	return
+	
+g_PageNum = 0
+;;---------------------------------------------------------------------------
+;; 指定总行数，计算需要显示的总页数，如果当前要显示的页数大于总页数，
+;; 则调整当前页数值等于总页数值。然后控制相关控件的显示。
+InitPage( var_lineCount, byref _curPage )
+{
+	global 
+	;; 保证行数大于等于 1
+	if var_lineCount < 1
+		var_lineCount = 1
+		
+;msgbox InitPage( %var_lineCount%, %_curPage% )
+	g_PageNum := 1 + var_lineCount // g_PageLines
+	if ( _curPage > g_PageNum )
+	{
+		_curPage := g_PageNum
+	}
+	
+	GuiControl , text, _lblAllPage, %_curPage% / %g_PageNum%
+	
+	
+	GuiControlGet, nPage , , _lblCur
+	
+	;; 控制标签
+	nHilight := ( nPage - 1 ) // 10
+	nCur := ( _curPage - 1 ) // 10
+	nAll := ( g_PageNum - 1 ) // 10
+	
+	
+	loops := 10
+	if ( nCur == nAll )
+	{
+		loops := 1 + mod( (g_PageNum - 1 ), 10 )
+	}
+	
+	;; 设置高亮页数
+	GuiControl , text, _lblCur, %_curPage%
+	xCur := 1 + mod( (_curPage-1), 10 )
+	if xCur < 1 
+		xCur = 1
+	if xCur > 10
+		xCur = 10
+	xCur := g_XArray%xCur%
+	GuiControl, MoveDraw, _lblCur, x%xCur%
+	
+;msgbox nCur[%nCur%] nAll[%nAll%] loops[%loops%]
+
+	;; 需要显示的页数
+	loop %loops%
+	{
+		var_temp := nCur * 10 + a_index
+		GuiControl, , _lbl%a_index%, %var_temp%
+		GuiControl, show, _lbl%a_index%
+	}
+	
+	;; 需要隐藏的页数
+	loops := 10 - loops
+	loop %loops%
+	{
+		index := 10 - a_index + 1
+		var_temp := nCur * 10 + index
+		GuiControl, hide, _lbl%index%
+	}	
+}
+
+SetPage( var_source, byref var_curpage )
+{
+	global
+; msgbox SetPage( %var_source%, %var_curpage% )
+	if var_source =
+	 	var_source := g_PageSource
+
+	if ( var_curpage < 1 )
+		var_curpage := 1
+			
+	if var_source = raw
+	{
+		g_PageSource = raw
+		GuiControl, text, _lblSource, 原始内容
+		InitPage( g_rawArray0, var_curpage )
+	}
+	else if var_source = view
+	{
+		g_PageSource = view
+		GuiControl, text, _lblSource, 缓存内容
+		InitPage( g_viewArray0, var_curpage )
+	}
+	else if var_source = temp
+	{
+		g_PageSource = temp
+		GuiControl, text, _lblSource, 临时缓存
+		InitPage( g_tempArray0, var_curpage )
+	}
+}
+
+ShowPage( var_source, var_curpage )
+{
+	if var_source = raw
+	{
+		ShowRawPage( var_curpage )
+	}
+	else if var_source = view
+	{
+		ShowViewPage( var_curpage )
+	}
+	else if var_source = temp
+	{
+		ShowTempPage( var_curpage )
+	}
+}
+
+ShowRawPage( var_page )
+{
+	global 
+	
+	SetPage( "raw", var_page )
+	
+	local var_loops, var_buff, start, var_end
+
+	start := 1 + g_PageLines * ( var_page - 1 )
+	if ( start > g_rawArray0 )
+	{
+		start := 1
+		g_rawCurPage := 0
+	}
+	var_end   := start + g_PageLines
+	if ( var_end > g_rawArray0 )
+	{
+;		msgbox var_end %var_end% > %g_rawArray0% g_rawArray0
+		var_end := g_rawArray0
+	}
+	else
+	{
+;	msgbox ShowRawPage( %var_page% )  [ %start%, %var_end% ]
+	}
+	var_buff =
+	var_loops := var_end - start + 1
+	loop %var_loops%
+	{
+		index := start + a_index - 1
+		var_line := g_rawArray%index%
+		var_buff = %var_buff%%var_line%`r`n
+	}
+	GuiControl, -Redraw, _MyEdit	
+	GuiControl, Text, _MyEdit, %var_buff%
+	GuiControl, +Redraw, _MyEdit
+	var_buff =
+}
+
+ShowViewPage( var_page)
+{
+	global
+	
+	SetPage( "view", var_page )
+	
+	local var_loops, var_buff
+	start := 1 + g_PageLines * ( var_page - 1 )
+	if ( start > g_viewArray0 )
+	{
+		start := 1
+		g_viewCurPage := 1
+	}
+	end   := start + g_PageLines
+	if ( end > g_viewArray0 )
+	{
+		end := g_viewArray0
+	}
+	var_buff =
+	var_loops := end - start + 1
+	loop %var_loops%
+	{
+		index := start + a_index - 1
+		var_line := g_viewArray%index%
+		var_buff = %var_buff%%var_line%`r`n
+	}
+	GuiControl, -Redraw, _MyEdit
+	GuiControl, Text, _MyEdit, %var_buff%
+	GuiControl, +Redraw, _MyEdit
+	var_buff =
+}
+
+ShowTempPage( var_page )
+{
+	global
+	
+	SetPage( "temp", var_page )
+	
+	local var_loops, var_buff
+	start := 1 + g_PageLines * ( var_page - 1 )
+	if ( start > g_tempArray0 )
+	{
+		start := 1
+		g_viewCurPage := 1
+	}
+	end   := start + g_PageLines
+	if ( end > g_tempArray0 )
+	{
+		end := g_tempArray0
+	}
+	var_buff =
+	var_loops := end - start + 1
+	loop %var_loops%
+	{
+		index := start + a_index - 1
+		var_line := g_tempArray%index%
+		var_buff = %var_buff%%var_line%`r`n
+	}
+	GuiControl, -Redraw, _MyEdit
+	GuiControl, Text, _MyEdit, %var_buff%
+	GuiControl, +Redraw, _MyEdit
+	var_buff =
+}
+
+ShowTempText( byref var_lines )
+{
+	global
+	g_tempArray0 = 0
+	loop parse, var_lines, `n
+	{
+		g_tempArray0++
+		g_tempArray%g_tempArray0% := a_loopfield
+	}
+	ShowTempPage( 1 )
+}
+
+
+SetTempArrayByLine( var_source, lineIdx, nBefore, nAfter )
+{
+	global
+	ClearTempArray( )
+	if lineIdx is integer
+	{
+		if lineIdx >= 1
+		{
+			start := lineIdx
+			end := lineIdx
+			if nBefore is integer
+			{
+				if nBefore > 0
+				{
+					start := lineIdx - nBefore
+					if start < 1
+						start := 1
+				}
+			}	
+			if nAfter is integer
+			{
+				if nAfter > 0
+				{
+					end := lineIdx + nAfter
+				}
+			}		
+			if var_source = raw
+			{
+				if ( end > g_rawArray0 )
+					 end := g_rawArray0
+					
+				loops := end - start + 1
+				loop %loops%
+				{
+					index := start + a_index - 1
+					if ( index == lineIdx && end > start )
+					{
+						TempArrayPushBack( ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" )
+						TempArrayPushBack( g_rawArray%index% )
+						TempArrayPushBack( "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" )
+					}
+					else
+						TempArrayPushBack( g_rawArray%index% )
+				}
+			}
+			else if var_source = view
+			{
+				if ( end > g_viewArray0 )
+					 end := g_viewArray0
+					
+				loops := end - start + 1
+				loop %loops%
+				{
+					index := start + a_index - 1
+					if ( index == lineIdx && end > start )
+					{
+						TempArrayPushBack( ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" )
+						TempArrayPushBack( g_viewArray%index% )
+						TempArrayPushBack( "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" )
+					}
+					else
+						TempArrayPushBack( g_viewArray%index% )
+				}
+			}
+		}
+	}
+}

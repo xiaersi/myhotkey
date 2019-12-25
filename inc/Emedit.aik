@@ -1,0 +1,223 @@
+; Emedit.aik 	专门针对Emeditor文本编辑器而写的脚本, 
+; 适合于用EmEdior编写Amxx脚本程序的用户, 不通用
+; 功能 1) 方便文件搜索的函数 2) 辅助Amxx脚本的编写
+; 作者: 陈建平 
+
+
+;; 本函数将EmEdit中选中文字进行查询
+SearchHelpKey(var_title, var_file_key)	
+{
+	send ^c
+	sleep 100
+	ifwinnotexist %var_title%
+	{
+		runini(var_file_key)
+		winwait %var_title%, , 3
+	}
+
+	; AMX帮助窗口已经打开, 则粘贴复制的信息到搜索窗口进行搜索
+	ifwinexist %var_title%
+	{
+		winactivate %var_title%
+		WinWaitActive
+		send !n		; 切换到索引标签
+		sleep 100
+		ControlSetText, Edit1, %clipboard%, %var_title%
+		sleep 200
+		ControlFocus, Edit1, %var_title%
+		sleep 100
+		send {end}{enter}
+	}
+}
+
+;; 将生成的Amxx 插件, 添加到Plugins.ini中, 以便插件可以马上生效
+;; 函数在调用 FileAppend 时, 出现错误, 以后解决!
+add_amxx_pluginsfile(filename, amxxname)
+{
+	Loop, read, %filename%
+	{
+		IfInString A_LoopReadLine, %amxxname%
+		{
+;			msgbox %filename%`n已经存在插件:%amxxname%
+			if (strFirstWord(A_LoopReadLine, 1) <> ";" )
+			return
+		}
+	}
+	
+	FileAppend %amxxname%, `r`n%filename%
+	if ErrorLevel
+	{
+;		msgbox %filename%`n添加插件:%amxxname% 时出错
+		IfExist %filename%
+		{
+			var_temp = %filename%`n还没有加入插件%amxxname%`nYes:`t打开文件并将amxxname复制到剪贴板`nNo:`t退出
+			MsgBox 4, "是否将插件名称添加到plugins.ini", %var_temp%
+			IfMsgBox YES
+			{
+				run %filename%
+				Clipboard = %amxxname%
+			}
+		}
+	}
+	else 
+	{
+		var_temp = 已经成功地将插件 %amxxname% 添加到文件:`n %filename%
+		talkshow("添加插件成功!", var_temp )
+	}
+}
+
+amxx_compile(var_title)
+{
+	; 将当前编辑的 *.sma 编译生成*.amxx插件, 并移动到指定的插件目录
+	runini("amx_compile", var_title)	 ; 用amx_compile编译当前编辑的sma文件
+	SplitPath, var_title, var_name, var_dir, var_ext, var_name_no_ext
+	
+	; var_source_file是amx_compile编译生成的amxx插件文件路径
+	var_source_file=%var_dir%\compiled\%var_name_no_ext%.amxx	
+	WinWait D:\work\HLDS_CS16\cstrike\addons\amxmodx\scripting\compile.exe ahk_class ConsoleWindowClass, , 2
+	ifwinnotexist D:\work\HLDS_CS16\cstrike\addons\amxmodx\scripting\compile.exe ahk_class ConsoleWindowClass
+	{
+		return
+	}
+	
+	KeyWait, enter, D T30
+	if ErrorLevel 
+	{
+		Return
+	}
+	else
+	{
+		ifnotexist %var_source_file%
+		{
+			tooltip 文件不存在,编译不成功!
+			sleep 1000
+			tooltip
+			return
+		}
+	}
+
+	
+	var_tip = 插件%var_name_no_ext%.amxx编译成功!
+	var_amxx = %var_name_no_ext%.amxx
+	
+;	; 将生成的amxx插件复制到目标位置(由配置文件{launchy.ini}[path]<amx_plugins2>指定)
+;	iniread,var_dest_path,launchy.ini,path,amx_plugins2, error
+;	if var_dest_path <> "error"
+;	{
+;		StringRight, var_temp, var_dest_path, 1
+;		if (var_temp!="\") {
+;			var_dest_path = %var_dest_path%\
+;		}
+;		
+;		IfExist %var_source_file%
+;		{
+;			FileCopy %var_source_file%, %var_dest_path%, 1
+;			
+;	;		; 将插件名称添加到plugins.ini文件中, 以便马上生效
+;	;		var_pluginsfile := get_parent_dir(var_dest_path)
+;	;		AddString(var_pluginsfile, "\configs\plugins.ini")
+;	;		add_amxx_pluginsfile(var_pluginsfile, var_amxx)
+;			
+;			AddString(var_tip, ":-)`t成功复制到: ", true)
+;			AddString(var_tip, var_dest_path, false)
+;		}
+;		else 
+;		{
+;			AddString(var_tip, ":-(`t源文件不存在, 复制失败, 可能是因为没有编译成功: ", true)
+;		}
+;	}
+
+	var_temp :=  read_ini("temp.ini", "CS", "amxx_dir", "")
+	if (var_temp = "error") 
+	{
+		var_temp = 
+	}
+	var_dest_path := MyInput("为编译成功的Amxx插件输入目标位置", "F5: CS1.5插件目录 F6:CS1.6(27016) F7: CS1.6(27020) F8: D:\000" , var_temp, 600, 130)
+	if (var_dest_path = "")
+	{
+		ToolTip7("没有指定Amxx插件输入目标位置, 移动失败!")
+		 return
+	}
+	write_ini("temp.ini", "CS", "amxx_dir", var_dest_path)
+	
+	; 将生成的amxx插件移动到目标位置(由配置文件{launchy.ini}[path]<amx_plugins>指定)
+;;	iniread,var_dest_path,launchy.ini,path,amx_plugins, error
+	if var_dest_path <> "error"
+	{
+		StringRight, var_temp, var_dest_path, 1
+		if (var_temp!="\") {
+			var_dest_path = %var_dest_path%\
+		}
+		
+		IfExist %var_source_file%
+		{
+			FileMove %var_source_file%, %var_dest_path%, 1
+			if ErrorLevel 
+			{
+				AddString(var_tip, "`n:-(`t文件移动失败! `n原文件:", true)
+				AddString(var_tip, var_source_file, false)
+				AddString(var_tip, "目标目录:", true)
+				AddString(var_tip, var_dest_path, False)
+			}
+			else 
+			{
+				; 将插件名称添加到plugins.ini文件中, 以便马上生效
+				var_pluginsfile := get_parent_dir(var_dest_path)
+				AddString(var_pluginsfile, "\configs\plugins.ini", false)
+				add_amxx_pluginsfile(var_pluginsfile, var_amxx)
+				
+				AddString(var_tip, ":-)`t成功移动到: ", true)
+				AddString(var_tip, var_dest_path, false)
+				ifwinexist Console ahk_class ConsoleWindowClass
+				{
+					winactivate
+					sendinput reload
+					AddString(var_tip, "CS服务器端存在, 已经输入reload, 按回车重新加载...", true)
+				}
+			}
+		} ;  IfExist
+		else 
+		{
+			AddString(var_tip, ":-(`t源文件不存在, 移动失败, 可能是因为没有编译成功! `n`n 源文件为:  ", true)
+			AddString(var_tip, var_dest_path, false)
+		}
+	}
+	tooltip5(var_tip, 3000)
+	return 
+
+}
+
+CreateCSMenu()
+{
+	sendinput var_menu = `n {home}(`n
+	var_item =  ; 菜单选项数
+	var_itemstr = 0
+	var_temp := MyInput("CS菜单标题", "@ 菜单标题 @", "菜单标题")
+	var_menu = @ %var_temp% @
+	
+	;; 菜单标题
+	send +{home}
+	sendbyclip(var_menu)
+	
+	sendinput `n+{home} --------------------------------------------------`n
+	
+	Loop 9
+	{
+		InputBox, var_temp, CS菜单选项, %A_INDEX%. 输入的菜单选项, , 482, 145
+		if ErrorLevel or var_temp = ""
+		    break 	; CANCEL was pressed.
+		else
+		{
+			var_temp = %A_INDEX%. %var_temp%`n
+			var_item := A_INDEX
+			var_itemstr = %var_itemstr%,%A_INDEX%
+			send +{home}
+			sendbyclip(var_temp)
+		}
+	}
+	sendinput +{home}`n
+	sendbyclip("0. 退出 ")
+	sendinput `n+{home})`n
+	send +{home}`tvar_result := CSMenu(var_menu, 80)`n
+	send +{home}`tif var_result not in %var_itemstr% `n`tReturn`n
+}

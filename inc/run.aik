@@ -1,0 +1,190 @@
+
+
+;; 运行launchy.ini指定的key, 可以带有参数var_param
+runini(mkey, var_param="")
+{
+
+	iniread,var_temp,launchy.ini,file,%mkey%
+	var_sec = file
+
+	if(var_temp="" or var_temp="ERROR")
+	{
+		iniread,var_temp,launchy.ini,send,%mkey%
+		if(var_temp="" or var_temp="ERROR") {
+			tooltip 关键字[ %mkey% ]没有定义, 执行命令失败！
+			sleep 1000
+			tooltip
+		  	return
+		} else {
+			send %var_temp%
+		}
+		return
+	}
+	else
+	{
+		;-------得到运行的工作目录--------------------------------------
+		iniread,var_path,launchy.ini,path,%mkey%
+		StringSplit TempArray, var_temp, |
+		if TempArray0 <= 0
+		{
+			return
+		}
+		var_temp := TempArray1
+		var_path := TempArray3
+
+		if (var_path="" or var_path="ERROR")
+		{
+			var_path=
+		}
+		else
+		{
+			StringRight varbuf,var_path,1
+			if not (varbuf="\")
+				var_path = %var_path%\
+		}
+		;-------准备运行-------------------------------------------
+		var_firstchar := substr(var_temp,1,1)
+		if (var_firstchar="`;" or var_firstchar="+" or var_firstchar="-" )
+			var_temp:=substr(var_temp,2)
+
+		SplitPath, var_temp, OutFileName, OutDir, OutExtension
+		if OutDir =
+		{
+			var_temp =%var_path%%var_temp%
+		}
+
+		; 运行时需要参数的情况下, 符上参数
+		if (var_param != "")
+		{
+			var_temp = %var_temp% %var_param%
+		}
+		sleep 100
+	;	substrvar = substr(var_temp,1,1)
+		if (var_firstchar="+")
+			run,%var_temp%,%var_path%,max|UseErrorLevel
+		else if (var_firstchar="-")
+			run,%var_temp%,%var_path%,min|UseErrorLevel
+		else
+			run,%var_temp%,%var_path%,UseErrorLevel		; 包括;号开头的
+
+		if ErrorLevel
+		{
+			MsgBox, 4, 执行运行命令失败, 命令[%mkey%]不能正确执行`n是否删除该命令? `nrun %var_temp%
+			IfMsgBox  yes
+			{
+				del_ini("launchy.ini", "path", mkey)
+				del_ini("launchy.ini", "file", mkey)
+			}
+		}
+	}
+	return
+}
+
+;;------ 借用temp.ahk 来运行文本 ----------------------------------
+run_with_temp_file(var_text, bPersistent=false)
+{
+	if not ∑是否安装了AutoHotkey()
+	{
+		msgbox 尚未安装AutoHotKey, 无法借用 temp.ahk 来运行脚本!
+		return false
+	}
+	IfExist temp.ahk
+	{
+		filedelete temp.ahk
+	}
+	
+	var_temp := "#include ..\..\ `r`n#include .\inc\tempfunctions.aik`r`n`r`n"
+	var_temp = %var_temp%%var_text%`r`n`r`n
+
+	if (bPersistent)
+	{
+		AddString(var_temp,"#!esc::`r`n`texitapp`r`n`treturn",  true)
+	}
+;	var_temp := "cout(var_out)`n{`n   sendinput %var_out%`n}`r`n"
+	fileappend %var_temp%, temp.ahk
+	sleep 200
+	run temp.ahk
+	sleep 100
+	tooltip
+	if (!bPersistent)
+	{
+		filedelete temp.ahk		; 用完之后删除临时文件, 以便下次更快地运行
+	}
+	return true
+}
+
+
+
+;;------ 运行热键文件hkfile,如果正在运行则结束其进程 ------------------------
+;;	下面几个函数都是运行程序或文件的，但是这些程序和文件hkfile的路径都是在
+;;	hk_ibm表示hkibm.ahk文件,hs_vc表示vcHotString.ahk等等
+;;	hkrun()函数需要指定完整的变量,并将新开的进程号保存到传址进来的pid_temp变量中,
+;;	runvar()函数,可以通过前缀变量prefix和用户输入的变量var_user组合成新的hkfile变量
+;;	并且自动生成一个唯一的进程变量名,以便关闭该进程. runvar()适用范围更广.
+;;	hkrunx()用来关闭由hkrun()打开的进程.
+;;注意:	hkrun()和runvar()只能运行一个实例------------------------------------ 
+hkrun(hkfile,byref pid_temp)
+{
+	if ( pid_temp = "" )
+		run,%hkfile%,,,pid_temp
+	else
+	{
+		MsgBox,4,,结束热键:`nfile: %hkfile%`nPID: %pid_temp%,3
+		ifmsgbox no
+		return
+		process,close,%pid_temp%
+		pid_temp :=""
+	}
+	return
+}
+
+runvar(prefix,var_user)
+{
+	global
+; pid_%prefix%_%var_user%
+	hkrun(%prefix%_%var_user%,pid_%prefix%_%var_user%)
+}
+runvarx(prefix,var_user)
+{
+	global
+; pid_%prefix%_%var_user%
+	hkrunx(%prefix%_%var_user%,pid_%prefix%_%var_user%)
+}
+
+hkrunx(hkfile,byref pid_temp)	; 如果指定的进程存在,则结束它
+{
+	if ( pid_temp = "" )
+	{
+		MsgBox,0,,您输入的进程不存在，或许已经关闭,2
+	}
+ 	else
+	{
+		MsgBox,4,,结束热键:`nfile: %hkfile%`nPID: %pid_temp%,3
+		ifmsgbox no
+		return
+		process,close,%pid_temp%
+		pid_temp :=""
+	}
+	return
+}
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  通过Windows的运行窗口来运行“Filename”文件
+winrun(filename)
+{
+	sendevent {lwin down}r{lwin up}
+	winwait,运行ahk_class #32770,,3
+	ControlSetText,Edit1,%filename%
+	ControlClick,Button2
+	return
+}
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 用vim 文本编辑器, 打开指定的文件
+runWithVim(var_param)
+{
+	
+}

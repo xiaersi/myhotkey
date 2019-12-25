@@ -1,0 +1,82 @@
+[常用命令]
+文件和目录管理=文件和目录管理之列出、删除、复制、移动及改名|http://www.linuxsir.org/main/?q=node/192|ls ［参数]   [目录或文件名]  /*列文件或目录的信息工具 ls或dir;*/|pwd /*判断用户所处目录*/|mv  /*移动文件或目录的命令*/|cp  /*文件或目录的复制工具*/|mkdir [参数选项]  目录  /*目录创建*/|rmdir/rm ［参数]  目录     /*删除空目录工具*/|touch、echo、cat        /*创建一个空文件的工具*/|rm      /*删除文件*/|mv      /*修改文件名*/
+安装VMwareTools=在虚拟机VMware 中安装了Linux操作系统后，需要在Linux中安装VMwareTools工具。安装步骤如下：|1、在CD-ROM虚拟光驱中选择使用ISO镜像，找到VMWARE TOOLS 安装文件|2、以ROOT身份进入LINUX。（在Ubuntu中，可以使用sudo命令执行root身份）|3、进入linux新建一个终端，输入 /sbin/telinit 3 进入纯文本模式,然后在纯文本模式下再次用root身份登陆|4、退出到windows,在虚拟机菜单栏中点击   虚拟机-> 安装 VMWARE TOOLS 子菜单,会弹出对话框，点击"确认" 安装|5、挂载光驱 mount /dev/cdrom /mnt/cdrom （注意命令中输入的空格）这时，你的linux.iso里面的文件就相当于windows光盘里面的文件了|6、使用 cd /mnt/cdrom 进入光驱，输入ls命令你会查看到有个*.tar.gz格式的文件（如vmware-linux-tools.tar.gz），然后输入命令CP vmware-linux-tools /tmp/将它复制到/tmp/目录下|7、输入命令 cd /tmp 进入/tmp目录|8、输入命令tar zxf vmware-linux-tools.tar.gz 将刚刚复制的vmware-linux-tools.tar.gz 解压，默认解压到vmware-linux-tools目录下（与文件名同名）此时就会多出一个命名为vmware-linux-tools文件夹，这里和windows 里面的解压结果一样。|9、输入命令 cd vmware-linux-tools 进入解压后的目录|10、 输入命令 ./*.pl 运行安装VMware tools （*.pl文件在前面有提过）|11、在运行安装过程中，它会一步一步的有问题提出要你回应，此过程中，你只要见到问题后面显示[yes]、[no]、[yes/no]的都输入yes，然后回车,其他的问题后面不管[ ]里面是什么直接回车就好，不要输入。|12、最后它会输出1 ~ 15个分辨率让你输入数字选择，根据你的显示器来选择分辨率吧|13、好了，安装完成，输入命令 startx 回到linux图像界面吧。
+修改文件权限=chmod+权限+文件名|权限对应的数字分别是：4可读  2可写 1可执行 0无权限|每个文件都有固定的3个权限位, 首先是文件的所属者权限， 其次是所属组，最后其他用户组的权限|举例：chmod 740 1.txt 即是对文件1.txt的权限设置为：拥有者具有可读可写可执行权限 所属组具有可读权限 其他用户无权限|sudo chmod 777 include
+ls=ls -l 可以查看当前目录文件，如：drwxr-xr-x 2 nsf users 1024 12-10 17:37 下载文件备份|注释：;drwxr-xr-x/*文件属性*/; 2/*连接数*/; nsf/*拥有者*/; users/*所属群组*/; 1024/*大小*/; 12-10 17:37/*修改时间*/; 下载文件备份/*文件名*/|进一步分解文件属性: drwxr-xr-x;d/**/;rwx/**/;r-x/**/;r-x/**/
+tar解压缩命令=后面的五个是独立的命令，压缩解压都要用到其中一个，可与其他命令连用但只能用其中一个;-c      /*建立压缩档案*/;-x      /*解压*/;-t      /*查看内容*/;-r      /*向压缩归档文件末尾追加文件*/;-u      /*更新原压缩包中的文件*/|以下几个是可选的参数; -z：有gzip属性的; -j：有bz2属性的; -Z：有compress属性的; -v：显示所有过程; -O：将文件解开到标准输出|-f: 使用档案名字，切记，这个参数是最后一个参数，后面只能接档案名。|举例：|tar -cf all.tar *.jpg   /*将所有.jpg的文件打成一个名为all.tar的包。*/|tar -rf all.tar *.gif   /*将所有.gif的文件增加到all.tar的包里面去。*/|tar -uf all.tar logo.gif        /*更新原来tar包all.tar中logo.gif文件*/|tar -tf all.tar         /*这条命令是列出all.tar包中所有文件*/|tar -xf all.tar         /*解出all.tar包中所有文件*/
+tar解压总结=总结：|1、*.tar 用 tar -xvf 解压|2、*.gz 用 gzip -d或者gunzip 解压|3、*.tar.gz和*.tgz 用 tar –xzf 解压|4、*.bz2 用 bzip2 -d或者用bunzip2 解压|5、*.tar.bz2用tar –xjf 解压|6、*.Z 用 uncompress 解压|7、*.tar.Z 用tar –xZf 解压|8、*.rar 用 unrar e解压|9、*.zip 用 unzip 解压|压缩实例：|tar -cvf jpg.tar *.jpg /*将目录里所有jpg文件打包成tar.jpg*/|tar -czf jpg.tar.gz *.jpg      /*将目录里所有jpg文件打包成jpg.tar后，并且将其用gzip压缩，生成一个gzip压缩过的包*/|tar -cjf jpg.tar.bz2 *.jpg   /*将目录里所有jpg文件打包成jpg.tar后，并且将其用bzip2压缩，生成一个bzip2压缩过的包*/|tar -cZf jpg.tar.Z *.jpg   /*将目录里所有jpg文件打包成jpg.tar后，并且将其用compress压缩，生成一个umcompress压缩过的包*/|rar a jpg.rar *.jpg     /*rar格式的压缩，需要先下载rar for linux*/|ip jpg.zip *.jpg        /*zip格式的压缩，需要先下载zip for linux*/|解压实例：|tar -xvf file.tar /*解压 tar包*/|tar -xzvf file.tar.gz   /*解压tar.gz*/|tar -xjvf file.tar.bz2  /*解压 tar.bz2*/|tar -xZvf file.tar.Z   /*解压tar.Z*/|unrar e file.rar        /*解压rar*/|unzip file.zip  /*解压zip*/
+修改密码passwd=passwd  /*修改口令*/
+free查看内存=free    /*查看当前系统内存的使用情况*/|free [-b/ -k/ -m]|-b 以字节为单位显示;-k 以K字节为单位显示. ;-m 以兆字节为单位显示.
+uptime=uptime  /*显示系统已经运行了多长时间*/|它依次显示下列信息：现在时间、系统已经运行了多长时间、目前有多少登录用户、系统在过去的1分钟、5分钟和15分钟内的平均负载.
+Linux磁盘管理=df [选项]       /*检查文件系统的磁盘空间占用情况*/|du      /*统计目录（或文件）所占磁盘空间的大小.*/
+echo=echo    /*在显示器上显示一段文字,一般起到一个提示的作用.*/|echo [ -n ] 字符串
+cal日历=cal [选项] [月 [年]]     /*显示某年某月的日历.*/
+date=date命令的功能是显示和设置系统日期和时间|date [选项] 显示时间格式|命令中各选项的含义分别为：|-d datestr, --date datestr 显示由datestr描述的日期|-s datestr, --set datestr 设置datestr 描述的日期|-u, --universal 显示或设置通用时间
+top显示进程=top   /*显示系统进程*/|在查看系统进程时，可按q键退出。
+rpm=在Linux中有一种.rpm为扩展名的软件包文件，|它的安装需要Linux中的一套包管理器rpm来进行管理。|rpm命令可以完成对rpm软件包的安装、查询、校验、删除、更新等工作。
+mount=mount 用于将硬盘中各分区挂载到根分区的某个文件夹中。|用法:mount [参数] 要加载的设备 载入点|eg: mount /dev/cdrom|cd /mnt/cdrom //进入光盘目录
+kill=kill <进程PID号>   /*杀死进程，进程PID号可通过Top命令查看*/
+clear清屏=clear命令的功能是清除屏幕上的信息
+redhat 切换超级用户=su root
+检查是否安装GCC=rpm -q gcc  /*RedHat*/
+apt-get=sudo apt-get install # ------(package 安装包)|sudo apt-get install # -----(package - - reinstall 重新安装包)|sudo apt-get -f install # -----(强制安装?#"-f = --fix-missing"当是修复安装吧...)|sudo apt-get remove #-----(package 删除包)|sudo apt-get remove - - purge # ------(package 删除包，包括删除配置文件等)|sudo apt-get autoremove --purge # ----(package 删除包及其依赖的软件包+配置文件等（只对6.10有效，强烈推荐）)|sudo apt-get update #------更新源|sudo apt-get upgrade #------更新已安装的包|sudo apt-get dist-upgrade # ---------升级系统|sudo apt-get dselect-upgrade #------使用 dselect 升级|sudo apt-get build-dep # ------(package 安装相关的编译环境)|apt-get source #------(package 下载该包的源代码)|sudo apt-get clean && sudo apt-get autoclean # --------清理下载文件的存档 && 只清理过时的包|sudo apt-get check #-------检查是否有损坏的依赖
+apt-cache=apt-cache search # ------(package 搜索包)|apt-cache show #------(package 获取包的相关信息，如说明、大小、版本等)|apt-cache depends #-------(package 了解使用依赖)|apt-cache rdepends # ------(package 了解某个具体的依赖?#当是查看该包被哪些包依赖吧...)
+cat，more命令=将某个文件的内容显示出来。两个命令所不同的是:cat把文件内容一直打印出来，而 more则分屏显示
+chmod 命令 权限修改=用法：chmod 一位8进制数 filename。|eg: chmod u+x filenmame //只想给自己运行，别人只能读|//u表示文件主人， g 表示文件文件所在组。 o 表示其他人 r 表可读，w 表可写，x 表可以运行|chmod g+x filename //同组的人来执行
+whoami，whereis，which，id=　　//whoami:确认自己身份|　　//whereis:查询命令所在目录以及帮助文档所在目录|　　//which:查询该命令所在目录(类似whereis)|　　//id:打印出自己的UID以及GID。(UID:用户身份唯一标识。GID:用户组身份唯一标识。每一个用户只能有一个唯一的UID和 GID)|　　eg: whoami //显示你自已登陆的用户名|　　whereis bin 显示bin所在的目录，将显示为：/usr/local/bin|　　which bin
+grep，find=　　grep:文本内容搜索;find:文件或者目录名以及权限属主等匹配搜索|　　eg: grep success * /*查找当前目录下面所有文件里面含有success字符的文件
+history 用户用过的命令=eg: history //可以显示用户过去使用的命令
+!! 执行最近一次的命令=!! 执行最近一次的命令
+mkdir命令=eg: mkdir netseek //创建netseek这个目录
+finger 可以让使用者查询一些其他使用者的资料=eg: finger //查看所用用户的使用资料|finger root //查看root的资料
+[学习网站]
+LinuxSir.org=http://www.linuxsir.org/main/
+Linux视频教程=http://www.56.com/w38/album-aid-792394.html
+GCC.GNU.org=http://gcc.gnu.org/  /*GCC的官方网站*/
+Linux下的C编程实战之gcc\gdb\make=http://blogold.chinaunix.net/u3/94743/showart_1906419.html|http://hi.baidu.com/msingle/blog/item/85c55d7fc14c410228388ae5.html
+网易Linux视频教程=http://tech.163.com/special/000915SN/stLinuxstu.html
+linux基础教程--雨林木风=http://www.ylmf.net/zhuanti/linux20101119a/
+XFree86显示设备的兼容性列表=http://www.xfree86.org/
+RedHat Linux兼容性列表=https://hardware.redhat.com/hd
+[技巧集锦]
+使用虚拟控制台=登录后按Alt+F2键这时又可以看到"login:"提示符, 这个就是第二个虚拟控制台|一般新安装的Linux有四个虚拟控制台, 可以用Alt+F1~Alt+F4来访问.|虚拟控制台最有用的时 候是当一个程序出错锁住输入时可以切换到其他虚拟控制台。
+拷贝与粘贴=字符界面: 不管是Slackware 还是RedHat安装后每次启动时都会自动运行一个叫gpm的程序,该程序运行后就可以用 鼠标来拷贝与粘贴了|具体做法是按住鼠标左键拖动使要拷贝的地方反白, 这时反白的区域已经被拷贝, 再按鼠标右键拷贝的内容就会被粘贴在光标所在位置了.|X-Window下: 拷贝的操作与字符界面下一样, 三键鼠标的话按中键粘贴, 两键鼠标的话同时按左右键粘贴(须在配置XF86 时在鼠标的设置里选择 Emulate 3 Button).
+快速进入某些目录=键入 cd ~ 可进入用户的home目录.|键入 cd - 可进入上一个进入的目录.
+软驱的使用=如果是Linux 的ext2文件系统用如下命令: #mount -t ext2 /dev/fd0 /mnt dos|格式的软盘则用命令: #mount -t msdos /dev/fd0 /mnt 然后就可以在/mnt里访问软盘的内容了,|注意在取出软盘之 前要先卸掉软盘上的文件系统, #umount /mnt 否则会导致信息丢失.|在软盘上建立文件系统可用如下命令: #mke2fs /dev/fd0 1440
+RedHat下显示彩色目录列表=打开/etc/bashrc, 加入如下一行: alias ls="ls --color"|其中颜色的含义如下: 蓝色-->目录 绿色-->可执行文件|红色-->压缩文件 浅蓝色-->链接文件 灰色-->其他文件
+显示文件的类型=用命令 file 可以使你知道某个文件究竟是ELF格式的可执行文件|还是shell script文件或是其他的什么格式|例如: #file startx
+命令文件的路径=当你键入一些命令如find, shutdown, mount, startx时, 是否 想过要知道这些文件究竟放在哪个目录里?|用命令 whereis 可以实现,如 #whereis startx 
+查找文件=find 命令要加一些参数才能查到文件|如: #find /usr -name XF86Setup -print 在/usr里查找文件XF86Setup.
+删除无用的core文件=程序运行出后有时候会产生一个名为core的文件, 这个文件一般很大而且没什么用, 可以删除掉以释放空间.
+一次解开.tar.gz文件=解开.tar.gz文件一般要先用gunzip解压再用tar解包, 在Linux下可以一次完成,|如: #tar zxpvf sample.tar.gz
+显示win95分区里的长文件名=如果你发现win95分区里的长文件命不能显示, 可以重新 用vfat方式来mount.|对于启动时就mount的分区可以修改文 件/etc/fstab, 将里面的msdos字样改为vfat.|如果无法用 vfat mount, 则要重新编译一下核心, 加入对vfat的支持.
+Linux 里的Norton Commander=在提示符下键入命令mc后你就会看到一个与Norton Commander很相似的界面|实际上功能也很相似甚至更强大, 比如可以直接对.tar.gz 压缩包里的文件进行操作(有点像 ZipMagic).
+启动后直接进入X=编辑/etc/inittab文件, 把id:3:initdefautl改为 id:4:initdefautl.|不过搜索路径可能会有些问题, 关机时 你得直接进入/sbin 里去执行 shutdown.
+后台运行 X 程序=执行一个X程序时别忘了在后面加一个&号,如 #netscape &|否则的话在你推出执行的程序之前再无法在那个终端窗口里输入令
+强行退出 X=有时候在 X 里由于程序出错鼠标键盘都不起作用, 这时候不用着急|因为在Linux下几乎不会像在Win95里那样恶性 死机, 你只须键入Ctrl+Alt+BackSpace键就可以回到字符界 面下了.
+重装Win9x后lilo失效无法启动Linux=只须先用软盘启动Linux然后运行一次lilo即可。|对于 RedHat可以用命令mkbootdisk来制作启动盘，|例如： mkbootdisk --devices /dev/fd0 2.0.34-1 其中2.0.34-1是 /lib/modules下的一个目录。
+把dos/windows改为缺省启动的OS=RedHat把Linux作为lilo缺省启动的OS，即出现 boot: 提示符后直接回车启动Linux。|如果想改为dos/Windows，修 改文件/etc/lilo.conf，把有关启动dos的部分放在前面，再 运行一次lilo即可。|详细实例省略……
+去掉引导区内的lilo信息=安装lilo后如果硬盘数量或分区情况有改变的话将导致硬盘不能启动，这时只须用软盘启动dos再运行 fdisk/mbr 即可。(这个方法还可清除任何引导区病毒)
+让 X 支持 AGP 显卡=下载一个 AX 4.1 即 AcceleratedX 4.1 ， 一个商业版 的 X Server 。|除 AGP 显卡外 AX 还支持很多牌号的显卡。 另外还可以用AX 带的设置程序 Xsetup 方便的对分辨率，刷 新率等参数进行设置。
+把 man 或 info 的信息存为文本文件=以 tcsh 为例： man tcsh | col -b > tcsh.txt info tcsh -o tcsh.txt -s
+用当前路径作提示符=对 bash 来说，在 .bashrc 里加一行： PS1="\$PWD\\$"|对 tcsh 来说，在 .tcshrc 里加一行： set prompt="%/>"
+压缩可执行文件=Linux 下有一个类似 dos 里的 pklite 和 lzexe 的命 令 -- gzexe 。|而且压缩率一般都可以超过 50% ，在空间紧 张时很有用。
+查看 Linux 启动时的信息=Linux 启动时屏幕显示的信息来不及看清就一闪而过， 如果对这些信息感兴趣的话可以在启动完后用命令 dmesg 查看。|
+处理文件名内含有特殊字符的文件=如果有一个文件名叫 -file 如果想删除它，键入 rm -file 会显示 invalid option|原来由于文件名的第一个字符为 - ， Linux 把文件名当作选项了|可以加 -- 解决 这个问题， 如 rm -- -file|如果是其他特殊字符的话可 以在特殊字符前加一个 \ ，或者用双引号把整个文件名括起来。
+一次处理一整个目录=Linux/UNIX 的很多常用命令如 rm ， cp 等都有一个参 数---- -r ， 是递归的意思|命令里加了参数 -r 就可以对目标目录及其下所有子目录进行操作，如： rm -rf /test (f 是 force 意为强行)|该命令完全删除 根目录下的子目录 test ，作用类似于 dos 下的 deltree ，当然使用这个命令时要特别小心。|再如： cp -r /test /test1 有类似 dos 下 xcopy /s 的作用。
+几个有用的别名=几个能方便操作和减少误操作的别名，建议把它们放到启动 文件里， 如 /etc/bashrc 。|alias rm=′rm -i′ |alias cp=′cp -i′ |alias mv=′mv -i′ |#前三个别名的作用是在删除、覆盖文件之前先提示确认， RedHat已经自动 #加上了，强烈建议Slackware的用户也加上，因为 Linux/UNIX下文件一旦删 #除就再也无法恢复了。 |alias l=′ls -l′ |alias cd..=′cd ..′ |alias utar=′tar xvfz′ #解 *.tar.gz 文件 |alias inforpm=′rpm -qpi′ #显示rpm包的信息 |alias instrpm=′rpm -Uhv′ #安装rpm包 |alias listrpm=′rpm -qpl′ #列rpm包内的文件 |alias uistrpm=′rpm -e′ #反安装rpm包 |
+redhat5中文乱码问题解决=http://blog.163.com/yaoyuan_gwz/blog/static/215014622010224104656986/
+RedHat使双击文件夹不弹出新的窗口=在RedHat中，双击某个文件夹将出使用新的窗口打开该文件夹|这不符合Windows的习惯，那么要改成双击文件夹在原来的窗口打开，方法如下：|gconftool-2 --type bool --set /apps/nautilus/preferences/always_use_browser true|如果在恢复原来的方式（在新窗口打开文件夹），则将上面命令最后的true改成false|gconftool-2 --type bool --set /apps/nautilus/preferences/always_use_browser false
+Ctrl+Alt+方向键左/右，切换工作区=桌面工作区的切换可以使用快捷键Ctrl+alt+left/right
+apt-操作=sudo apt-get install gnuplot    /*安装包gnuplot*/|sudo apt-get remove gnuplot     /*删除包gnuplot*/|sudo apt-get source gnuplot     /*下载gnuplot的源代码*/|apt-cache search gnuplot        /*搜索与gnuplot有关的包*/|apt-cache search *gnuplot*|apt-cache search gnuplot-?      /*搜索与gnuplot有关的包*/|apt-cache show gnuplot  /*显示gnuplot包的相关信息*/|apt-cache showpkg gnuplot|apt-cache showsrc gnuplot       /*显示gnuplot包的相关信息*/|sudo apt-get update     /*更新源信息*/|sudo apt-get autoremove /*自动清除系统上不再被使用的包*/|sudo apt-get autoclean  /*清空源缓存*/|sudo apt-get upgrade    /*升级所有包*/|sudo apt-get dist-upgrade       /*升级所有包*/|sudo apt-get -f /*包依赖关系被破坏时进行修复*/|http://www.cnblogs.com/ace9/archive/2011/05/30/2063444.html    /*更多查阅*/
+Linux下修改MAC地址=MAC地址是网卡的物理地址，在Windows系统下，我们可以通过修改注册表的方法，|骗过系统，修改MAC地址。其实在Linux下也可更改MAC地址：|　　1.关闭网卡设备|　　/sbin/ifconfig eth0 down|　　2.修改MAC地址|　　/sbin/ifconfig eth0 hw ether MAC地址|　　3.重启网卡|　　/sbin/ifconfig eth0 up
+让普通用户安全执行管理员程序=在多人共用一台电脑或管理局域网时，常常会遇到这种情况：|普通用户必须执行某个命令，比如关机。但普通用户却不具备足够的权限，|而出于隐私和安全的考虑我们又不希望把root密码告诉别人。|　　有两种方法可以解决这一问题。|　　第一种方法是设置命令文件的suid，可以使普通用户以此文件的拥有者的身份运行该程序，具体命令为 chmod u+s file ，file为你想让别人执行的文件。还可以设置guid，让用户以文件所属组的身份运行程序，命令为 chmod g+s file。|　　第二种方法是使用sudo程序，它可以使某个用户以特定的身份去运行程序，当然也能以root身份去运行，它相比第一种方法更安全也便于维护。在 RedHat发行版的光盘里就有这个工具。使用方法为，在终端中输入visudo编辑sudoers文件，在空白处添加以下四行：|　　Host_Alias MYHOST=localhost|　　User_Alias MYUSER=A的用户名，B的用户名|　　Cmnd_Alias MYFILE=A和B要运行的程序路径|　　MYUSER MYHOST=NOPASSWD：MYFILE|　　注意大小写，以后要增加新的程序或用户时，直接更改前三行即可。如果要让某个不知道root密码的用户具有全部权限，除了运行某些危险程序(如格式化)，只需增加：|　　Cmnd_Alias DANGER=危险程序的路径|　　C的用户名 ALL=(ALL) NOPASSWD：ALL，!DANGER|　　设置完成后，和vi一样保存退出，编辑器会自动检查你的语法是否正确，如果出错按 e 可以回去修改。然后该用户即可以“sudo+空格+某命令”的格式运行具体命令了。|http://www.ylmf.net/linux/tips/2010111810182.html /*摘自*/
+在XMMS中享受APE=APE是一种无损音乐压缩格式，在Linux中的媒体播放器XMMS中享受它的高品质音乐，|需要编译monkey audio plugin For XMMS(本文以Fedora Core2发行版为例)。|　　先到下载页面http://supermmx.org/linux/mac/下载|libxmms_mac-0.2.0.tar.gz mac-3.99-linux.tar.gz文件，|然后开始解压编译(在命令终端中)：|　　# tar xzvf libxmms_mac-0.2.0.tar.gz|　　# tar xzvf mac-3.99-linux.tar.gz|　　# cd mac-3.99|　　# ./configure|　　如果系统提示少了nasm,加载FC2-i386-disc2.iso(或第2张系统安装盘)装上它：|　　# rpm -ivh nasm-0.98.38-2.i386.rpm|　　# make|　　# sudo make install|　　# cd plugin|　　# ./configure|　　如果发现无法找到xmms-config，在FC2-i386-disc4.iso(或第4张系统安装盘)里找到xmms-devel装上：|　　# rpm -ivh xmms-devel-1.2.10-2.p.i386.rpm|　　# make|　　# sudo make install|　　现在打开XMMS，可以享受APE的美妙音乐了^_^。
+[UBuntu]
+ubuntu11.10默认安装了VMware但hgfs目录仍旧为空的解决办法=在虚拟机中安装好ubuntu11.10之后，VMtools已经默认安装好了，可以在终端中按vm+tab查看|查看结果能够看到vmware相关的内容：vmmouse_detect             vmware-hgfsclient          vmware-user|将虚拟机掉电关闭（不能暂停），设置share folders目录，重启虚拟机，此时/mnt/hgfs目录仍然是空的。|应该sudo apt-get install open-vm-dkms，一路按enter键通过。|然后sudo mount  -t  vmhgfs  .host:/     /mnt/hgfs，这样/mnt/hgfs下便有了与windows的共享目录|为了每次开机自动挂载共享目录，在/etc/init.d/open-vm-tools末尾增加一行：|sudo mount  -t  vmhgfs  .host:/     /mnt/hgfs
+Ubuntu 11.10 下怎样设置应用程序在桌面的快捷方式=创建快捷方式：将/usr/share/applications/ 里面的图标复制到桌面即可|http://zhidao.baidu.com/question/335312117.html
+[Linux开发]
+GCC基本用法=GCC最基本的用法是∶gcc [options] [filenames]|其中options就是编译器所需要的参数，filenames给出相关的文件名称。|-c，只编译，不连接成为可执行文件，编译器只是由输入的.c等源代码文件生成.o为后缀的目标文件，通常用于编译不包含主程序的子程序文件。|-o output_filename，确定输出文件的名称为output_filename，同时这个名称不能和源文件同名。如果不给出这个选项，gcc就给出预设的可执行文件a.out。|-g，产生符号调试工具(GNU的gdb)所必要的符号资讯，要想对源代码进行调试，我们就必须加入这个选项。|-O，对程序进行优化编译、连接，采用这个选项，整个源代码会在编译、连接过程中进行优化处理，这样产生的可执行文件的执行效率可以提高，但是，编译、连接的速度就相应地要慢一些。|-O2，比-O更好的优化编译、连接，当然整个编译、连接过程会更慢。|-Idirname，将dirname所指出的目录加入到程序头文件目录列表中，是在预编译过程中使用的参数。|C程序中的头文件包含两种情况∶ A)#include <myinc.h>  B)#include “myinc.h”
+[常见知识]
+passwd文件=通常在Linux系统中，用户的关键信息被存放在系统的/etc/passwd文件中，|系统的每一个合法用户账号对应于该文件中的一行记录。|这行记录定义了每个用户账号的属性。下面是一个passwd文件的示例：|　　root:x:0:0:root:/root:/bin/bash|　　bin:x:1:1:bin:/bin:/sbin/nologin|　　daemon:x:2:2:daemon:/sbin:/sbin/nologin|　　......|　　desktop:x:80:80:desktop:/var/lib/menu/kde:/sbin/nologin|　　mengqc:x:500:500:mengqc:/home/mengqc:/bin/bash|　　在该文件中，每一行用户记录的各个数据段用“：”分隔，|分别定义了用户的各方面属性。各个字段的顺序和含义如下：|　　注册名：口令：用户标识号：组标识号：用户名：用户主目录：命令解释程序|　　(1)注册名(login_name)：用于区分不同的用户。|　　(2)口令(passwd)：系统用口令来验证用户的合法性。|　　现在口令不再直接保存在passwd文件中，而将 /etc/shadow作为真正的口令文件（只有超级用户才有权读取）。|	这里用一个“x”来代替。此外，如果passwd字段中的第一个字符是“*”的话，则表示该账号被查封了不能登录。|　　(3)用户标识号(UID)：UID是一个数值，是Linux系统中惟一的用户标识，用于区别不同的用户。|　　(4)组标识号(GID)：这是当前用户的缺省工作组标识。|　　(5)用户名(user_name)：包含有关用户的一些信息。|　　(6)用户主目录(home_directory)：该字段定义了个人用户的主目录，|　　(7)命令解释程序(Shell)：Shell是当用户登录系统时运行的程序名称，|	通常是一个Shell程序的全路径名，如/bin/bash。|　　需要注意的是，系统管理员通常没有必要直接修改passwd文件，|    Linux提供一些账号管理工具帮助系统管理员来创建和维护用户账号。|http://www.ylmf.net/linux/tips/2010111810184.html?1290072098 /*摘自*/
+shadow文件=　　目前，在大多数Unix/Linux系统中，利用/etc/shadow文件|存放用户账号的加密口令信息和口令的有效期信息。|下面示例是shadow文件中的几条记录(与上面的passwd文件相对应)：|　　root:$1$Vfcp2rdI$R0bDID/CvD3FfTeTtnk7u.:12489:0:99999:7:::|　　bin:*:12489:0:99999:7:::|　　daemon:*:12489:0:99999:7:::|　　......|　　desktop:!!:12489:0:99999:7:::|　　mengqc:$1$pNPtXOsd$gk5mQEfx5hJfPzpmgQ78k/:12489:0:99999:7:::

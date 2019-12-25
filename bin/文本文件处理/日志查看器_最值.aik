@@ -1,0 +1,234 @@
+
+【查找最大值】:
+	gui submit, nohide 
+	SB_SetText("正在查找变量值最[大]的行。。。")		
+	GuiControl, Disable, _btn_FindMax
+	GuiControl, Disable, _btn_FindMin		
+	lineIndex := ∑检查最大最小值( 1 )
+	if _mm_bFileData
+		SetTempArrayByLine( "raw", lineIndex, _mmBefore, _mmAfter )
+	else
+		SetTempArrayByLine( "view", lineIndex, _mmBefore, _mmAfter )
+	ShowTempPage( 1 )
+	GuiControl, Enable, _btn_FindMax
+	GuiControl, Enable, _btn_FindMin	
+	SB_SetText( g_statustip )		
+	g_statustip = 
+	return
+
+
+【查找最小值】:
+	gui submit, nohide 
+	SB_SetText("正在查找变量值最<小>的行。。。")		
+	GuiControl, Disable, _btn_FindMax
+	GuiControl, Disable, _btn_FindMin			
+	lineIndex := ∑检查最大最小值( 0 )
+	if _mm_bFileData
+		SetTempArrayByLine( "raw", lineIndex, _mmBefore, _mmAfter )
+	else
+		SetTempArrayByLine( "view", lineIndex, _mmBefore, _mmAfter )
+	ShowTempPage( 1 )	
+	GuiControl, Enable, _btn_FindMax
+	GuiControl, Enable, _btn_FindMin		
+	SB_SetText( g_statustip )	
+	g_statustip = 
+	return
+
+∑检查最大最小值( bMax )
+{
+	;; 检查是否能够查找最大、最小值
+	global	 
+	local var_max = -9999999999999999
+	local var_min = 9999999999999999
+	local var_maxline =
+	local var_minline =
+	g_statustip = 
+
+	if ( g_rawArray0 <= 0  )
+	{
+		msgbox 尚未加载文件数据！ 
+		return false
+	} 
+	if ( _mm_bFileData == false && g_viewArray0 <= 0 )
+	{
+		msgbox 处理后的数据为空！`n是没有过滤数据或处理数据？`n还是忘记勾选【原始数据】复选框？
+		return false
+	}
+	if ( _mmLeft == "" && _mmRight == "" )
+	{
+		msgbox 没有指定变量前后的字符
+		return false
+	} 
+	var_index = 0
+	if _mm_bFileData  	;; 使用原始数据
+	{
+		Loop %g_rawArray0%
+		{
+			line := g_rawArray%a_index%
+			if line =
+				continue
+
+;			if ( GetLineVar( line, var_re ) )
+			var_re := GetVarFromLine( line, _mmLeft, _mmRight, _mmRe, _mmFi )
+			if var_re is not number
+				continue
+			if var_re
+			{
+				if bMax > 0
+				{
+					if ( var_max < var_re )
+					{
+						var_max := var_re
+						var_maxline := line
+						var_index := a_index
+					}
+				}
+				else
+				{
+					if ( var_min > var_re )
+					{
+						var_min := var_re
+						var_minline := line
+						var_index := a_index
+					}
+				}
+			}
+		}		
+	}
+	else  				;; 使用过滤后的数据
+	{
+		Loop %g_viewArray0%
+		{
+			line := g_viewArray%a_index% 
+			
+			if line =
+				continue
+
+;			if ( GetLineVar( line, var_re ) )
+			var_re := GetVarFromLine( line, _mmLeft, _mmRight, _mmRe, _mmFi )
+			if var_re is not number
+				continue
+			if var_re
+			{
+				if bMax
+				{
+					if ( var_max < var_re )
+					{
+						var_max := var_re
+						var_maxline := line
+						var_index := a_index
+					}
+				}
+				else
+				{
+					if ( var_min > var_re )
+					{
+						var_min := var_re
+						var_minline := line
+						var_index := a_index
+					}
+				}
+			}
+		}
+	}
+
+	if bMax
+	{
+		if var_max > -9999999999999999
+		{
+			g_statustip = 变量最大值为：%var_max%
+;			GuiControl, Text, _MyEdit, %var_maxline%
+		}
+		else
+		{
+			g_statustip = 没有找到最大值
+			var_index = 
+		}
+	}
+	else
+	{
+		if var_min < 9999999999999999
+		{
+			g_statustip = 变量最小值为：%var_min%
+;			GuiControl, Text, _MyEdit, %var_minline%
+		}
+		else
+		{
+			g_statustip = 没有找到最小值
+			var_index =
+		}
+	}	
+	;; 将查找到的行号返回
+	return var_index
+}
+
+
+GetLineVar( var_line, byref var_out )
+{
+	global 
+	local var_re =
+
+	;; 如果设置了过滤条件，先检查是否需要过滤这行数据
+	if _mmFi <>
+	{
+		loop parse, _mmFi, |
+		{
+			if a_loopfield =
+				continue
+
+			ifinstring var_line, %a_loopfield%
+				return false
+		}
+	}
+
+	;; 如果设置了保留条件，先检查是否满足保留条件
+	if _mmRe <>
+	{
+		local bfind := false
+		loop parse, _mmRe, |
+		{
+			if a_loopfield =
+				continue
+			ifinstring var_line, %a_loopfield%
+			{
+				bfind := true
+				break
+			}
+		}
+		if not bfind
+		{
+			return false  ;; 不满足保留条件
+		}
+	}
+	
+	;; 在没有设置变量左边的字符
+	if _mmLeft =
+	{
+		;; 并且没有设置变量右边的字符，则无法寻找变量而退出
+		if _mmRight =
+			return false
+		;; 变量没有左边字符但有右边字符，则认为右边字符左边的字符串即是变量的值
+		var_re := strleft2sub( var_line, _mmRight )
+	}
+	;; 变量设置了左边字符但没有设置右边字符时，认为左边字符右边的字符串即是变量
+	else if _mmRight =
+	{
+		var_re := strRight2sub( var_line, _mmLeft )	
+	}
+	;; 变量即设置了左边字符也设置了右边字符时，介于两者之间的字符串认为是变量
+	else
+	{
+		var_re := strMid2sub( var_line, _mmLeft, _mmRight )
+	}
+	;; 检查得到的变量是不是数字，不是数字则认为不是变量，返回false
+	if var_re =
+	{
+		return false
+	}
+	if var is not digit
+	{
+		return false
+	}
+	var_out := var_re
+	return true
+}

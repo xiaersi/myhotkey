@@ -1,0 +1,378 @@
+[KeyList]
+NumpadDot=数字键点号
+NumpadMult=数字键 *
+NumpadDiv=数字键 /
+NumpadAdd=数字键 +
+NumpadSub=数字键 -
+NumpadOFF=NumpadIns   /*0*/|NumpadEnd   /*1*/|NumpadDown  /*2*/|NumpadPgDn  /*3*/|NumpadLeft  /*4*/|NumpadClear /*5*/|NumpadRight /*6*/|NumpadHome  /*7*/|NumpadUp    /*8*/|NumpadPgUp  /*9*/|NumpadDel   /*.*/|NumpadDiv   /*/*/|NumpadMult  /***/|NumpadAdd   /*+*/|NumpadSub   /*-*/|NumpadEnter
+NumpadON=Numpad0|Numpad1|Numpad2|Numpad3|Numpad4|Numpad5|Numpad6|Numpad7|Numpad8|Numpad9|NumpadDot|NumpadDiv|NumpadMult|NumpadAdd|NumpadSub|NumpadEnter
+[WindowsMessages]
+0x00=WM_NULL
+0x01=WM_CREATE
+0x02=WM_DESTROY
+0x03=WM_MOVE
+0x05 =WM_SIZE
+0x06=WM_SETFOCUS
+0x05=WM_SIZE
+0x07=WM_SETFOCUS
+0x08=WM_KILLFOCUS
+0x0A=WM_ENABLE
+0x0B=WM_SETREDRAW
+0x0C=WM_SETTEXT
+0x0D=WM_GETTEXT
+0x0E=WM_GETTEXTLENGTH
+0x0F=WM_PAINT
+
+WM_NULL = 0x00
+WM_CREATE = 0x01
+WM_DESTROY = 0x02
+WM_MOVE = 0x03
+WM_SIZE = 0x05
+WM_ACTIVATE =0x06
+WM_SETFOCUS = 0x07
+WM_KILLFOCUS = 0x08
+WM_ENABLE = 0x0A
+WM_SETREDRAW = 0x0B
+WM_SETTEXT = 0x0C
+WM_GETTEXT = 0x0D
+WM_GETTEXTLENGTH = 0x0E
+WM_PAINT = 0x0F
+WM_CLOSE = 0x10
+WM_QUERYENDSESSION = 0x11
+WM_QUIT = 0x12
+WM_QUERYOPEN = 0x13
+WM_ERASEBKGND = 0x14
+WM_SYSCOLORCHANGE = 0x15
+WM_ENDSESSION = 0x16
+WM_SYSTEMERROR = 0x17
+WM_SHOWWINDOW = 0x18
+WM_CTLCOLOR = 0x19
+WM_WININICHANGE = 0x1A
+WM_SETTINGCHANGE = 0x1A
+WM_DEVMODECHANGE = 0x1B
+WM_ACTIVATEAPP = 0x1C
+WM_FONTCHANGE = 0x1D
+WM_TIMECHANGE = 0x1E
+WM_CANCELMODE = 0x1F
+WM_SETCURSOR = 0x20
+WM_MOUSEACTIVATE = 0x21
+WM_CHILDACTIVATE = 0x22
+WM_QUEUESYNC = 0x23
+WM_GETMINMAXINFO = 0x24
+WM_PAINTICON = 0x26
+WM_ICONERASEBKGND = 0x27
+WM_NEXTDLGCTL = 0x28
+WM_SPOOLERSTATUS = 0x2A
+WM_DRAWITEM = 0x2B
+WM_MEASUREITEM = 0x2C
+WM_DELETEITEM = 0x2D
+WM_VKEYTOITEM = 0x2E
+WM_CHARTOITEM = 0x2F
+
+WM_SETFONT = 0x30
+WM_GETFONT = 0x31
+WM_SETHOTKEY = 0x32
+WM_GETHOTKEY = 0x33
+WM_QUERYDRAGICON = 0x37
+WM_COMPAREITEM = 0x39
+WM_COMPACTING = 0x41
+WM_WINDOWPOSCHANGING = 0x46
+WM_WINDOWPOSCHANGED = 0x47
+WM_POWER = 0x48
+WM_COPYDATA = 0x4A
+WM_CANCELJOURNAL = 0x4B
+WM_NOTIFY = 0x4E
+WM_INPUTLANGCHANGEREQUEST = 0x50
+WM_INPUTLANGCHANGE = 0x51
+WM_TCARD = 0x52
+WM_HELP = 0x53
+WM_USERCHANGED = 0x54
+WM_NOTIFYFORMAT = 0x55
+WM_CONTEXTMENU = 0x7B
+WM_STYLECHANGING = 0x7C
+WM_STYLECHANGED = 0x7D
+WM_DISPLAYCHANGE = 0x7E
+WM_GETICON = 0x7F
+WM_SETICON = 0x80
+
+WM_NCCREATE = 0x81
+WM_NCDESTROY = 0x82
+WM_NCCALCSIZE = 0x83
+WM_NCHITTEST = 0x84
+WM_NCPAINT = 0x85
+WM_NCACTIVATE = 0x86
+WM_GETDLGCODE = 0x87
+WM_NCMOUSEMOVE = 0xA0
+WM_NCLBUTTONDOWN = 0xA1
+WM_NCLBUTTONUP = 0xA2
+WM_NCLBUTTONDBLCLK = 0xA3
+WM_NCRBUTTONDOWN = 0xA4
+WM_NCRBUTTONUP = 0xA5
+WM_NCRBUTTONDBLCLK = 0xA6
+WM_NCMBUTTONDOWN = 0xA7
+WM_NCMBUTTONUP = 0xA8
+WM_NCMBUTTONDBLCLK = 0xA9
+
+WM_KEYFIRST = 0x100
+WM_KEYDOWN = 0x100
+WM_KEYUP = 0x101
+WM_CHAR = 0x102
+WM_DEADCHAR = 0x103
+WM_SYSKEYDOWN = 0x104
+WM_SYSKEYUP = 0x105
+WM_SYSCHAR = 0x106
+WM_SYSDEADCHAR = 0x107
+WM_KEYLAST = 0x108
+
+WM_IME_STARTCOMPOSITION = 0x10D
+WM_IME_ENDCOMPOSITION = 0x10E
+WM_IME_COMPOSITION = 0x10F
+WM_IME_KEYLAST = 0x10F
+
+WM_INITDIALOG = 0x110
+WM_COMMAND = 0x111
+WM_SYSCOMMAND = 0x112
+WM_TIMER = 0x113
+WM_HSCROLL = 0x114
+WM_VSCROLL = 0x115
+WM_INITMENU = 0x116
+WM_INITMENUPOPUP = 0x117
+WM_MENUSELECT = 0x11F
+WM_MENUCHAR = 0x120
+WM_ENTERIDLE = 0x121
+
+WM_CTLCOLORMSGBOX = 0x132
+WM_CTLCOLOREDIT = 0x133
+WM_CTLCOLORLISTBOX = 0x134
+WM_CTLCOLORBTN = 0x135
+WM_CTLCOLORDLG = 0x136
+WM_CTLCOLORSCROLLBAR = 0x137
+WM_CTLCOLORSTATIC = 0x138
+
+WM_MOUSEFIRST = 0x200
+WM_MOUSEMOVE = 0x200
+WM_LBUTTONDOWN = 0x201
+WM_LBUTTONUP = 0x202
+WM_LBUTTONDBLCLK = 0x203
+WM_RBUTTONDOWN = 0x204
+WM_RBUTTONUP = 0x205
+WM_RBUTTONDBLCLK = 0x206
+WM_MBUTTONDOWN = 0x207
+WM_MBUTTONUP = 0x208
+WM_MBUTTONDBLCLK = 0x209
+WM_MOUSEWHEEL = 0x20A
+WM_MOUSEHWHEEL = 0x20E
+
+WM_PARENTNOTIFY = 0x210
+WM_ENTERMENULOOP = 0x211
+WM_EXITMENULOOP = 0x212
+WM_NEXTMENU = 0x213
+WM_SIZING = 0x214
+WM_CAPTURECHANGED = 0x215
+WM_MOVING = 0x216
+WM_POWERBROADCAST = 0x218
+WM_DEVICECHANGE = 0x219
+
+WM_MDICREATE = 0x220
+WM_MDIDESTROY = 0x221
+WM_MDIACTIVATE = 0x222
+WM_MDIRESTORE = 0x223
+WM_MDINEXT = 0x224
+WM_MDIMAXIMIZE = 0x225
+WM_MDITILE = 0x226
+WM_MDICASCADE = 0x227
+WM_MDIICONARRANGE = 0x228
+WM_MDIGETACTIVE = 0x229
+WM_MDISETMENU = 0x230
+WM_ENTERSIZEMOVE = 0x231
+WM_EXITSIZEMOVE = 0x232
+WM_DROPFILES = 0x233
+WM_MDIREFRESHMENU = 0x234
+
+WM_IME_SETCONTEXT = 0x281
+WM_IME_NOTIFY = 0x282
+WM_IME_CONTROL = 0x283
+WM_IME_COMPOSITIONFULL = 0x284
+WM_IME_SELECT = 0x285
+WM_IME_CHAR = 0x286
+WM_IME_KEYDOWN = 0x290
+WM_IME_KEYUP = 0x291
+
+WM_MOUSEHOVER = 0x2A1
+WM_NCMOUSELEAVE = 0x2A2
+WM_MOUSELEAVE = 0x2A3
+
+WM_CUT = 0x300
+WM_COPY = 0x301
+WM_PASTE = 0x302
+WM_CLEAR = 0x303
+WM_UNDO = 0x304
+
+WM_RENDERFORMAT = 0x305
+WM_RENDERALLFORMATS = 0x306
+WM_DESTROYCLIPBOARD = 0x307
+WM_DRAWCLIPBOARD = 0x308
+WM_PAINTCLIPBOARD = 0x309
+WM_VSCROLLCLIPBOARD = 0x30A
+WM_SIZECLIPBOARD = 0x30B
+WM_ASKCBFORMATNAME = 0x30C
+WM_CHANGECBCHAIN = 0x30D
+WM_HSCROLLCLIPBOARD = 0x30E
+WM_QUERYNEWPALETTE = 0x30F
+WM_PALETTEISCHANGING = 0x310
+WM_PALETTECHANGED = 0x311
+
+WM_HOTKEY = 0x312
+WM_PRINT = 0x317
+WM_PRINTCLIENT = 0x318
+
+WM_HANDHELDFIRST = 0x358
+WM_HANDHELDLAST = 0x35F
+WM_PENWINFIRST = 0x380
+WM_PENWINLAST = 0x38F
+WM_COALESCE_FIRST = 0x390
+WM_COALESCE_LAST = 0x39F
+WM_DDE_FIRST = 0x3E0
+WM_DDE_INITIATE = 0x3E0
+WM_DDE_TERMINATE = 0x3E1
+WM_DDE_ADVISE = 0x3E2
+WM_DDE_UNADVISE = 0x3E3
+WM_DDE_ACK = 0x3E4
+WM_DDE_DATA = 0x3E5
+WM_DDE_REQUEST = 0x3E6
+WM_DDE_POKE = 0x3E7
+WM_DDE_EXECUTE = 0x3E8
+WM_DDE_LAST = 0x3E8
+
+WM_USER = 0x400
+WM_APP = 0x8000
+[常用命令]
+InputBox=InputBox, OutputVar [, Title, Prompt, HIDE, Width, Height, X, Y, Font, Timeout, Default]|InputBox, OutputVar , Title, Prompt, , 260, 120|InputBox, OutputVar , Title, Prompt, 260, 120, , , , , Default
+StringReplace=StringReplace, OutputVar, InputVar, SearchText [, ReplaceText, ReplaceAll?]|StringReplace, clipboard, clipboard, `r`n, , All
+SplitPath=SplitPath, InputVar [, OutFileName, OutDir, OutExtension, OutNameNoExt, OutDrive]|SplitPath, FullFileName, name|SplitPath, FullFileName,, dir|SplitPath, FullFileName, name, dir, ext, name_no_ext, drive
+SplitPath all=SplitPath, FullFileName, name, dir, ext, name_no_ext, drive
+SplitPath dir=SplitPath, FullFileName,, dir
+SplitPath ext=SplitPath, FullFileName, , ,ext
+[学习网站]
+AHK学习指南--善用佳软件=http://xbeta.info/autohotkey-guide-2.htm  /*学习AutoHotkey的指南，从入门到进阶*/
+AHK中文在线教程=http://www.autohotkey.net/~AHKCN/index.html
+Tutorials=http://www.autohotkey.com/wiki/index.php?title=Tutorials#Regular_Expressions
+SCIEdit下载=http://ahk.5d6d.com/viewthread.php?tid=3425
+万年书妖的博客=http://hi.baidu.com/1wyears/home
+sunwind的博客=http://blog.csdn.net/liuyukuan
+[问答]
+如何传递参数给AHK脚本文件并运行之？=还没有答案
+窗口显示后如果改变ListView控件是否显示网格线？=这里如果修改控件属性的问题|ListView 通过设置属性 Gird 来指定是否显示网格线|而Gui中修改控件属性的方法是 GuiControl, +/-Option1 +/-Option2 ...|所以增加网格的命令为：GuiControl, +Grid, ListView控件名|减少网格的命令为：GuiControl, -Grid, ListView控件名
+脚本程序间如何通讯？=？
+OrgID OrgName OrgShort ScCode gshk0000485 升冈国际有限公司 STARLIGHT INT'L 00485 SortCode 0101051701 Receive: CMDID:13945644 MSGID:3041 MSGTYPE:6Time: 2012-01-18 11:26:57(10554949)sCode 0sContent 新闻采编修改成功。TxtID 1116180690Send: CMDID:13945645 MSGID:3213 MSGTYPE:5Time: 2012-01-18 11:26:57(10554949)TaskId Flag 104023 1 Receive: CMDID:13945645 MSGID:3213 MSGTYPE:6Time: 2012-01-18 11:26:57(10555043)sCode 0sContent 手动更新工作流状态成功。Send: CMDID:13945646 MSGID:3030 MSGTYPE:5Time: 2012-01-18 11:26:58(10556010)Operator Operate PubTime JobID JobState TextID TextCode TextTitle TextPlate TextSort TextAb isModified fdsh3 提交 2012-01-18 06:00:00 104016 待审核 1116180690 00485 STARLIGHT INT'L：进一步 延迟寄发有关关连交易配售可换股票据之通函 港股 0101051701主板上市公司 全 1 Receive: CMDID:13945646 MSGID:3030 MSGTYPE:6Time: 2012-01-18 11:26:58(10556041)sCode -2063597564sContent 工作量维护失败。失败原因：操作留痕发生未知错误Send: CMDID:0 MSGID:2221 MSGTYPE:7Time: 2012-01-18 11:27:35(10593029)=MsgBox, 文本 或 MsgBox [, 类型,标题, 文本, 显示时间 ]
+MsgBox命令按钮有几种类型？=OK—0|OK/Cancel—1|Abort/Retry/Ignore—2|Yes/No/Cancel—3|Yes/No—4|Retry/Cancel—5|Icon Hand (stop/error)—16|Icon Question—32|Icon Exclamation—48|Icon Asterisk (info)—64|Make 2nd button the default—256|Make 3rd button the default—512|System Modal (always on top) —4096|Task Modal—8192 这些参数允许相加而得到复合效果。
+显示含有yes/no按钮并总在顶端的对话框？=msgbox,4100,标题,内容
+如何对MsgBox命令的选择结果进行处理？=IfMsgBox, ButtonName|ButtonName可选项: Yes No OK Cancel Abort Ignore Retry Timeout
+对话框显示时间，并以秒为单位？=msgbox , , 标题 , 内容 , 5
+运行外部可执行程序或者直接打开文件？=Run, 目标文件[ , 工作目录 , Max|Min|Hide|UseErrorLevel , 输出PID 变量]
+如何运行记事本并以最大化状态显示？=Run, Notepad.exe , , Max
+如何直接打开文件？=Run, MyFile.txt
+命令行解释器cmd.exe 用那个宏来表示？=%ComSpec% /k在执行完命令后保留命令提示窗口，而/c则在执行完命令之后关闭提示窗口
+命令“dir c:\Windows\system32”如何实现？=Run, %ComSpec% /k dir c:\Windows\system32
+如何打开网页？=Run, http://hi.baidu.com/
+如何打开系统属性窗口？=Run control sysdm.cpl 需要的话可以搜索所有的*.cpl文件
+打开控制面板？=run,control
+如何打开搜索窗口且指定搜索位置？=Run, find C:\
+如何显示指定文件的属性窗口？=Run, properties MyFile.txt 注意：AHK 在退出前将自动关闭打开的属性窗口！
+如何打印指定文件？=Run, print MyFile.txt
+等待窗口出现、被激活、被关闭用那些命令？=WinWait/WinWaitActive/WinWaitClose
+如何使目标窗口出现之前不执行后面语句？=WinWait [, 窗口标题, 窗口文本, 超时时间, 排除标题, 排除文本]
+如何使目标窗口成为活动窗口？=WinActivate [,窗口标题, 窗口文本, 排除标题, 排除文本]
+关闭窗口有几种方式？=正常关闭窗口（WinClose ），强行关闭窗口（WinKill）：|WinClose/WinKill [ , 窗口标题, 窗口文本, 超时时间, 排除标题, 排除文本]
+同名窗口使我们无法用窗口标题准确标识窗口，如何使用窗口ID来准确定位窗口？=使用获得窗口句柄的命令WinGet|WinGet[, 输出变量, CMD, 窗口标题, 窗口文本, 排除标题, 排除文本]
+如何用窗口ID来替代窗口标题？=ahk_pid %ThisPID%
+那个命令把鼠标点击事件发送到目标窗口的目标控件上？=ControlClick [, 目标控件或坐标位置, 窗口标题, 窗口文本, 鼠标按钮, 点击次数, 选项, 排除标题,排除文本]
+ControlClick命令中，目标控件参数主要是什么？=目标控件参数是指要点击的控件的类别名（ClassNN）或控件文本，还可以使用控件句柄（若用的是控件句柄则第一个参数需留空，并在第二个参数中使用ahk_id %控件句柄%）。
+如何获得目标控件信息？=先打开你要进行操作的目标窗口，然后运行AutoIt3 Window Spy，把鼠标移到目标控件上
+鼠标单击系统属性确定按钮代码是？=ControlClick, 确定, 系统属性|ControlClick, Button2, 系统属性
+目标窗口或控件是隐藏状态，ControlClick还可以点击目标控件吗?=可以点击目标控件，但不能保证成功率。
+如何设置控件文本？=ControlSetText [, 目标控件, 新文本, 窗口标题, 窗口文本, 排除标题, 排除文本]|例如：ControlSetText, Edit1, D:\foobar2000, Setup foobar
+如何选中和取消单选框和复选框项目中的选择项目？=Control [, 命令, 值, 目标控件, 窗口标题, 窗口文本, 排除标题, 排除文本]|其中，“命令”就是让我们指定要进行何种设置的参数。对这些单选框/复选框按钮来说，适用的命令是“Check”和“UnCheck ”。|例如：Control, Check, , Button5, foobar |Control, UnCheck, , Button7, foobar
+如何选择下拉列表的项目？=仍是使用Control命令，适用的命令是“Choose, N”和“ChooseString, String”，分别表示选中第N个项目和选中与字符串String||匹配的项目；例如：|Control, Choose, 5, ComboBox1, Installer|Control, ChooseString, 简体中文, ComboBox1, Installer
+键盘如何重定义？=a::b
+字符串如何进行自动替换？=::is::island of resistance或者|::china::|Clipboard=中华人民共和国|send,^V|Return
+屏蔽或开启键盘、鼠标？=BlockInput 命令后，紧跟on，则屏蔽键盘鼠标操作，紧跟off，则重新启用用户输入。|如何仅仅屏蔽鼠标？如何恢复？ BlockInput,MouseMove 恢复为：BlockInput, MouseMoveOff
+如何建立一个弹出式窗口例示文本？如何关闭？=SplashTextOn [, 宽度, 高度, 标题, 文本]|`n 可以在MsgBox和SplashTextOn等命令中对显示的文本进行换行。|SplashTextOff 为关闭SplashTextOn命令建立的弹出式窗口。
+如何将一系列指令重复执行指定次数？ Loop [, Count]=Loop [, Count]|{|循环体……|}
+Loop中的count允许是表达式或者变量吗？=Count不允许是表达式，但允许是一个变量。|如何知道loop现在循环到第几次？ loop 指令隐含有一个变量 A_Index ，用来记录当前状态是第几次循环
+如何中断循环？=if a_index > 25|break ; 中断循环
+如何跳过本次循环？=if a_index < 20|continue ; 跳过本次循环，开始一次新的循环
+如何使使脚本等待指定时间？=Sleep,时间 单位为毫秒
+如进行数学运算，使用什么符来把表达式运算的结果赋予某变量？=使用冒号等号符。如：NetPrice := Price * (1 - Discount/100)
+如何获取指定区间的随机数？=Random, 输出变量 [, 最小值, 最大值]
+如何从指定文本中读取指定行？=FileReadLine, 输出变量, 文件名, 行数
+如何判断文本超出边界？=ErrorLevel 是命令内置的一个变量，当读取文件超出边界时将被赋值为1.
+ErrorLevel 为0和1时一般代表什么？=一般情况下，为0代表操作成功，为1，代表操作失败。
+一般情况下，编写弹出式菜单代码的顺序是什么？=1、先定义子菜单项；2、编写菜单项；3、编写令菜单显示的代码；4、编写删除代码；5、编写响应代码。
+如何添加子菜单？=Menu,add,子菜单项,:子菜单变量如：menu,mymenu,add,常用程序,:amenu
+用来在弹出式菜单中显示一条分割线的代码是？=Menu, MenuName, add
+正常菜单项的代码是？=Menu, MenuName, add,菜单项,响应标志
+形如：Menu,amenu,add,txt 的代码是什么意思？=它其实是Menu,amenu,add,txt,txt 的一种简写，代表菜单项和响应标志
+在指定坐标处显示菜单项的代码是？=Menu,MenuName,show,X坐标,Y坐标 如省略坐标，则在鼠标当前位置显示菜单项。
+如何指定显示菜单的背景色？=Menu,MenuName,color,颜色代码
+删除所有菜单的代码是什么？有什么作用？=Menu,mymenu,deleteall|如果没有这句代码，代码中分割线会在菜单重显时翻倍。如无分割线，可免
+重启、关闭、注销系统的指令是什么？=Shutdown 后跟0为注销1为关机，2为重启，4为强制关闭 8为关闭关闭电源
+隐藏脚本图标有几种方法？=Menu , tray , noicon 或者#NoTrayIcon
+显示脚本图标的代码？=Menu , tray , icon
+脚本图标的气泡提示如何显示？=Menu , tray , tip , 我自己的脚本
+如何设置脚本的图标？=Menu , tray , icon , %systemroot%\system32\shell32.dll ,22或者Menu , tray , icon , e:\ico\1.ico
+如何利用快捷键退出脚本？=#x::ExitApp
+如何移除托盘图标的所有标准菜单项？=Menu , tray , NoStandard
+如何插入托盘图标菜单？=Menu , tray , add , myitem
+在托盘图标显示一个二级菜单代码如何表示？=menu,mymenu,add,boke|menu,mymenu,add,luntan|menu,tray,add,相关网站,:mymenu|Return 注意：响应标志后是 ：不是：：
+如何使非热键类的脚本持久运行？=#Persistent
+显示一个标准的文件选择对话框的代码为？=FileSelectFile, OutputVar [, Options, RootDir, Prompt, Filter]|Option 参数如被省略，则为单选。M 多选，M后允许随意跟随一个数字。S: 显示保存对话框。数字为一般为3，即文件及路径必须存在。Filter 参数格式如：Example: Audio (*.wav; *.mp2; *.mp3)
+FileSelectFile命令如用户选择了多个文件，输出变量如何分割？=输出变量用(`n)字符分割。第一个参数为路径，随后紧跟选定的各个文件名。|if files =|{|MsgBox, 用户放弃选择。|}|Loop, parse, files, `n|{|if a_index = 1|mypath = %A_LoopField%|else|{|runwait, %mypath%\%A_LoopField%|}|}|return
+运行并等待程序完成的指令是？=runwait
+从某字符串中逐次分解出一个个的子串。=Loop, Parse , 某字符串 , 用于分割的特征变量
+使静音或者取消静音状态？=SoundSet, +1, , mute 或者Send,{Volume_Mute}
+使主音量提升（降低）10%？=SoundSet ,+（-）10, MASTER
+使音量中波形音量提升（降低）10%？=SoundSet , +（-）10, WAVE
+#NoEnv 作用是什么？=主要是为了与以后兼容，也可以改善性能
+如何对某些多媒体功能键重定义？=建个脚本内容为#InstallKeybdHook并执行，双击图标，|窗口中选择菜单 view 第四项 key 开头的然后按多媒体键,f5刷新,看第二列内容比如a,显示的值是01e 。使用时就是sc01e::msgbox
+显示器的宽度和高度用那两个常数表示？=A_ScreenWidth 和 A_ScreenHeight
+如何移动鼠标光标？=MouseMove, X, Y [, Speed, R] Speed 参数的范围在 0 (最快) to 100 (最慢)之间取值.|R 参数 如果有此参数，则鼠标移动将以当前位置为基准，进行 x 和 y 像素的位移.
+如何获取当前鼠标坐标？=MouseGetPos, X, Y
+MouseGetPos还有什么作用？=MouseGetPos 指令用来返回鼠标的当前位置，以及鼠标当前悬停的窗口和控件。格式为：|MouseGetPos, [OutputVarX, OutputVarY, OutputVarWin, OutputVarControl|OutputVarWin 这个变量存储了当前鼠标悬停的窗口的ID ，即使窗口未处于激活状态。OutputVarControl 这个变量存储了当前鼠标悬停的控件的名称（ClassNN）。
+MouseGetPos 命令在最后有1、2、3参数是什么意思？=1：在多文档界面程序（例如 SysEdit 或 TextPadThis ）中可以准确的获取激活或置顶的子窗口信息。对其它情况就不那么准确了。|2 ：在 OutputVarContro 中存储 control's HWND/窗口句柄。|3 ：同时包含 1 和 2 的功能。
+如何在屏幕上建立一个紧随鼠标的弹出式窗口？=ToolTip [, Text, X, Y]
+如何获得当前位置像素的颜色RGB的值？=PixelGetColor, OutputVar, X, Y [, RGB]
+如何在系统托盘建立一个弹出式窗口？=TrayTip [, Title, Text, Seconds, Options] 注意senconds的取值一般在10到30之间
+如何用指定时间间隔自动或重复激发某子程序？=SetTimer , Label , 时间间隔
+关闭某进程的代码是？=Process,close,autohotkey.exe
+如何检索鼠标所在位置的信息？=MouseGetPos , , , id , control ; 得到鼠标所在位置窗口的id及控件名称|WinGetTitle, title, ahk_id %id% ；检索到相应id对应窗口的标题|WinGetClass, class, ahk_id %id% ；检索到相应id对应窗口的类名
+如何得到当天的日期？=dd = %A_YYYY%年%A_MM%月%A_DD%日
+如何给剪贴板赋值？=clipboard = %var%
+如何判断多行的Edit是否显示了水平滚动条？=??
+如何使用icon文件作为鼠标指针？=CursorHandle := DllCall( "LoadCursorFromFile", Str,"0.ico" )|DllCall( "SetSystemCursor", Uint,CursorHandle, Int,32512 )|;还原鼠标指针|DllCall( "SystemParametersInfo", UInt,0x57, UInt,0, UInt,0, UInt,0 )
+通过括弧给变量赋值文本块TextBlock时，如何忽略行首空白字符？=在(之后使用 LTrim属性， 也可以使用Join连接多行为一行，Join`s 设置`s(空格)作为连接符。||var_str =|   ( Join`s  LTrim|      +AltSubmit|      -Checked|      aaaaaaaaa|   )||等同于|var_str = +AltSubmit -Checked aaaaaaaaa
+[Gui]
+ListView定位到最后一行=LV_Modify( LV_GetCount(), "Vis")  ;; 滚动垂直滚动条到指定位置
+ListView得到当前选择的行=LV_GetCount("Selected")
+获取Listbox的所有内容，以便遍历=ControlGet, FileList, List, , ListBox1    ; 获得整个ListBox
+[优秀文章]
+Basic Webpage Controls with JavaScript / COM=http://www.autohotkey.com/forum/topic51020.html|控制网页
+IE and Gui Browser Com Tutorial=http://www.autohotkey.com/forum/viewtopic.php?t=34972
+scite 配置=http://html5.kukaka.org/index.php/home/article/291
+图形菜单=http://www.autohotkey.com/forum/topic50813.html
+瓦片窗口=http://www.autohotkey.com/forum/topic33189-90.html
+ahk优秀脚本实例=http://www.autohotkey.com/docs/scripts/
+隐藏显示任务图标TaskIcon=http://www.autohotkey.com/forum/topic17314.html&highlight=tray|http://www.autohotkey.com/forum/topic84555.html&highlight=postmessage
+sixxpack破解的文章=http://hi.baidu.com/btb368/blog/item/a6b57bd85ce3a6e438012f1f.html
+Qliner hotkeys:可视化设置/管理Windows快捷键=http://apps.hi.baidu.com/share/detail/32738652  /*类似于飞扬魔术键盘*/
+JSON--轻量级XML介绍=http://www.autohotkey.net/~polyethene/#json  /*轻量级XML*/|http://www.json.org/  /*官方网站*/
+MoWaStart 快速启动工具=http://moebiusx.mo.funpic.de/ /*需要翻墙*/|http://monschein.org  /*目标是快速启动程序或文件*/
+AutoHotkey控制TotalCommand的脚本=http://www.ghisler.ch/wiki/index.php/AutoHotkey  /*有很多控制TC的脚本*/
+[经验]
+判断窗口是否隐藏=WinGet,Style1 ,Style,ahk_class VMUIFrame|if (Style1&0x10000000)   窗口没有隐藏|else  窗口已经隐藏
+判断窗口标题是否隐藏=WinGet,Style1 ,Style,A|if (Style1&0xC00000) 标题没有隐藏|else 窗口标题已经隐藏
+退出所有QQ（难点清除图标）=/*这段代码应该适用于AHK_L*/|Process, Exist, qq.exe|if  ErrorLevel|{|   Loop|   {|      process,close,qq.exe|      Process,Exist,qq.exe|   }|   Until   !ErrorLevel|}||RefreshTray()|Return||RefreshTray()|{|   WM_MOUSEMOVE := 0x200|   ControlGetPos, xTray,, wTray,, ToolbarWindow321, ahk_class Shell_TrayWnd|   endX := xTray + wTray|   x := 5|   y := 12|   Loop|   {|      if (x > endX)|         break|      point := (y << 16) + x|      PostMessage, %WM_MOUSEMOVE%, 0, %point%, ToolbarWindow321, ahk_class Shell_TrayWnd|      x += 18|   }|}||http://www.autohotkey.com/forum/topic8086.html  /*AHK论坛*/
+使背景图片平铺窗口=http://www.autohotkey.com/community/viewtopic.php?p=467410
+[测试代码]
+测试StrInsert@()=;#include .\inc\common.aik|#include .\inc\string.aik|str1 = max if( x==y )|str2 := str1|needle := "=@"||StrInsert@( str2, "=@[^\s=]" )|StrInsert@( str2, "[^\s=]@=" )|;StrInsert@( str2, "if@\(" )||msgbox %str1% `n`n%str2%|
+从pdm表结构分解出重要信息=1、从pdm 中复制表的结构信息|2、打开正则表达式测试窗口，并将复制的内容粘贴到原始文本框中。|3、填入匹配字符串：(.*?)\t(.*?)\t(.*?)\t(.*?)\t(.*?)\t(.*?)\t(.*?)\t(.*?)\t|4、填写替换字符串：$2		$4		$1|5、按替换按钮。

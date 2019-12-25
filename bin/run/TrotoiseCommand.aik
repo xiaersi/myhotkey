@@ -1,0 +1,63 @@
+
+
+svn_log(path_)
+{
+	global g_svndir
+	run %g_svndir% /command:log /path:%path_%
+}
+
+
+
+svn_remove(path_)
+{
+	global g_svndir
+	run %g_svndir% /command:remove /path:%path_%
+}
+
+svn_copy(from_, to_, msg_="")
+{
+	global g_svndir
+	if (from_==to_)
+	{
+		msgbox svn_copy() Can not copy self!
+		return 0
+	}
+	run %g_svndir% /command:copy /path:%from_% /url:%to_% /logmsg:%msg_%
+	return 1
+}
+
+
+svn_view(path_)
+{
+	global g_svndir
+	run %g_svndir% /command:repobrowser /path:%path_%
+}
+
+
+svn_diff(path1_, path2_)
+{
+	global g_svndir
+	run %g_svndir% /command:diff /path:%path1_% /path2:%path2_%
+}
+
+
+svn_status(path_)
+{
+	global g_svndir
+	run %g_svndir% /command:info /path:%path_%
+}
+
+svn_add(path_)
+{
+	global g_svndir
+	run %g_svndir% /command:add /path:%path_%
+}
+
+svn_mkdir(path_)
+{
+	global g_svndir
+	run %g_svndir% /command:mkdir /path:%path_%
+}
+
+
+

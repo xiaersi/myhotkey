@@ -1,0 +1,61 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Jing是免费的抓图/录屏软件
+; 目的, 实现录屏时点击暂停按钮
+; 方法: 
+;	1. {shift}{pause}或者{ScrollLock}按钮, 选择录屏的同时设置暂停按钮的位置
+;	2. {pause} 自动点击刚才指定的位置, 起到按暂停按钮的目的
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; #include .\lib\FuntionBase\function_common.aik
+
+
+click_pause(byref g_varX, byref g_varY)
+{
+	GroupActivate, g_TrayWndGroup
+	CoordMode, Mouse, Screen	
+	click %g_varX%, %g_varY%
+	var_temp = 点击了暂停按钮( %g_varX%, %g_varY%)
+	tooltip7(var_temp)
+	return
+}
+
+^scrolllock::
+	send !p
+	return
+scrolllock::
++pause::	; 设置暂停按钮的位置
+	click
+	CoordMode, Mouse, Screen
+	MouseGetPos, g_varX, g_varY
+	g_varY := g_varY + 22
+	var_temp = x= %g_varX%, y=%g_varY%
+	tooltip7(var_temp)
+	if not g_TrayWndGroup
+	{
+	GroupAdd, g_TrayWndGroup, ahk_class Shell_TrayWnd
+	}
+	return
+	
+~pause::	; 模拟按暂停按钮
+	click_pause(g_varX, g_varY)
+	return
+	
+	
+
+
+; CS 窗口
+#ifwinactive ahk_class Valve001	
+f12::	; CS中查看Amxx 消息效果的命令, 在输入完命令的同时, 开始录制屏幕
+	send ``
+	inputbox var_temp, 请输入Message Index, 请输入Message Index 例如 TE_SPRITE的序号为 17,,360,120
+	sleep 100
+	send say msgtest %var_temp%
+	sleep 100
+	send {enter}
+	sleep 100
+	send ``
+	click_pause(g_varX, g_varY)
+	sleep 100
+	winactivate Counter-Strike ahk_class Valve001
+	return
+	
+#ifwinactive

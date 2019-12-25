@@ -1,0 +1,727 @@
+
+
+;; 运行ListView中指定的行
+LV_run( cmdType, var_row, cmdParamArray )
+{
+	Local  keyName, KeySec, keyValue, keyPath, paramNum, param1, var_temp, var_pos, ArrayName
+	if %cmdParamArray%0 <>
+	{
+		paramNum := %cmdParamArray%0
+		if paramNum > 0
+			param1 := %cmdParamArray%1
+	}
+
+	LV_GetText( keyName, 	var_row, KEYFIELD )
+	LV_GetText( KeySec, 	var_row, SECFIELD )
+	LV_GetText( keyValue, 	var_row, VALUEFIELD )
+	if keySec =
+	 	return false
+	if keyValue =
+	 	return false
+
+	ifInString keySec, $
+	{
+		;; 特别处理帮助信息
+		if cmdType = help
+		{
+			if keyValue = 陈建平
+			{
+				run http://blog.csdn.net/teshorse
+			}
+			else if keyValue = 在线帮助
+			{
+
+			}
+			return true
+		}
+		else if cmdType = start
+		{
+			LV_GetText( keyPath, var_row, MEMOFIELD )
+			if keyPath <>
+				keyValue := keyPath
+
+			return RunInput( keyValue )
+		}
+		else
+		{
+			return RunInput( keyValue )
+		}
+	}
+	;; 如果是自定义命令类型
+	else if ( cmdType != "" && IsExeCmdType( cmdType ) )
+	{
+		var_pos := SearchArray( "file_keyArray", cmdType )
+		if var_pos <>
+		{
+            var_temp := file_ValueArray%var_pos% 	;; 得到自定义命令的关联程序
+			ifNotExist  %var_temp%
+			{
+				if cmdType = vim
+				{
+					regread var_temp, HKEY_LOCAL_MACHINE, SOFTWARE\Vim\GVim, path
+				}
+			}
+			;msgbox file_ValueArray%var_pos% = [%var_temp%]
+			ifExist %var_temp%
+			{
+				;; 如果keyValue中包含了空格，则给它添加双引号
+				ifInString keyValue, %a_space%
+				{
+					IfNotInString keyValue, `"
+						keyValue = `"%keyValue%`"
+				}
+                var_temp = %var_temp% %keyValue%       ;; 使用自定义命令的关联程序打开keyValue
+                if ( myrun( var_temp ) )
+                {
+					return true
+				}
+			}
+		}
+		msgbox 自定义命令 %cmdType% 关联程序有误！`n %cmdType% = [%var_temp%]
+		return false
+	}
+
+	if keySec = file
+	{
+		LV_GetText( keyPath, var_row, MEMOFIELD )
+		if ( 1 == instr( keyValue, "\\" ) )
+		{
+            var_temp := keyValue              ;; 网上邻居文件夹，无需参数
+            keyPath =
+		}
+		else
+		{
+			var_temp = %keyValue% %param1%
+		}
+		if ( myrun( var_temp, keyPath ) )
+		{
+			ArrayName = $recent$_ValueArray
+			InsertRecentArray( ArrayName, keyValue )
+			WriteRecentArray( ArrayName, "recent"  )
+			return true
+		}
+	}
+	else if keySec = variable
+	{
+		if param1 <>
+		{
+			StringReplace keyValue, keyValue, $var$, %param1%
+			if ( myrun( keyValue ) )
+			{
+				ArrayName = $recent$_ValueArray
+				InsertRecentArray( ArrayName, keyValue )
+				WriteRecentArray( ArrayName, "recent"  )
+				return true
+			}
+		}
+	}
+	else if keySec = send
+	{
+		send %keyValue%
+		ArrayName = $recent$_ValueArray
+		InsertRecentArray( ArrayName, keyValue )
+		WriteRecentArray( ArrayName, "recent" )
+		return true
+	}
+	else if keySec = cmd
+	{
+		gui hide
+		sleep 100
+		if not IsCmdString( keyValue )
+		{
+
+			send %keyValue%   ;; 如果keyValue不是飞扬命令串，则直接send之
+			return true
+		}
+		else if run_cmd( keyValue )
+		{
+			ArrayName = $recent$_ValueArray
+			InsertRecentArray( ArrayName, keyValue )
+			WriteRecentArray( ArrayName, "recent" )
+			return true
+		}
+		gui show
+	}
+
+	return false
+}
+
+
+
+RunInput( _input )
+{
+	Local cmdType, cmdName, pos, var_sec, ArrayName, bNotSave, var_temp, exeFile
+	CommandSplit( _input, cmdType, cmdName, "cmdParamArray" )
+
+	if cmdName =
+	{
+		if cmdType =
+		{
+			return false
+		}
+		if cmdType = calc
+		{
+			ExitApp
+		}
+		;; 使用add命令添加配置文件，没有指定目标则使用剪贴板的内容作为目标
+		else if cmdType = add
+		{
+			var_run := ∑获取根目录()
+			var_run = %var_run%\bin\run\addrun.ahk
+			var_temp = `"%clipboard%`"
+			run_ahk( var_run, var_temp, a_workingdir )
+		}
+		else if cmdType = vim
+		{
+			regread exeFile, HKEY_LOCAL_MACHINE, SOFTWARE\Vim\GVim, path
+			ifExist %exeFile%
+			{
+				run %exeFile%
+				ExitApp
+			}
+		}
+
+		;; 用户自定义的(空)命令，直接运行该命令对应的关联程序
+
+		if ( IsExeCmdType( cmdType ) )
+		{
+			exeFile = 
+			if ( FindRunFileArray( exeFile, cmdType ) )
+			{
+				return true
+			}
+		}
+		return false
+	}
+	if cmdType =
+	{
+		pos := SearchArray( "file_keyArray", cmdName, true )
+		if pos > 0
+		{
+			cmdName := file_ValueArray%pos%
+			var_sec = file
+		}
+	}
+	else if cmdType = recent
+	{
+		StrTrim( cmdName )
+		CommandSplit( cmdName, var_temp, cmdName, "cmdParamArray" )
+	}
+	else if cmdType = var
+	{
+		if cmdParamArray1 <>
+		{
+			pos := SearchArray( "variable_keyArray", cmdName, true )
+			if pos > 0
+			{
+				cmdName := variable_ValueArray%pos%
+				StringReplace cmdName, cmdName, $var$, %cmdParamArray1%
+			}
+		}
+	}
+	else if IsExeCmdType( cmdType )
+	{
+		;; 如果是用户自定义的命令类型，如vim,ue,em，则尝试使用用户自定义的程序运行
+		pos := SearchArray( "file_keyArray", cmdType, true )
+		if pos > 0
+			exeFile := file_ValueArray%pos%
+		else
+			exeFile := cmdType
+
+
+		pos := SearchArray( "file_keyArray", cmdName, true )
+		if pos > 0
+		{
+			cmdName := file_ValueArray%pos%
+		}
+		;; 构造运行命令，如: d:\program files\vim\vim.exe d:\test.txt
+		exeFile = %exeFile% %cmdName%
+
+		if myrun( exeFile )
+			return true
+		Else
+			return false
+		;msgbox cmdType = %cmdType% `n cmdName = %cmdName% `n pos = %pos%
+	}
+
+	if ( RunCommand( cmdType, cmdName, "cmdParamArray" ) )
+	{
+		;; 运行成功
+		bNotSave := false
+		if cmdType =
+		{
+			var_sec = $recent$
+		}
+		else
+		{
+			loop parse, g_NotSaveCmdType, `,
+			{
+				if ( a_loopfield == cmdType )
+				{
+					bNotSave := true
+					break
+				}
+			}
+		}
+		if not bNotSave
+		{
+			if var_sec =
+			{
+				var_sec = $%cmdType%$
+			}
+			ArrayName = %var_sec%_ValueArray
+			InsertRecentArray( ArrayName, _input )
+			WriteRecentArray( ArrayName, cmdType )
+		}
+		return true
+	}
+	return false
+}
+
+RunCommand( cmdType, cmdName, paramArray )
+{
+	Local ParamFirst,WorkingDir,MaxMin, var_temp, var_root, var_vimpath, var_cmdtype, var_oldclip
+	if ( cmdType == "run" || cmdType == "" || cmdType == "recent" )
+	{
+		ParamFirst := %paramArray%1
+		if ParamFirst = -
+			ParamFirst =
+		WorkingDir := %paramArray%2
+		if WorkingDir = -
+			WorkingDir =
+		MaxMin 	:= %paramArray%3
+		if MaxMin not in Max,Min,Hide
+			MaxMin =
+		run %cmdName% %ParamFirst%, %WorkingDir%, %MaxMin% UseErrorLevel
+		if not ErrorLevel
+			return true
+		else
+		{
+			;GuiControl, Hide, _KeyListView
+			MsgBox, 262160, 运行失败！, 执行失败！`n`nrun  %cmdName% %ParamFirst%, %WorkingDir%, %MaxMin%
+		}
+	}
+	else if ( cmdType == "web" || cmdType == "dir" || cmdType == "var" )
+	{
+		if ( myrun(cmdName) )
+			return true
+	}
+    else if cmdType = send              ;; 直接send 用户输入的内容
+	{
+		send %cmdName%
+		return true
+	}
+    else if cmdType = script            ;; 将输入的内容当脚本运行
+	{
+		run_with_temp_file(cmdName)
+		return true
+	}
+    else if cmdType = calc              ;; 超级计算器
+	{
+		var_temp := CalcLine(cmdName)
+		if var_temp = EXP_ERROR
+		{
+			msgbox 计算出错！
+		}
+		else if var_temp <>
+		{
+			clipboard := var_temp
+			tooltip %clipboard%  = %cmdName%`n`n%clipboard% 已复制到剪贴板, 35, 65
+			sleep %g_CalcTipTime%
+			tooltip
+			return true
+		}
+	}
+
+    else if cmdType = vim               ;; 使用Vim打开指定文件
+	{
+		msgbox zzz
+		regread var_vimpath, HKEY_LOCAL_MACHINE, SOFTWARE\Vim\GVim, path
+		if var_vimpath <>
+		{
+			CommandSplit( cmdName, var_cmdtype, var_temp, "" )
+			if var_cmdtype = dir
+				cmdName := var_temp
+
+			;; 如果cmdName中包含了空格，则给它添加双引号
+			ifInString cmdName, %a_space%
+			{
+				IfNotInString cmdName, `"
+					cmdName = `"%cmdName%`"
+			}
+
+			var_temp = %var_vimpath% %cmdName%
+
+		;	msgbox 	run %var_temp%
+			myrun( var_temp )
+			return true
+		}
+	}
+	else if cmdType = svn
+	{
+		svn_view(cmdName)
+	}
+    else if cmdType = add               ;; 添加新的文件到配置文件
+	{
+		var_run := ∑获取根目录()
+		var_run = %var_run%\bin\run\addrun.ahk
+		if cmdName <>
+		{
+			
+			var_oldclip := clipboard
+			clipboard := cmdName
+			run_ahk( var_run, cmdName, a_workingdir )
+			;; 延时将剪贴板的内容恢复，一定要延时
+			sleep 200
+			clipboard := var_oldclip
+		}
+		else
+		{
+			run_ahk( var_run, clipboard, a_workingdir )
+		}
+		return true
+	}
+    else if cmdType = ahk               ;; 打开 AutoHotkey 相关的程序或文件
+	{
+		var_root := ∑获取根目录()
+		if cmdName in help,?,spy,update,2Exe
+		{
+			SplitPath, a_ahkpath , , var_temp
+			if cmdName = help
+				var_temp = %var_temp%\autohotkey.chm
+			else if cmdName = ?
+				var_temp = %var_temp%\autohotkey.chm
+			else if cmdName = spy
+				var_temp = %var_temp%\AU3_Spy.exe
+			else if cmdName = update
+				var_temp = %var_temp%\Update.ahk
+			else if cmdName = 2Exe
+				var_temp = %var_temp%\Compiler\Ahk2Exe.exe
+		}
+		else if cmdName in bin,inc,lib,users,awin,learn,cjp,SubUI
+			var_temp = %var_root%\%cmdName%
+		else if cmdName in run,try,dict,blat,doxgen,joy,explore,readmode
+			var_temp = %var_root%\bin\%cmdName%
+		else if cmdName in this,work
+			var_temp := a_workingdir
+		else if cmdName in word,launchy.ini,temp.ini,myhotkey.ahk,RegExTitle.ahk
+			var_temp = %a_workingdir%\%cmdName%
+		else  if cmdName in \,.,root
+			var_temp := var_root
+		else if cmdName in array.aik,common.aik,debug.aik,expression.aik,listview,inifile.aik,path.aik,string.aik,tip.aik,window.aik
+			var_temp = %var_root%\inc\%cmdName%
+		else if cmdName in systime
+			var_temp = %var_root%\bin\SysTools\SystimeSetting.ahk
+		else if cmdName in wInfo
+			var_temp = %var_root%\bin\SysTools\查看窗口信息.ahk
+		else if cmdName = ip
+		{
+			msgbox 4, IP地址, IP1: %A_IPAddress1% `nIP2: %A_IPAddress2% `nIP3: %A_IPAddress3% `nIP4: %A_IPAddress4% `n`n 是否复制IP1？
+			ifmsgbox, yes
+			{
+				var_tip = 已经复制 IP1: %A_IPAddress1%
+				clipboard :=  A_IPAddress1
+				tooltip7( var_tip, 800 )
+			}
+			return true
+		}
+		else if cmdName = logview
+		{
+			var_temp = %var_root%\bin\文本文件处理\日志查看器.ahk
+		}
+		else if cmdName = regTest
+		{
+			var_temp = %var_root%\bin\SysTools\正则表达式测试.ahk
+		}
+		else if cmdName = DeskMore
+		{
+			var_temp = %var_root%\bin\多屏幕切换\DesktopSwitch.ahk
+		}
+		else
+		{
+			var_temp =
+		}
+
+		if var_temp <>
+		{
+			if ( MyRun( var_temp ) )
+				return true
+		}
+	}
+	else if cmdType = start
+	{ 	;; 执行Windows运行命令
+		if cmdName = MyPc
+		{   ;; 打开我的电脑
+			run ::{20d04fe0-3aea-1069-a2d8-08002b30309d}
+			return true
+		}
+		if cmdName = HSZ
+		{	;; 打开回收站
+			run ::{645ff040-5081-101b-9f08-00aa002f954e}
+			return true
+		}
+		;; 其他Windows命令
+		if ( MyRun( cmdName ) )
+			return true
+	}
+	else if cmdType = help
+	{
+		if cmdName = 陈建平
+		{
+			run http://blog.csdn.net/teshorse
+		}
+		return true
+	}
+	return false
+}
+
+
+;; 根据用户输入的命令，返回命令的类型
+CommandType( _strcmd, byref subcmd_ = "NULL" )
+{
+	Local c, c3, c4, c5, var_temp, var_type, OutDir, OutExtension,OutDrive
+	StringLower _strcmd, _strcmd
+
+	;; 得到命令的分类，并且截短_strcmd的命令类型的指示部分
+	StringLeft c, _strcmd, 1
+	if c in ?,=,<,>, ,`:,`#,+,`;
+	{
+		StringMid _strcmd, _strcmd, 2
+		if c = `;
+			var_type = run
+		else if c = ?
+			var_type = help
+		else if c = <
+			var_type = script
+		else if c = >
+			var_type = send
+	;	else if c = :
+	;		var_type = var
+		else if c = #
+			var_type = start
+		else if c = +
+			var_type = add
+		else if ( c == "=" )
+			var_type = calc
+		else if ( c == " " )
+			var_type = recent
+	}
+	else if _strcmd contains %g_cmdList%
+	{
+		StringLeft c3, _strcmd, 3
+		StringLeft c4, _strcmd, 4
+		StringLeft c5, _strcmd, 5
+		if ( c4 == "run " )
+		{
+			var_type = run
+			StringMid _strcmd, _strcmd, 5
+		}
+		else if ( c4 == "svn " )
+		{
+			var_type = svn
+			StringMid _strcmd, _strcmd, 5
+		}
+		else if ( c3 == "svn")
+		{
+			var_type = svn
+			_strcmd := clipboard
+		}
+		else if ( c4 == "vim ")
+		{
+			regread var_temp, HKEY_LOCAL_MACHINE, SOFTWARE\Vim\GVim, path
+			if var_temp <>
+			{
+				var_type = vim
+				StringMid _strcmd, _strcmd, 5
+			}
+		}
+		else if (c4 == "var ")
+		{
+			var_type = var
+			StringMid _strcmd, _strcmd, 5
+		}
+		else if (c4 == "ahk ")
+		{
+			var_type = ahk
+			StringMid _strcmd, _strcmd, 5
+		}
+		else if ( c4 == "add " )
+		{
+			var_type = add
+			StringMid _strcmd, _strcmd, 5
+		}
+		else if (c5 == "send ")
+		{
+			var_type = send
+			StringMid _strcmd, _strcmd, 6
+		}
+		else if (c5 == "help ")
+		{
+			var_type = help
+			StringMid _strcmd, _strcmd, 6
+		}
+		else if (c5 == "calc ")
+		{
+			var_type = calc
+			StringMid _strcmd, _strcmd, 6
+		}
+		else if c5 = start
+		{
+			if ( 1 == instr( _strcmd, "start ") )
+			{
+				var_type = start
+				StringMid _strcmd, _strcmd, 7
+			}
+		}
+		else if c5 = scrip
+		{
+			if ( 1 == instr( _strcmd, "script ") )
+			{
+				var_type = script
+				StringMid _strcmd, _strcmd, 8
+			}
+		}
+	}
+	else
+	{
+		if ( 1 == instr( _strcmd, "http://" ) || 1 == instr( _strcmd, "www." ) )
+		{
+			var_type = web
+		}
+		else if _strcmd contains .com,.cn,.com.cn,.net.cn,.org,.org.cn,.gov,.gov.cn,.net,.cc,.me
+		{
+			var_type = web
+		}
+		else if ( 2 == instr( _strcmd, ":\" ) )
+		{
+			var_type = dir
+		}
+		;; 是否自定义类型
+		else if _strcmd contains %g_CustomCmdType%
+		{
+			loop parse, g_CustomCmdType, `,
+			{
+				if a_loopfield =
+					continue
+			;	msgbox _strcmd[%_strcmd%] g_CustomCmdType[%g_CustomCmdType%]
+				if ( 1 == instr( _strcmd, a_loopfield . " " ) )
+				{
+					var_type := a_loopfield
+					StringReplace _strcmd , _strcmd, %var_type%%a_space%, ,
+					break
+				}
+			}
+		}
+	}
+
+	if ( subcmd_ != "NULL" )
+	{
+		subcmd_ :=  _strcmd
+	;	msgbox subcmd_[%subcmd_%] _strcmd[%_strcmd%]
+	}
+	return var_type
+}
+
+
+;; 判断命令是否为可执行命令，如 普通命令，vim,ue,eme以及用户自定义的命令
+IsExeCmdType( _cmdType )
+{
+	Global g_CustomCmdType
+	if _cmdType =
+		return true
+	else if _cmdType in vim,ue,eme
+		return true
+	else if _cmdType in %g_CustomCmdType%
+		return true
+	return false
+}
+
+
+;; 分析用户的输入，返回命令的类型、命令名称以及参数
+CommandSplit( _strcmd, byref type_, byref cmd_, ParamArray )
+{
+	;; 初始化参数
+	Local c1, var_temp, len, pos
+	type_ =
+	cmd_ =
+	var_temp := %ParamArray%0
+	StringLower _strcmd, _strcmd
+	loop %var_temp%
+	{
+		%ParamArray%%a_index% =
+	}
+	%ParamArray%0 =
+
+	if _strcmd =
+		return false
+
+	;; 得到命令的分类，并且截短_strcmd的命令类型的指示部分
+	type_ := CommandType( _strcmd, _strcmd )
+;	var_tip = [%type_%] := CommandType( _strcmd, %_strcmd% )
+;	tooltip7( var_tip )
+
+	if type_ in calc,help,script,send,web,dir,add,vim,run
+	{
+		cmd_ := _strcmd
+		return
+	}
+	else if type_ <>
+	{
+		;; 如果是用户自定义的命令类型，如ue,em,vim，则返回的cmd_ := _strcmd, 没有参数
+		if IsExeCmdType( type_ )
+		{
+			cmd_ := _strcmd
+			return
+		}
+	}
+
+
+
+	;; 获得命令部分
+	len := strlen( _strcmd )
+    pos := 0                            ;; 命令名称的最后一个字符位置
+	loop %len%
+	{
+		pos := a_index
+		StringMid c1, _strcmd, a_index, 1
+		if c1 in `n, ,`",+,*,`%,^,/,\,=,`,,?,!,`',(,),<,&,|,>,[,],``,`;
+		{
+			pos := a_index -1
+			break
+		}
+	}
+	;; 得到命令及参数列表
+	if pos > 0
+	{
+		StringLeft cmd_, _strcmd, pos
+		StringMid _strcmd, _strcmd, pos + 2
+		StrTrim( _strcmd )
+		if ( ParamArray != "" && strlen(_strcmd) > 0 )
+		{
+			StringSplit, %ParamArray%, _strcmd, `,
+		}
+	}
+	else
+	{
+		cmd_ := _strcmd
+	}
+	;msgbox [%type_%][%cmd_%]
+
+}
+
+
+
+MyRun( Target , WorkingDir = "" )
+{
+	Run, %Target% , %WorkingDir%, UseErrorLevel
+	if ErrorLevel
+	{
+		EnableBox( true )
+		MsgBox, 262160, 运行失败！, 执行失败！`n`nrun  %Target% , %WorkingDir%
+		EnableBox( false )
+		return false
+	}
+	return true
+}
+
+

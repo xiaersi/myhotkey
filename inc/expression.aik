@@ -1,0 +1,860 @@
+;; 解析并计算表达式
+g_VarPrefix = g_var_                            ;; 全局变量的前缀
+
+;; varname 全局变量名去掉前缀g_VarPrefix的部分
+get_gvar( varname )
+{
+	var_name := g_var_%varname%
+	return GetGlobalVar( var_name )
+}
+
+set_gvar( varname, var_value )
+{
+	var_name := g_var_%varname%
+	return SetGlobalVar( var_name, var_value )
+}
+
+;; 指定全局变量名，返回其值，举例：g_var1 = 123
+;; varname = g_var1 	;; varname 完整的全局变量名
+;; GetGlobalVar( varname ) 的值将是 123 
+GetGlobalVar( varname )
+{
+	global 
+;	msgbox GetGlobalVar( %varname% )
+	StrTrim(varname)
+	var_temp := %varname%
+	return var_temp
+}
+
+;; varname 完整的全局变量名 
+SetGlobalVar( varname, var_value )
+{
+	global 
+;	msgbox SetGlobalVar( %varname% )
+	StrTrim(varname)
+	if varname =
+		return false
+	if varname is number
+		return false
+	;; 如果变量名中包含了结束字符（非法字符），则无法赋值
+	if StrHaveTerminatChar( varname )
+		return false
+	%varname% := var_value
+	return true
+}
+
+
+#include .\inc\string.aik
+
+;; 在调用myadd等函数的运算操作之前， 调用此函数检查变量是否合法
+;; 如果a,b中有一值为空，返回false， 如果两个都是数字，返回true
+;; 如果某个变量不是数字，则查看它是不是全局变量的名称，
+;; 尝试将其当成全局变量的名称取值，并将值赋给它
+CheckValueBeforeOp1( byref a )
+{
+	if a =
+		return false
+
+	if a is not number
+	{
+        bNegative := false                      ;; 是负数吗？
+		StringLeft var_char, a, 1
+		if var_char = -
+		{
+			bNegative := true 
+			StringMid, a, a, 2
+		}
+		a := GetGlobalVar( a )
+		if a =
+			return false		
+		if a is not number
+			return false
+		if bNegative
+			a := -a
+	}
+	return true
+}
+
+CheckValueBeforeOp2( byref a, byref b )
+{
+	if ( CheckValueBeforeOp1( a ) && CheckValueBeforeOp1( b ) )
+	{
+		return true
+	}
+	return false
+}
+
+myadd(a,b)
+{
+;	msgbox myadd(%a%, %b%)
+	if not CheckValueBeforeOp2(a, b)
+		return "EXP_ERROR"
+	return a+b
+}
+
+mysub( a, b )
+{
+; msgbox mysub( %a%, %b% )
+	if not CheckValueBeforeOp2(a, b)
+		return "EXP_ERROR"		
+	return a-b
+}
+
+mymul( a, b )
+{
+	if not CheckValueBeforeOp2(a, b)
+		return "EXP_ERROR"		
+	return a * b
+}
+
+mymul2( a, b )
+{
+	if not CheckValueBeforeOp2(a, b)
+		return "EXP_ERROR"		
+	return a ** b
+}
+
+mydiv( a, b )
+{
+	if not CheckValueBeforeOp2(a, b)
+		return "EXP_ERROR"
+	if b = 0
+		return "EXP_ERROR"		
+	return a / b
+}
+
+mydiv2( a, b )
+{
+	if not CheckValueBeforeOp2(a, b)
+		return "EXP_ERROR"
+	if b = 0
+		return "EXP_ERROR"
+	return a // b
+}
+
+;; 关系运算
+myRelaOper( operator, a, b )
+{
+	if not CheckValueBeforeOp2(a, b)
+		return "EXP_ERROR"
+		
+	if ( operator == ">=" )
+		return a >= b
+	else if ( operator == ">" )
+		return a > b
+	else if ( operator == "<=" )
+		return a <= b
+	else if ( operator == "<" )
+		return a < b
+	return "EXP_ERROR"
+}
+
+myEqual( a, b )
+{
+	if not CheckValueBeforeOp2(a, b)
+		return "EXP_ERROR"
+	if ( a == b )
+		return true
+	return false
+}
+
+myNotEqual( a, b )
+{
+	if not CheckValueBeforeOp2(a, b)
+		return "EXP_ERROR"
+	if ( a != b )
+		return true
+	return false
+}
+
+
+myAnd( a, b )
+{
+	if not CheckValueBeforeOp2(a, b)
+		return "EXP_ERROR"
+		
+	if ( a && b )
+		return true
+	return false
+}
+
+myOr( a, b )
+{
+;msgbox myOr( %a%, %b% )
+	if not CheckValueBeforeOp2(a, b)
+		return "EXP_ERROR"
+		
+	if ( a || b )
+		return true
+	return false
+}
+
+mymath( FuncName, Params )
+{
+	lParam =
+	rParam =
+	ifinstring Params, `,
+	{
+		StrSplit2Sub( Params, "`,", lParam, rParam )
+		
+		lParam := mycalc0( lParam )
+		if ( lParam == "EXP_ERROR" )
+        	return "EXP_ERROR"          ;; 参数1为无效表达式
+        	
+		rParam := mycalc0( rParam )
+		if ( rParam == "EXP_ERROR" )
+        	return "EXP_ERROR"          ;; 参数1为无效表达式
+        	        			
+		if not CheckValueBeforeOp2( lParam, rParam )
+		{
+			return "EXP_ERROR"          ;; 参数1 或 参数2 为无效表达式
+		}
+	}
+	else 
+	{
+		Params := mycalc0( Params )
+		if ( Params == "EXP_ERROR" )
+        	return "EXP_ERROR"          ;; 参数1为无效表达式
+        	
+		if not CheckValueBeforeOp1( Params )
+		{
+			return "EXP_ERROR"          
+		}        	
+	}
+	
+	if FuncName = Sqrt
+		return Sqrt( Params )
+	else if FuncName = Round
+	{
+		if rParam <>
+			return Round( lparam, rparam )
+		else 
+			return Round( Params )
+	}
+	else if FuncName = Mod
+	{
+		if lParam is not integer
+			return "EXP_ERROR"
+		if rParam is not integer
+			return "EXP_ERROR"
+		return Mod( lParam, rParam )
+	}
+	else if FuncName = Sin
+		return Sin( Params )
+	else if FuncName = Sin2
+		return Sin( Params * 3.1415926 / 180 )
+	else if FuncName = Cos
+		return Cos( Params )
+	else if FuncName = Cos2
+		return Cos( Params * 3.1415926 / 180  )		
+	else if FuncName = Tan
+		return Tan( Params )
+	else if FuncName = Tan2
+		return Tan( Params * 3.1415926 / 180  )
+	else if FuncName = Abs
+		return Abs( Params )
+	else if FuncName = Ceil
+		return Ceil( Params )
+	else if FuncName = Exp
+		return Exp( Params )
+	else if FuncName = Floor
+		return Floor( Params )
+	else if FuncName = Log
+		return Log( Params )
+	else if FuncName = Ln
+		return Ln( Params )
+	else if FuncName = ASin
+	{
+		if ( Params >= -1 && Params <= 1 )
+			return ASin( Params )
+		return "EXP_ERROR"
+	}
+	else if FuncName = ACos
+	{
+		if ( Params >= -1 && Params <= 1 )
+			return ACos( Params )
+		return "EXP_ERROR"	
+	}
+	else if FuncName = ATan
+		return ATan( Params )
+	;; else 
+	return "EXP_ERROR"	
+}
+
+;; 尝试对表达式中的关系运算符进行关系运算
+TryRelaOper( byref var_exp )
+{
+	loop
+	{
+		;; 寻找关系运算符
+		var_oper =
+		len := strlen( var_exp ) 
+		var_pos := len + 1
+		
+		TempPos := instr( var_exp, ">=" )
+		if ( TempPos > 0 && TempPos < var_pos )
+		{
+			var_oper := ">="
+			var_pos := TempPos
+		}
+		
+		TempPos := instr( var_exp, "<=" )
+		if ( TempPos > 0 && TempPos < var_pos )
+		{
+			var_oper := "<="
+			var_pos := TempPos
+		}
+		TempPos := instr( var_exp, ">" )
+		if ( TempPos > 0 && TempPos < var_pos )
+		{
+			var_oper := ">"
+			var_pos := TempPos
+		}	
+		TempPos := instr( var_exp, "<" )
+		if ( TempPos > 0 && TempPos < var_pos )
+		{
+			var_oper := "<"
+			var_pos := TempPos
+		}
+		
+		if var_oper =
+			return true
+		
+		if var_oper in >=,<=,>,<
+		{
+			if ( var_pos > 0 && var_pos < len )
+			{
+				if not find_pre_word(var_exp, var_pos, aa, _spos0, _epos0 )
+					return "EXP_ERROR"
+				if not find_next_word(var_exp, var_pos, bb, _spos1, _epos1 )
+					return "EXP_ERROR"
+				if ( aa == "" || bb == "" )
+					return "EXP_ERROR"		
+				var_re := myRelaOper( var_oper, aa, bb )
+; msgbox [%var_re%] := myRelaOper( %var_oper%, %aa%, %bb% )
+				if ( var_re == "EXP_ERROR" || var_re == "" )
+					return "EXP_ERROR"
+				if var_re is not number
+				{
+					return "EXP_ERROR"
+				}
+				if ( _spos0 >= _epos1 || _spos0 <= 0 || _epos1 > len )
+					return "EXP_ERROR"
+				if StrReplaceBetween( var_exp, var_re, _spos0, _epos1 )
+	        		continue
+			}
+		}
+; msgbox [10]------------------------------------
+		return "EXP_ERROR"
+	}
+}
+
+CalcOneLoop( var_exp, pos, operator, byref _startpos, byref _endpos )
+{
+;msgbox CalcOneLoop( “%var_exp%”`, %pos%`, %operator%)
+	if not find_pre_word(var_exp, pos, aa, _spos0, _epos0 )
+		return "EXP_ERROR"
+	if not find_next_word(var_exp, pos, bb, _spos1, _epos1 )
+		return "EXP_ERROR"
+	if ( aa == "" || bb == "" )
+		return "EXP_ERROR"
+;	msgbox 1111
+	if operator = **
+		var_re := mymul2( aa, bb )
+	else if operator = *
+		var_re := mymul( aa, bb )
+	else if operator = //
+		var_re := mydiv2( aa, bb )
+	else if operator = /
+		var_re := mydiv( aa, bb )		
+	else if operator = +
+		var_re := myadd( aa, bb )
+	else if operator = -
+	{
+		var_re := mysub( aa, bb )	
+	}
+	else if ( operator == "!=" )
+	{
+		var_re := myNotEqual( aa, bb )	
+	}	
+	else if ( operator == "=" )
+	{
+		var_re := myEqual( aa, bb )	
+	}	
+	else if ( operator == "&&" )
+	{
+		var_re := myAnd( aa, bb )	
+	}
+	else if ( operator == "||" )
+	{
+;msgbox var_re := myOr( %aa%, %bb% )	
+		var_re := myOr( aa, bb )	
+	}	
+	else 
+		return "EXP_ERROR"
+; msgbox var_re[%var_re%] _spos0[%_spos0%] _epos1[%_epos1%]
+	if ( var_re == "EXP_ERROR" || var_re == "" )
+		return "EXP_ERROR"
+		
+	if var_re is not number
+	{
+		return "EXP_ERROR"
+	}
+		
+	if ( _spos0 >= _epos1 )
+		return "EXP_ERROR"
+
+
+	_startpos := _spos0
+	_endpos := _epos1
+			
+;	msgbox CalcOneLoop( “%var_exp%”`, %pos%`, %operator%) = %var_re%(%_startpos%`, %_endpos%)
+				
+	return var_re
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 解析并计算(没有括号的)表达式
+mycalc0( var_exp )
+{
+	var_tempexp := var_exp
+	StrTrim( var_tempexp )
+	if var_tempexp =
+		return "EXP_ERROR"
+		
+    ;; 将所有的减号前面，加上空格
+    loop
+    {
+    	StringGetPos temppos, var_tempexp, -, L%a_index%
+; msgbox StringGetPos [%temppos%]`, var_tempexp`, -`, L%a_index%
+    	if errorlevel
+    		break
+    			
+    	;; 在所有的减少前面加上空格	
+    	var_char := StrGetAt( var_tempexp, temppos )
+    	if var_char is not space
+    	{
+    		StrInsertAt( var_tempexp, temppos + 1, " ")
+    	}
+    }
+	
+	;; 开始运算
+	loop
+	{
+; msgbox mycalc0( %var_tempexp% )
+
+;;---如果表达式本身就是一个数字，则直接返回----------------------------------
+		if var_tempexp is number
+			return var_tempexp
+							
+;;---是乘方？----------------------------------------------------------------
+		StringGetPos, pos, var_tempexp, **
+    	if not ErrorLevel
+        {
+			var_re := CalcOneLoop( var_tempexp, pos+1, "**", _startpos, _endpos )
+			if ( var_re != "EXP_ERROR" )
+			{
+	        	if StrReplaceBetween( var_tempexp, var_re, _startpos, _endpos )
+	        		continue
+	        }
+        	return "EXP_ERROR"
+        }
+;;---乘法运算？--------------------------------------------------------------
+		StringGetPos, pos, var_tempexp, *
+    	if not ErrorLevel
+        {
+        	divpos := instr( var_tempexp, "/" )
+        	if ( divpos > 0 && divpos < ( pos + 1 ) )
+        	{
+        		;; 除法在乘法前面，则 goto 除法运算
+        	}
+        	else
+        	{
+				var_re := CalcOneLoop( var_tempexp, pos+1, "*", _startpos, _endpos )
+				if ( var_re != "EXP_ERROR" )
+				{
+			    	if StrReplaceBetween( var_tempexp, var_re, _startpos, _endpos )
+			    		continue
+	        	}
+	        	return "EXP_ERROR"
+        	}
+        }
+
+;;---除法运算？--------------------------------------------------------------
+		StringGetPos, pos, var_tempexp, /
+    	if not ErrorLevel
+        {
+			var_re := CalcOneLoop( var_tempexp, pos+1, "/", _startpos, _endpos )
+			if ( var_re != "EXP_ERROR" )
+			{
+	        	if StrReplaceBetween( var_tempexp, var_re, _startpos, _endpos )
+	        		continue
+        	}
+        	return "EXP_ERROR"
+        }
+  
+;;---整除运算？--------------------------------------------------------------
+		StringGetPos, pos, var_tempexp, //
+    	if not ErrorLevel
+        {
+        	var_re := CalcOneLoop( var_tempexp, pos+1, "//", _startpos, _endpos )
+			if ( var_re != "EXP_ERROR" )
+			{
+	        	if StrReplaceBetween( var_tempexp, var_re, _startpos, _endpos )
+	        		continue
+        	}
+        	return "EXP_ERROR"
+        }
+          
+;;---减法运算----------------------------------------------------------------
+		StringGetPos, pos, var_tempexp, -
+    	if not ErrorLevel
+        {
+        	bFindSub := true			;; 是否找到减法运算符号
+            pos++                    	;; 将pos自加1，使得pos是以1开始的位置序号
+            
+        	;; 减号之前没有其他变量，则该减号不是减法运算符而是负号，查找下一个减号
+			if not find_pre_word(var_tempexp, pos, var_temp, _spos0, _epos0 )
+			{
+				;; 将负号后面的空格全部删除
+				loop % strlen( var_tempexp ) - pos
+				{
+					var_char := StrGetAt( var_tempexp, pos + 1 )
+					if var_char is space
+					{
+						StrReplaceAt( var_tempexp, pos + 1, "" )
+						continue
+					}
+					break
+				}
+				;; 查找下一个减号
+
+				pos++
+				StringGetPos, pos, var_tempexp, -, L2
+				if ErrorLevel
+				{
+ ;msgbox 第一个不是减号，没有找到第二个减号！
+					bFindSub := false
+				}
+				else
+				{
+ ;msgbox 第一个是负号，找到第二个减号 pos[%pos%]
+					pos++
+				}
+			}
+		    		    
+            if bFindSub                 ;; 找到了减法运算符号
+			{
+	        	addpos := instr( var_tempexp, "+" )
+	        	if ( addpos > 0 && addpos < ( pos + 1 ) )
+	        	{
+	        		;; 加法在减法前面，则 goto 加法运算
+	        	}	
+	        	else
+	        	{		
+	        		;; 在所有减法运算符后面添加空格  
+	        		temppos := pos + 1
+	        		loop
+	        		{
+	        			var_char := StrGetAt( var_tempexp, temppos )
+	        			if var_char is not space
+	        			{
+	        				StrInsertAt( var_tempexp, temppos, " " )
+	        			}
+	        			StringGetPos temppos, var_tempexp, -, L, temppos
+	        			if not errorlevel
+	        			{
+	        				temppos := temppos + 2
+	        				continue
+	        			}
+	        			break
+	        		}
+	        		
+					;; 调用一次运算 CalcOneLoop（）
+					var_re := CalcOneLoop( var_tempexp, pos, "-", _startpos, _endpos )
+					if ( var_re != "EXP_ERROR" )
+					{
+						
+			        	if StrReplaceBetween( var_tempexp, var_re, _startpos, _endpos )
+			        		continue
+		        	}
+		        	return "EXP_ERROR"
+	        	}
+        	}
+        	;; else if not bFindSub 没有找到减法运算符号，则goto 加法运算
+        } 
+
+;;---加法运算----------------------------------------------------------------
+		StringGetPos, pos, var_tempexp, +
+		if not ErrorLevel
+        {
+; msgbox CalcOneLoop( %var_tempexp%`, %pos%+1`, + )
+			var_re := CalcOneLoop( var_tempexp, pos+1, "+", _startpos, _endpos )
+			if ( var_re != "EXP_ERROR" )
+			{
+	        	if StrReplaceBetween( var_tempexp, var_re, _startpos, _endpos )
+	        		continue
+        	}
+        	return "EXP_ERROR"
+        }      
+        
+;;---尝试对表达式中的关系运算符进行关系运算 >, >=, <= < ----------------------
+		var_re := TryRelaOper( var_tempexp )        
+		if ( var_re == "EXP_ERROR")
+			return "EXP_ERROR"
+           
+           
+;;---不等号运算---------------------------------------------------------------
+		StringGetPos, pos, var_tempexp, !=
+		if not ErrorLevel
+        {
+ ;msgbox CalcOneLoop( %var_tempexp%`, %pos%+1`, + )
+			var_re := CalcOneLoop( var_tempexp, pos+1, "!=", _startpos, _endpos )
+			if ( var_re != "EXP_ERROR" )
+			{
+	        	if StrReplaceBetween( var_tempexp, var_re, _startpos, _endpos )
+	        		continue
+        	}
+        	return "EXP_ERROR"
+        }   
+        
+                   
+;;---等号运算----------------------------------------------------------------
+		StringGetPos, pos, var_tempexp, =
+		if not ErrorLevel
+        {
+ ;msgbox CalcOneLoop( %var_tempexp%`, %pos%+1`, + )
+			var_re := CalcOneLoop( var_tempexp, pos+1, "=", _startpos, _endpos )
+			if ( var_re != "EXP_ERROR" )
+			{
+	        	if StrReplaceBetween( var_tempexp, var_re, _startpos, _endpos )
+	        		continue
+        	}
+        	return "EXP_ERROR"
+        }      
+        
+;;---&&与运算----------------------------------------------------------------
+		StringGetPos, pos, var_tempexp, &&
+		if not ErrorLevel
+        {
+ ;msgbox CalcOneLoop( %var_tempexp%`, %pos%+1`, + )
+			var_re := CalcOneLoop( var_tempexp, pos+1, "&&", _startpos, _endpos )
+			if ( var_re != "EXP_ERROR" )
+			{
+	        	if StrReplaceBetween( var_tempexp, var_re, _startpos, _endpos )
+	        		continue
+        	}
+        	return "EXP_ERROR"
+        }       
+        
+;;---||或运算----------------------------------------------------------------
+		StringGetPos, pos, var_tempexp, ||
+		if not ErrorLevel
+        {
+;	msgbox CalcOneLoop( %var_tempexp%`, %pos%+1`, + )
+			var_re := CalcOneLoop( var_tempexp, pos+1, "||", _startpos, _endpos )
+			if ( var_re != "EXP_ERROR" )
+			{
+	        	if StrReplaceBetween( var_tempexp, var_re, _startpos, _endpos )
+	        		continue
+        	}
+        	return "EXP_ERROR"
+        }      
+                   
+;;---表达式仅是全局变量的名称？是则取其值返回--------------------------------
+        if find_next_word(var_tempexp, 0, _outword, _startpos, _endpos )
+        {
+        	;; 如果在找到的第一个单词后面，还有其他单词，那么表达式 var_tempexp 
+        	;; 不仅仅是一个全局变量的名称或数字，有错误！( 这里的 _endpos 肯定大于0 )。
+        	if find_next_word( var_tempexp, _endpos, var_temp, startpos, endpos )
+        	{
+        		return "EXP_ERROR"
+        	}
+        	
+        	if _outword <>
+        	{
+        		if _outword is number
+        		{
+        			return _outword
+        		}
+                else                    
+				{
+					_outword := GetGlobalVar( _outword )
+					if _outword <>
+					{
+						if _outword is number
+							return _outword
+					}
+				}
+        	}
+        }
+		return "EXP_ERROR"
+	}
+;	msgbox var_tempexp[%var_tempexp%]
+; 其实程序运行不到这里
+	if var_tempexp is not number
+		return "EXP_ERROR"	
+		
+	return var_tempexp
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 解析及计算(带有括号的)表达式
+mycalc1( var_exp )
+{
+	var_tempexp := var_exp	
+	
+	;; 检查 ) 后，是否直接接了 （括号，是，则在它们之间插入 * 乘号
+	loop
+	{
+		StringGetPos rpos, var_tempexp, ), L%a_index%
+		if errorlevel
+		{
+			break
+		}
+		rpos++
+		loop % strlen( var_tempexp ) - rpos
+		{
+			var_char := StrGetAt( var_tempexp, rpos + a_index )
+			if var_char is not space
+			{
+				if var_char = (
+				{
+					StrInsertAt( var_tempexp, rpos + a_index, "*" )
+				}
+				break 
+			}
+		}
+	}
+	
+	;; 开始计算表达式
+	loop
+	{
+ ;msgbox exp = [%var_tempexp%]
+	    lpos =                              ;; 左括号位置
+		rpos := InStr( var_tempexp, ")" )   ;; 右括号位置
+		
+		if rpos = 0
+		{
+			lpos := InStr( var_tempexp, "(" )
+			
+			if lpos = 0
+			{
+				return mycalc0( var_tempexp ) ;; 表达式中没有括弧，则调用 mycalc0() 函数计算表达式
+			}
+	        else                            
+				return "EXP_ERROR"			;; 没找到右括号，却发现左括号（无匹配右括弧）
+		}
+		else
+		{
+			StringLeft var_temp, var_tempexp, rpos
+			StringGetPos, lpos, var_temp, ( , R
+	        if ErrorLevel                   ;; 找到右括弧，却没有匹配的左括弧
+			{
+				return "EXP_ERROR"
+			}
+			lpos++
+ ;msgbox 111 is_terminate_pos( %var_tempexp%, %lpos% - 1 ) 
+			if ( is_terminate_pos( var_tempexp, lpos - 1 ) == 0 )
+			{
+				if ( find_pre_word( var_tempexp, lpos, _preword, _startpos, _endpos ) )
+				{
+					if ( _endpos == ( lpos - 1 ) && _preword != "" )
+					{
+						StringLower, _preword, _preword
+						
+						;; 这对括号是数学函数调用
+				;		MyItemList := "abs, ceil, exp, floor, log, ln, mod, round, sqrt, sin, cos, tan, asin, acos, atan"
+						if _preword in sqrt,abs,log,ln,mod,round,sin,cos,tan,asin,acos,atan,ceil,exp,floor,sin2,cos2,tan2
+						{
+							var_params =
+							StringMid var_params, var_tempexp, lpos +1, rpos - lpos - 1
+							var_temp := mymath( _preword, var_params )
+ ;msgbox mymath( %_preword%, %var_params% )
+							if ( var_temp != "EXP_ERROR" && CheckValueBeforeOp1( var_temp ) )
+							{
+ ;msgbox 555 StrReplaceBetween( var_tempexp, %var_temp%, %_startpos%, %rpos% )
+					        	if StrReplaceBetween( var_tempexp, var_temp, _startpos, rpos )
+					        		continue
+				        	}
+							return "EXP_ERROR"
+						}
+					}
+				}
+			}
+			;; 这对左右括弧并非数学函数调用的情况
+			var_params =
+			StringMid var_params, var_tempexp, lpos +1, rpos - lpos - 1
+			var_temp := mycalc0( var_params )
+ ;msgbox %var_temp% := mycalc0( %var_params% )
+			if ( var_temp != "EXP_ERROR" && CheckValueBeforeOp1( var_temp ) )
+			{
+	        	if StrReplaceBetween( var_tempexp, var_temp, lpos, rpos )
+	        		continue
+        	}
+			return "EXP_ERROR"			
+		}
+		return "EXP_ERROR"
+	}
+	return var_tempexp
+}
+
+
+CalcLine( line )
+{
+;msgbox CalcLine( %line% )
+	if line =
+		return 
+		
+	StringReplace line, line, $, g_var_, ALL
+
+	pos := instr( line, "=" )
+	
+	var_name =
+	var_exp := line
+	len := strlen( line )
+	
+	if pos >= 1
+	{
+		StringLeft var_name, line, pos -1
+		StringRight var_exp, line, len - pos
+	}
+	StrTrim( var_exp )
+	if var_exp <>
+	{
+		var_exp := mycalc1( var_exp )
+	}
+	
+	if pos <= 0
+	{
+		line := var_exp
+	}
+	else 
+	{
+		if var_name <>
+		{
+		 	if not SetGlobalVar( var_name, var_exp )
+		 	{
+		 		var_exp = 设置变量 [ %var_name% = %var_exp% ] 时出错
+		 	}
+		}
+		line = %var_name% = %var_exp%
+	}
+	StringReplace line, line, g_var_, $, ALL	
+	return line
+}
+
+
+CalcText( var_Text )
+{
+	var_re =
+	StringReplace var_text, var_text, `r, , All
+	loop parse, var_Text, `n
+	{
+		if a_loopfield =
+			continue
+		line := CalcLine( a_loopfield )
+		var_re = %var_re%%line%`r`n
+	}
+	return var_re
+}

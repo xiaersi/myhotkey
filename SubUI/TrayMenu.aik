@@ -1,0 +1,617 @@
+
+
+【清空原有的TrayMenu】:
+	Menu, Tray, MainWindow
+	Menu, Tray, NoStandard 
+	Menu, Tray, DeleteAll 
+return
+
+
+【显示托盘菜单】:
+	menu, tray, show
+	return
+
+
+【添加默认的TrayMenu菜单项】:
+	gosub 【添加用户子菜单】
+	gosub 【添加工具子菜单】
+	gosub 【添加设置子菜单】
+	gosub 【添加脚本控制子菜单】
+	gosub 【添加TrayMenu帮助子菜单】
+	return
+
+
+【添加用户子菜单】:
+	
+	∑创建用户子菜单()
+	Menu, Tray, Add, 用户 (&U), :MyHotkeyUserMenu
+	return
+
+
+∑创建用户子菜单()
+{
+	n := 0
+	var_root := ∑获取根目录()
+	SplitPath, a_workingdir, curUser
+	curUserItem = 当前用户:%curUser% 
+	Menu, MyHotkeyUserMenu, Add, %curUserItem%,  【emptylable】
+	Menu, MyHotkeyUserMenu, Add, 新建用户 (&N),  【创建用户】
+	Menu, MyHotkeyUserMenu, Add
+	Loop, %var_root%\Users\*.*, 2
+	{
+		if A_LoopFileName <>
+		{
+			ifnotinstring A_LoopFileName, .
+			{
+				if ( A_LoopFileName != curUser )
+				{
+					n++
+					Menu, MyHotkeyUserMenu, Add, %A_LoopFileName%, 【切换用户为】
+				}
+			}
+		}
+	}
+
+	Menu, MyHotkeyUserMenu, Disable, %curUserItem%
+}
+
+【emptylable】:
+【donothing】:
+【空标签】:
+	return
+
+【创建用户】:
+	newuser := ∑创建用户()
+	if newuser <>
+	{
+		change_user( newuser )
+		Menu, MyHotkeyUserMenu, DeleteAll
+		∑创建用户子菜单()
+	}
+	return
+
+
+【切换用户为】:
+	change_user( A_ThisMenuItem )
+	Menu, MyHotkeyUserMenu, DeleteAll
+	∑创建用户子菜单()
+	return
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 工具子菜单
+【添加工具子菜单】:
+	var_temp := IniFileRead( "KeyBoard.ini" )
+	var_seclist := AllSecFromIniMem( var_temp )
+	Menu, PhiyonKeyboardMenu, Add, &0 默认键盘, 【启动飞扬魔术键盘】
+	loop parse, var_seclist, |
+	{
+		if a_loopfield =
+			continue
+		if a_loopfield <> 默认键盘
+			Menu, PhiyonKeyboardMenu, Add, &%a_index% %a_loopfield%, 【启动飞扬魔术键盘】
+	}
+
+	Menu, MyHotkeyStartMenu, Add, 飞扬命令窗口 (&R),  【启动飞扬命令窗口】
+	Menu, MyHotkeyStartMenu, Add, 飞扬小字典   (&D),  【启动飞扬小字典】
+	Menu, MyHotkeyStartMenu, Add, 飞扬魔术键盘 (&K),  :PhiyonKeyboardMenu
+	Menu, MyHotkeyStartMenu, Add, 系统时间设置 (&T),  【启动系统时间设置工具】
+	Menu, MyHotkeyStartMenu, Add, 窗口信息查询 (&W),  【启动窗口信息查询工具】
+	Menu, Tray, Add, 工具 (&T), :MyHotkeyStartMenu
+	return
+
+
+
+【选择飞扬魔术键盘】:
+	IfWinNotExist 飞扬魔术键盘 ahk_class AutoHotkeyGUI
+	{
+		menu, PhiyonKeyboardMenu, show
+	}
+	return
+
+【启动飞扬魔术键盘】:
+	var_root := ∑获取根目录()
+	var_file = %var_root%\bin\飞扬魔术键盘\飞扬魔术键盘.ahk
+	var_menuitem := a_thismenuitem
+	if RegExMatch( a_thismenuitem, "i)\&\d+\s+", var_match ) > 0
+	{
+		var_menuitem := SubStr( var_menuitem, StrLen(var_match)+1 )
+	}
+	run_ahk(var_file, var_menuitem )
+	return
+
+
+【启动窗口信息查询工具】:
+	var_title = AHK 窗口信息工具
+	ifwinexist %var_title% ahk_class AutoHotkeyGUI
+	{
+		winactivate
+	}
+	else
+	{
+		var_root := ∑获取根目录()
+		var_file = %var_root%\bin\SysTools\查看窗口信息.ahk
+		run_ahk(var_file)
+	}
+	return
+
+【启动系统时间设置工具】:
+	var_title = 系统时间设置
+	ifwinexist %var_title% ahk_class AutoHotkeyGUI
+	{
+		winactivate
+	}
+	else
+	{
+		var_root := ∑获取根目录()
+		var_file = %var_root%\bin\SysTools\SystimeSetting.ahk
+		run_ahk(var_file)
+	}
+	return
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 设置子菜单
+【添加设置子菜单】:
+	;Menu, XHotStringMenu, Add, 开启
+
+	Menu, SettingEnable, Add, 开关画屏命令 (&g), 【SettingEnable_Gesture】
+	Menu, SettingEnable, Add, 开关鼠标拖拽窗口 (&w), 【SettingEnable_DragWindow】
+	Menu, SettingEnable, Add, 开启飞扬个性输入 (&i), 【SettingEnable_xHotString】
+	Menu, SettingEnable, Add, 键盘模拟画屏手势 (&k), 【SettingEnable_keyGesture】
+	Menu, SettingEnable, Add, 屏蔽单击LWin键 (&l), 【SettingEnable_lwin】
+	Menu, SettingEnable, Add, 屏蔽单击CapsLock键 (&p), 【SettingEnable_capslock】
+	Menu, SettingEnable, Add, AltHJKL模拟VIM风格 (&v), 【SettingEnable_vim】
+	Menu, SettingEnable, Add, Alt符号键模拟方向键 (&a), 【SettingEnable_alt】
+
+	Menu, MyHotkeySettingMenu, Add, 设置全局热键 (&H), 【SettingMenu_GlobalHotkey】
+	Menu, MyHotkeySettingMenu, Add, 设置飞扬命令 (&F), 【SettingMenu_Launchy】
+	Menu, MyHotkeySettingMenu, Add, 设置快捷菜单 (&M), 【SettingMenu_ShortcutMenu】
+	Menu, MyHotkeySettingMenu, Add, 设置画屏手势 (&G), 【SettingMenu_Gesture】
+	Menu, MyHotkeySettingMenu, Add
+	Menu, MyHotkeySettingMenu, Add, 开关设置 (&E),  :SettingEnable
+	Menu, Tray, Add, 设置 (&S), :MyHotkeySettingMenu
+
+	;; 判断鼠标手势是否开启
+	if g_bUseMouseGesture	
+		menu , SettingEnable, check, 开关画屏命令 (&g)
+	else
+		menu , SettingEnable, Uncheck, 开关画屏命令 (&g)
+
+	;; 判断鼠标中键拖拽窗口的窗口是否开启
+	if g_bMButtoneDragWindow
+		menu , SettingEnable, check, 开关鼠标拖拽窗口 (&w)
+	Else
+		menu , SettingEnable, uncheck, 开关鼠标拖拽窗口 (&w)
+
+
+	;; 判断 屏蔽单击左Windows徽标键 是否开启
+	if g_GlobalSwitch_LWin
+		menu , SettingEnable, check, 屏蔽单击LWin键 (&l)
+	Else
+		menu , SettingEnable, uncheck, 屏蔽单击LWin键 (&l)
+
+	;; 判断 屏蔽单击大写锁定键 是否开启
+	if g_GlobalSwitch_CapsLock
+		menu , SettingEnable, check, 屏蔽单击CapsLock键 (&p)
+	Else
+		menu , SettingEnable, uncheck, 屏蔽单击CapsLock键 (&p)
+
+
+	;; 判断 Alt加HJKL快捷键模拟VIM风格 是否开启
+	if g_GlobalSwitch_HJKL
+		menu , SettingEnable, check, AltHJKL模拟VIM风格 (&v) 
+	Else
+		menu , SettingEnable, uncheck, AltHJKL模拟VIM风格 (&v) 
+
+	;; 判断 Alt加符号键模拟方向键 是否开启
+	if g_GlobalSwitch_AltLRUD
+		menu , SettingEnable, check, Alt符号键模拟方向键 (&a)
+	Else
+		menu , SettingEnable, uncheck, 	Alt符号键模拟方向键 (&a)
+	
+	;; 判断 Win加方向键模拟画屏手势 是否开启
+	if g_GlobalSwitch_Gesture
+		menu , SettingEnable, check, 键盘模拟画屏手势 (&k)
+	Else
+		menu , SettingEnable, uncheck, 	键盘模拟画屏手势 (&k)		
+
+	;; 判断飞扬个性输入已经打开
+	if g_GlobalSwitch_xHotString
+		menu , SettingEnable, check, 开启飞扬个性输入 (&i)
+	else
+		menu , SettingEnable, uncheck, 	开启飞扬个性输入 (&i)	
+
+	return
+
+【显示设置子菜单】:
+	menu, MyHotkeySettingMenu, show
+	return
+
+
+【SettingMenu_GlobalHotkey】:
+	gosub 【自定义全局热键】
+	return
+
+【SettingMenu_ShortcutMenu】:
+	var_root := ∑获取根目录()
+	var_file = %var_root%\bin\dict\dict.ahk
+	var_param = file:ShortcutMenu.ini
+	ifnotexist ShortcutMenu.ini
+	{
+		InitShortcutMenuIniFile()
+	}
+	run_ahk( var_file, var_param, a_workingdir )		
+	return
+
+【SettingMenu_Launchy】:
+	var_root := ∑获取根目录()
+	var_file = %var_root%\bin\dict\dict.ahk
+	var_param = file:launchy.ini
+	ifnotexist launchy.ini
+	{
+		InitLaunchyIniFile()
+	}
+	run_ahk( var_file, var_param, a_workingdir )
+	return
+
+【编辑画屏命令】:
+【SettingMenu_Gesture】:
+	var_root := ∑获取根目录()
+	var_file = %var_root%\bin\dict\dict.ahk
+	var_param = 
+		(Ltrim
+		file:AutoHotString.ini
+		seclist:画屏手势
+		title:编辑画屏手势
+		cursec:画屏手势
+		)
+	run_ahk( var_file, var_param, a_workingdir )	
+	return
+
+
+【SettingEnable_Gesture】:
+	if g_bUseMouseGesture
+	{
+		TrayTip , →[鼠标手势]←, 【暂停】了鼠标手势, 1
+		menu , SettingEnable, Uncheck, 开关画屏命令 (&g)
+		g_bUseMouseGesture := False
+	}
+	Else
+	{
+		TrayTip , ←)鼠标手势(→, 【开启】了鼠标手势, 1
+		menu , SettingEnable, check, 开关画屏命令 (&g)
+		g_bUseMouseGesture := true
+
+		var_read := FindFromIniMem( g_AutoHotString, g_GlobalHotkey_Section, "【开关画屏命令】", "" )
+		if RegExMatch( var_read, "^0" ) > 0 
+		{
+			var_temp := RegExReplace( var_read, "^0", "1" )
+			write_ini( "AutoHotString.ini", g_GlobalHotkey_Section, "【开关画屏命令】", var_temp )
+			reload
+		}
+	}
+
+	Return
+
+【SettingEnable_DragWindow】:
+	if g_bMButtoneDragWindow
+	{
+		TrayTip , 中键拖拽窗口, 【暂停】了中键拖拽窗口功能, 1
+		menu , SettingEnable, uncheck, 开关鼠标拖拽窗口 (&w)
+		g_bMButtoneDragWindow := False
+	}
+	Else
+	{
+		TrayTip , 中键拖拽窗口, 【开启】了中键拖拽窗口功能, 1
+		menu , SettingEnable, check, 开关鼠标拖拽窗口 (&w)
+		g_bMButtoneDragWindow := true
+	}
+	Return	
+	
+
+;; 屏蔽单击左Windows徽标键
+【SettingEnable_lwin】:
+	g_GlobalSwitch_LWin := !g_GlobalSwitch_LWin
+	∑屏蔽单击LWin键( g_GlobalSwitch_LWin )
+	if g_GlobalSwitch_LWin
+		menu , SettingEnable, check, 屏蔽单击LWin键 (&l)
+	Else
+		menu , SettingEnable, uncheck, 屏蔽单击LWin键 (&l)	
+	write_ini( "AutoHotString.ini", g_GlobalSwitch_Section, "屏蔽单击左Windows徽标键", g_GlobalSwitch_LWin )
+	return
+
+;; 屏蔽单击大写锁定键
+【SettingEnable_capslock】:
+	g_GlobalSwitch_CapsLock := !g_GlobalSwitch_CapsLock
+	∑屏蔽单击CapsLock键( g_GlobalSwitch_CapsLock )
+	if g_GlobalSwitch_CapsLock
+		menu , SettingEnable, check, 屏蔽单击CapsLock键 (&p)
+	Else
+		menu , SettingEnable, uncheck, 屏蔽单击CapsLock键 (&p)	
+	write_ini( "AutoHotString.ini", g_GlobalSwitch_Section, "屏蔽单击大写锁定键", g_GlobalSwitch_CapsLock )
+	return
+
+;; Alt加HJKL快捷键模拟VIM风格
+【SettingEnable_vim】:
+	g_GlobalSwitch_HJKL := !g_GlobalSwitch_HJKL
+	∑Alt加HJKL快捷键模拟VIM风格( g_GlobalSwitch_HJKL )
+	if g_GlobalSwitch_HJKL
+		menu , SettingEnable, check, AltHJKL模拟VIM风格 (&v) 
+	Else
+		menu , SettingEnable, uncheck, AltHJKL模拟VIM风格 (&v) 	
+	write_ini( "AutoHotString.ini", g_GlobalSwitch_Section, "Alt加HJKL快捷键模拟VIM风格", g_GlobalSwitch_HJKL )
+	return
+
+;; Alt加符号键模拟方向键
+【SettingEnable_alt】:
+	g_GlobalSwitch_AltLRUD := !g_GlobalSwitch_AltLRUD
+	∑Alt加符号键模拟方向键( g_GlobalSwitch_AltLRUD )
+	if g_GlobalSwitch_AltLRUD
+		menu , SettingEnable, check, Alt符号键模拟方向键 (&a)
+	Else
+		menu , SettingEnable, uncheck, 	Alt符号键模拟方向键 (&a)	
+	write_ini( "AutoHotString.ini", g_GlobalSwitch_Section, "Alt加符号键模拟方向键", g_GlobalSwitch_AltLRUD )
+	return
+
+;; Win加方向键模拟画屏手势
+【SettingEnable_keyGesture】:
+	g_GlobalSwitch_Gesture := !g_GlobalSwitch_Gesture
+	∑Win加方向键模拟画屏手势( g_GlobalSwitch_Gesture )
+	if g_GlobalSwitch_Gesture
+		menu , SettingEnable, check, 键盘模拟画屏手势 (&k)
+	Else
+		menu , SettingEnable, uncheck, 	键盘模拟画屏手势 (&k)
+	write_ini( "AutoHotString.ini", g_GlobalSwitch_Section, "Win加方向键模拟画屏手势", g_GlobalSwitch_Gesture )	
+	return
+
+
+;; 开启飞扬个性输入
+【SettingEnable_xHotString】:
+	write_ini( "AutoHotString.ini", g_GlobalSwitch_Section, "启动飞扬个性输入", !g_GlobalSwitch_xHotString )	
+	if ∑飞扬个性输入已经打开()
+	{
+		menu , SettingEnable, uncheck, 	开启飞扬个性输入 (&i)	
+		∑关闭飞扬个性输入( )
+	}
+	else
+	{
+		menu , SettingEnable, check, 开启飞扬个性输入 (&i)
+		∑打开飞扬个性输入( )
+	}
+	return
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 脚本控制子菜单
+
+
+【添加脚本控制子菜单】:
+	Menu, 控制电脑, Add, 关机, 【电脑关机】
+	Menu, 控制电脑, Add, 重启电脑, 【重启电脑】
+	Menu, 控制电脑, Add, 强制关机, 【强制关机】
+
+	var_禁用热键=禁用热键 (&S)  #!F5
+	var_重启程序=重启程序 (&R)  #F5
+	var_暂停程序=暂停程序 (&P)  #+F5
+	Menu, 脚本控制子菜单, Add, %var_重启程序%, 【脚本控制子菜单_Reload】
+	Menu, 脚本控制子菜单, Add, %var_禁用热键%, 【脚本控制子菜单_Suspend】
+	Menu, 脚本控制子菜单, Add, %var_暂停程序%, 【脚本控制子菜单_Pause】
+	Menu, 脚本控制子菜单, Add, 
+	Menu, 脚本控制子菜单, Add, 控制电脑 (&C), :控制电脑
+	Menu, 脚本控制子菜单, Add, 退出程序 (&X), 【脚本控制子菜单_Exit】
+	Menu, Tray, Add, 控制 (&C), :脚本控制子菜单
+	return
+
+
+【脚本控制子菜单_Reload】:
+	reload
+	return
+
+【脚本控制子菜单_Pause】:
+	var_root := ∑获取根目录()
+	if a_IsPaused
+	{
+		Menu, 脚本控制子菜单, Uncheck, %var_暂停程序%
+		Pause off
+	}
+	else
+	{
+		if a_IsSuspended
+			Menu, Tray, Icon, %var_root%\Suspend.ico, , 1
+		else
+			Menu, Tray, Icon, %var_root%\Users\MyHotkey4.ico, , 1
+		Menu, 脚本控制子菜单, Check, %var_暂停程序%
+		pause on
+	}
+	gosub 【切换托盘图标】
+	return
+
+
+【脚本控制子菜单_Suspend】:
+	suspend 
+	var_root := ∑获取根目录()
+	if a_IsSuspended
+		Menu, 脚本控制子菜单, Check, %var_禁用热键%
+	else
+		Menu, 脚本控制子菜单, Uncheck, %var_禁用热键%
+	gosub 【切换托盘图标】
+	return
+
+
+
+【切换托盘图标】:
+	if ( a_IsPaused && a_IsSuspended )
+		Menu, Tray, Icon, %var_root%\Suspend.ico, , 1
+	else if a_IsPaused
+		Menu, Tray, Icon, %var_root%\Users\MyHotkey4.ico, , 1
+	else if a_IsSuspended
+		Menu, Tray, Icon, %var_root%\Users\MyHotkey3.ico, , 1
+	else 
+		Menu, Tray, Icon, %var_root%\飞扬热键.ico, , 1
+
+	return
+
+
+【脚本控制子菜单_Exit】:
+	ExitApp
+	return
+
+
+
+【电脑关机】:
+	shutdown, 1
+	return
+【重启电脑】:
+	shutdown, 2
+	return
+【强制关机】:
+	shutdown, 5
+	return
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 帮助子菜单
+【添加TrayMenu帮助子菜单】:
+	Menu, 添加TrayMenu帮助子菜单, Add, 关于 (&A), 【帮助子菜单_About】
+	Menu, 添加TrayMenu帮助子菜单, Add, 捐助 (&D), 【帮助子菜单_Donate】
+	Menu, 添加TrayMenu帮助子菜单, Add, 帮助 (&H), 【帮助子菜单_Help】
+	Menu, Tray, Add, 帮助 (&H), :添加TrayMenu帮助子菜单
+	return
+	
+
+【帮助子菜单_Help】:
+	var_root := ∑获取根目录()
+	var_file = %var_root%\bin\SysTools\关于飞扬热键.ahk
+	run_ahk( var_file, "帮助" )
+	return
+
+【帮助子菜单_About】:
+	var_root := ∑获取根目录()
+	var_file = %var_root%\bin\SysTools\关于飞扬热键.ahk
+	run_ahk( var_file, "简介" )
+	return
+
+【帮助子菜单_Donate】:
+	var_root := ∑获取根目录()
+	var_file = %var_root%\bin\SysTools\关于飞扬热键.ahk
+	run_ahk( var_file, "捐助"  )
+	return
+
+
+
+change_user( _username )
+{
+	if _username <>
+	{
+		var_root := ∑获取根目录()
+		var_cfg = %var_root%\root.cfg
+		write_ini( var_cfg, "users", "lastuser", _username )
+		SetWorkingDir %var_root%\Users\%_username%\	
+
+		LoadAutoHotString()                 ;; 在切换用户之后，需要加载新的autoHotkey.ini
+		return true
+	}
+	return false
+}
+
+∑创建用户()
+{
+	var_root := ∑获取根目录()
+	loop
+	{
+		var_input := myinput( "创建用户", "请输入要创建的用户名：", "" )
+		if var_input <>
+		{
+			ifExist %var_root%\Users\%var_input%
+			{
+				msgbox 4, 用户已经存在, 用户： %var_input% 已经存在，是否创建另一个用户？
+				ifmsgbox yes
+					continue
+
+				return var_input
+			}
+			else
+			{
+				FileCreateDir, %var_root%\Users\%var_input%
+				if ErrorLevel 
+				{
+					msgbox 创建目录 Users\%var_input% 失败！
+					return 
+				}
+				;; 在用户工作目录下创建bak和word两个子文件夹
+				FileCreateDir, %var_root%\Users\%var_input%\bak
+				FileCreateDir, %var_root%\Users\%var_input%\word
+
+				;; 设置工作目录
+				SetWorkingDir %var_root%\Users\%var_input%\
+
+				;; 初始化配置文件
+				ifNotExist ShortcutMenu.ini
+					InitShortcutMenuIniFile()
+
+				ifNotExist AutoHotString.ini
+					InitAutoHotStringIniFile()
+
+				ifNotExist lanuchy.ini
+					InitLaunchyIniFile()
+				
+			}
+			return var_input
+		}
+		break
+	}
+	return 
+}
+
+
+
+
+InitLaunchyIniFile()
+{ 
+var_temp=
+(
+
+[设置]
+扩展名过滤列表=bak|svn_base
+CustomCmdType=ue,em,SciTE
+SearchSec=File,Send,variable,var,cmd
+
+[variable]
+b=http://www.bing.com/search?form=LLMP&q=$var$
+bk=http://baike.baidu.com/w?ct=17&lm=0&tn=baiduWikiSearch&pn=0&rn=10&word=$var$&submit=search
+baike=http://baike.baidu.com/w?ct=17&lm=0&tn=baiduWikiSearch&pn=0&rn=10&word=$var$&submit=search
+baidu=http://www.baidu.com/s?wd=$var$
+bd=http://www.baidu.com/s?wd=$var$
+d=http://www.baidu.com/s?wd=$var$
+ciba=http://www.iciba.com/$var$
+code=http://www.google.cn/codesearch?q=$var$&hl=zh-CN&btnG=搜索代码
+ditu=http://ditu.google.cn/maps?f=q&source=s_q&hl=zh-CN&geocode=&q=$var$
+e=http://www.engkoo.com/#$var$
+en=http://www.engkoo.com/#$var$
+g=http://www.google.com/search?q=$var$&hl=en&sourceid=gd&rlz=1Q1GGLD_zh-CNCN421&aq=t
+gg=http://www.google.com/search?hl=en&source=hp&q=$var$&btnG=Google+Search&aq=f&aqi=&aql=&oq=&gs_rfai=
+i=http://www.iciba.com/$var$/
+mail= mailto: $var$ ?subject=
+msdn=http://social.msdn.microsoft.com/Search/zh-CN?query=$var$&ac=8
+pic=http://cn.bing.com/images/search?q=$var$&go=&form=QBIR
+q=http://$var$.qzone.qq.com
+qq=http://$var$.qzone.qq.com
+wiki=http://en.wikipedia.org/wiki/$var$
+pfile=$var$:\Program Files
+
+
+[file]
+ahkhelp=C:\Program Files\AutoHotkey\AutoHotkey.chm
+spy=C:\ProgramData\Microsoft\Windows\Start Menu\Programs\AutoHotkey\AutoIt3 Window Spy.lnk
+greensoft=D:\Program Files\Greensoft
+emedit=D:\Program Files\Greensoft\EmEditor\EmEditor.exe
+/weibo=http://www.weibo.com/goomood|$Web$
+/blog=http://blog.csdn.net/teshorse|$Web$
+
+[cmd]
+blog=1|run)http://blog.csdn.net/teshorse
+1note=#n
+mymsn=1|send)teshorse@hotmail.com
+
+)
+FileAppend %var_temp%, launchy.ini
+var_temp =
+}	

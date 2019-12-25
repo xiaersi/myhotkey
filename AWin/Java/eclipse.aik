@@ -1,0 +1,36 @@
+
+
+#ifWinActive ahk_class SWT_Window0
+!;::
+^;::
+	send {end}`;
+	return
+
+!\::
+	send {end}
+	return
+
+
+
+;;-------------------------------------------------------
+:://mod::
+	sendinput // Mod by teshorse, %a_year%-%a_mon%-%a_dd% %a_hour%:%a_min% %a_tab% 
+	; Send_InputBox("添加注释","可以添加注释","")
+	return
+
+:://add::
+	sendinput // Add by teshorse,  %a_year%-%a_mon%-%a_dd% %a_hour%:%a_min% %a_tab% 
+	; Send_InputBox("添加注释","可以添加注释","")
+	return
+
+:://del::
+	sendinput // Del by teshorse, %a_year%-%a_mon%-%a_dd% %a_hour%:%a_min% %a_tab% 
+ 	; Send_InputBox("添加注释","可以添加注释","")
+	return
+
+:://end::
+	sendinput // END teshorse ......................................
+	return
+
+
+#ifWinActive

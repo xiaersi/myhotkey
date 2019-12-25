@@ -1,0 +1,962 @@
+#include .\inc\path.aik
+;; 菜单
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 右键菜单响应
+【右键查看】:
+	if ( var_RowSec != "" && var_RowKeyName != "" )
+	{
+        tooltip ,,,,7       ;; 关闭提示，因为下面弹出的窗口提示与tooltip提示的内容是一样的
+		
+		;; 删除 /*{\rtf1\ansi*/ 字样
+		var_temp = `/`*%g_RICHTEXTHEAD%`*`/
+		StringReplace var_RowKeyValue, var_RowKeyValue, %var_temp%, , all
+
+		ShowText( var_RowKeyValue )
+	}
+	return
+
+【右键修改】:
+	if ( var_RowSec != "" && var_RowKeyName != "" )
+	{
+		;; 右键修改Section
+		if var_CurCol = 1
+		{
+			var_Prompt = 正在修改选中单词<%var_RowKeyName%> 的分类[%var_RowSec%] ， 请输入新的分类名：
+			;Inputbox var_input, , %var_Prompt%, , 600, , , , , , %var_RowSec%
+			if  not MsgInputBox( var_input, "[修改单词分类]", var_Prompt, var_RowSec, 480, 25 )
+			{
+				RETURN
+			}
+			if var_input <>
+			{
+				if ( var_input != var_RowSec )
+				{
+					var_temp := read_ini( g_inifile, var_input, var_RowKeyName, "" )
+					if var_temp <>
+					{
+						var_prompt = [%var_input%] <%var_RowKeyName%>的内容如下，是否替换?
+						if not MsgTipBox( "新的分类名已经存在", var_prompt, var_temp, 500, 300 )
+							return
+					}
+					write_ini( g_inifile, var_input, var_RowKeyName, var_RowKeyValue )
+					del_dict( g_inifile, var_RowSec, var_RowKeyName,  false )
+					if g_ShowDetail
+						g_DBClickListView := true		;; 显示详细
+					GoSub 【重新加载数据并搜索】
+					GuiControl, Text, _keyName, %var_var_RowKeyName%
+					GuiControl, Text, _Section, %var_input%
+					RETURN
+				}
+			}
+		}
+		;; 右键修改KeyName
+		else if var_CurCol = 2
+		{
+			var_Prompt = 正在修改 [%var_RowSec%] 分类中的单词 <%var_RowKeyName%> ，请输入新的单词名称：
+			if  not MsgInputBox( var_input, "重命名单词", var_Prompt, var_RowKeyName, 480, 25 )
+			{
+				RETURN
+			}
+			if var_input <>
+			{
+				if ( var_input != var_RowKeyName )
+				{
+					var_temp := read_ini( g_inifile,  var_RowSec,  var_input, "" )
+					if var_temp <>
+					{
+						var_prompt = 已经存在 <%var_input%>如下： 是否替换?
+						if not MsgTipBox( "新的单词已经存在", var_prompt, var_temp, 500, 300 )
+							return
+					}
+					write_ini( g_inifile, var_RowSec, var_input, var_RowKeyValue )
+					del_dict( g_inifile, var_RowSec, var_RowKeyName,  false )
+					if g_ShowDetail
+						g_DBClickListView := true		;; 显示详细
+
+					GoSub 【重新加载数据并搜索】
+					GuiControl, Text, _keyName, %var_input%
+					GuiControl, Text, _Section, %var_RowSec%
+					RETURN
+				}
+			}
+		}
+		;; 右键修改KeyValue
+		else
+		{
+			if g_ShowDetail   ;; 当前ListView处于收起状态
+			{
+				var_title =  修改单词<%var_RowKeyName%>的第[%g_CurSelectLine%]项
+				var_Prompt = 【%var_RowSec%】: %var_RowKeyName%[%g_CurSelectLine%] =
+			}
+			else			  ;; 当前ListView处于收起状态
+			{
+				var_title =  修改单词<%var_RowKeyName%>的值
+				var_Prompt = 【%var_RowSec%】: %var_RowKeyName% =
+			}
+
+			var_temp := DecodeToText( var_RowKeyValue )
+			var_RowSec_temp := var_RowSec
+			if MsgInputBox( var_output, var_title, var_Prompt, var_temp )
+			{
+				newValue := EncodeToString( var_output )
+				if newValue <>
+				{
+					var_read := read_ini(g_INIFILE, var_RowSec_temp, var_RowKeyName, "")
+					StrListMod( var_read, var_RowKeyValue, newValue, "|", false )
+					write_ini( g_INIFILE, var_RowSec_temp, var_RowKeyName, var_read, false )
+					GoSub 【重新加载数据并搜索】
+					GuiControl, Text, _keyName, %var_RowKeyName%
+					GuiControl, Text, _Section, %var_RowSec_temp%
+					RETURN
+				}
+				else
+				{
+					tooltip7("新的值不能为空!")
+				}
+			}
+		}
+	}
+	RETURN
+
+【右键删除】:
+	if ( var_RowSec != "" && var_RowKeyName != "" && var_RowKeyValue != "" )
+	{
+		g_iLocalPos--                           ;; 将光标定位到删除行的前一行
+
+		var_read := read_ini( g_INIFILE, var_RowSec, var_RowKeyName, "" )
+		if ( var_read == var_RowKeyValue || var_RowKeyValue == "" )
+		{
+			if ( del_dict( g_INIFILE, var_RowSec, var_RowKeyName, true) )
+			{
+				GoSub 【重新加载数据并搜索】
+			}
+			RETURN
+		}
+		if var_read <>
+		{
+			var_mod := var_read
+			StrListDelete( var_mod, var_RowKeyValue, "|" )
+			if ( var_mod == "" || var_mod == var_read )
+			{   ;; 删除整个单词
+				del_dict( g_INIFILE, var_RowSec, var_RowKeyName, true)
+			}
+			else	;; 删除一个单词项
+			{
+				var_prompt = 删除单词<%var_RowKeyName%>的第[%g_CurSelectLine%]项
+				var_text =
+(
+{%g_INIFILE%}[%var_RowSec%]<%var_RowKeyName%>中
+准备删除第[%g_CurSelectLine%]项：%var_RowKeyName%[%g_CurSelectLine%] = `"%var_RowKeyValue%`"
+
+单词<%var_RowKeyName%>的当前值（删除之前）为:
+----------------------------------------------------
+%var_read%
+
+
+确定删除之后，单词<%var_RowKeyName%>的值将会修改为:
+----------------------------------------------------
+%var_mod%
+
+
+)
+				if not MsgTipBox( "删除单词项", var_prompt, var_text )
+				{
+					RETURN
+				}
+				g_DBClickListView := true		;; 显示详细
+				write_ini( g_INIFILE, var_RowSec, var_RowKeyName, var_mod, false )
+			}
+			var_temp = {%g_INIFILE%}[%var_RowSec%] %var_RowKeyName% 中的`n%var_RowKeyValue%`n删除成功!
+			tooltip7( var_temp )
+			GoSub 【重新加载数据并搜索】
+			RETURN
+		}
+	}
+	var_temp = {%g_INIFILE%}[%var_RowSec%] %var_RowKeyName% 中的`n%var_RowKeyValue%`n删除失败!
+	tooltip7( var_temp )
+	RETURN
+
+【右键插入】:
+	if not 	g_ShowDetail
+	{
+		tooltip7( "只能为展开的单词列表插入新单词项", 800 )
+		RETURN
+	}
+
+	if ( var_RowSec != "" && var_RowKeyName != "" )
+	{
+		var_read := read_ini( g_INIFILE, var_RowSec, var_RowKeyName, "" )
+		var_temp := ∑FindIniContent( var_RowSec, var_RowKeyName )
+		if ( var_read <> var_temp )
+		{
+			var_text = 执行“插入”操作失败`n`n｛%g_INIFILE%｝[%var_RowSec%] (%var_RowKeyName%) 的当前值有冲突`n`n缓存中value = %var_temp%. `n`n而在文件中value = %var_read%.
+			MsgTipBox( "插入单词项失败", "插入操作失败，关键字的当前值有冲突！", var_text )
+			Return
+		}
+		var_Prompt = 在<%var_RowKeyName%>第[%g_CurSelectLine%]项插入新值:
+		if MsgInputBox( OutputVar, "插入单词项", var_Prompt, var_RowKeyValue )
+		{
+			if OutputVar <>
+			{
+				StrListInsertAt( var_read, g_CurSelectLine, OutputVar, "|" )
+				write_ini( g_INIFILE, var_RowSec, var_RowKeyName, var_read, false )
+				g_DBClickListView := true		;; 显示详细
+				GoSub 【重新加载数据并搜索】
+				RETURN
+			}
+			else
+			{
+				tooltip7("新的值不能为空!")
+			}
+		}
+	}
+	RETURN
+
+
+【右键添加】:
+
+	if ( var_RowSec == "分类" && var_RowKeyName == "Key" && var_RowKeyValue == "KeyValue" )
+	{
+		Gui submit, nohide
+		if ( _Setion == "" || _KeyName == "" )
+		{
+			RETURN
+		}
+		else
+		{
+			var_RowSec := _Section
+			var_RowKeyName := _KeyName
+		}
+		if ( var_RowSec == "" || var_RowKeyName == "" )
+		{
+			ControlGetText, var_section, edit3, %g_WINTITLE%
+			ControlGetText, var_keyname, edit1, %g_WINTITLE%
+			if ( var_section == "" || var_keyname == "" )
+			{
+				RETURN
+			}
+			var_RowSec := var_section
+			var_RowKeyName := var_keyname
+		}
+	}
+
+	if ( var_RowSec != "" && var_RowKeyName != "" )
+	{
+		var_read := read_ini( g_INIFILE, var_RowSec, var_RowKeyName, "" )
+		var_temp := ∑FindIniContent( var_RowSec, var_RowKeyName )
+		if ( var_read <> var_temp )
+		{
+			var_text = 执行“添加”操作失败`n`n｛%g_INIFILE%｝[%var_RowSec%] (%var_RowKeyName%) 的当前值有冲突`n`n缓存中value = %var_temp%. `n`n而在文件中value = %var_read%.
+			MsgTipBox( "添加单词项失败", "添加操作失败，关键字的当前值有冲突！", var_text )
+			Return                              ;; 添加失败，关键字的当前值有冲突
+		}
+
+		var_Prompt = 为<%var_RowKeyName%>添加单词项:
+		if MsgInputBox( OutputVar, "添加单词项", var_Prompt, "" )
+		{
+			if OutputVar <>
+			{
+				StrListAdd( var_read, OutputVar, "|", false )
+				write_ini( g_INIFILE, var_RowSec, var_RowKeyName, var_read, false )
+				g_CurKey := var_RowKeyName
+				g_DBClickListView := true		;; 显示详细
+				GoSub 【重新加载数据并搜索】
+				RETURN
+			}
+			else
+			{
+				tooltip7("新的值不能为空!")
+			}
+		}
+	}
+	RETURN
+
+【右键运行】:
+	var_clip := var_RowKeyValue
+	;;___去掉注释内容________________________________________________________
+	LOOP
+	{
+		IfInString var_clip, `/*
+		{
+			StrSplit2Sub( var_clip, "`/*", var_left, var_right )
+			IfInString var_right, *`/
+			{
+				var_right := StrRight2Sub( var_right, "*`/", "")
+				var_clip = %var_left% %var_right%
+			}
+		}
+		else
+		{
+			BREAK
+		}
+	}
+	if var_clip <>
+	{
+		run %var_clip%
+	}
+	RETURN
+
+【右键复制】:
+	clipboard := var_RowKeyValue
+	var_temp = 已经复制`n%clipboard%
+	tooltip7( var_temp )
+	RETURN
+
+
+【右键复制并粘贴】:
+	var_clip := var_RowKeyValue
+	;;___去掉注释内容________________________________________________________
+	LOOP
+	{
+		IfInString var_clip, `/*
+		{
+			StrSplit2Sub( var_clip, "`/*", var_left, var_right )
+			IfInString var_right, *`/
+			{
+				var_right := StrRight2Sub( var_right, "*`/", "")
+				var_clip = %var_left% %var_right%
+			}
+		}
+		else
+		{
+			BREAK
+		}
+	}
+	;; 将 | 替换成回车键，然后粘贴到外面的窗口
+	clipboard := ∑返回全部替换后的字符串( var_clip, "|", "`r`n" )
+
+	send !{tab}
+	WinWaitNotActive ahk_id %g_GuiID%
+	Sleep 100
+	send ^v
+	RETURN
+
+
+【右键修改单词名称】:
+
+	var_read := read_ini( g_INIFILE, var_RowSec, var_RowKeyName, "" )
+	if ( var_RowSec != "" && var_RowKeyName != "" && var_read != "" )
+	{
+		var_Prompt =  在字典{%g_INIFILE%}的[%var_RowSec%]节`n更改单词<%var_RowKeyName%>名称为:
+		if MsgInputBox( newKey, "修改单词名称", var_Prompt, var_RowKeyName, 480, 25 )
+		{
+			if newKey <>
+			{
+				newValue := read_ini(g_INIFILE, var_sec, newKey, "")
+				if newValue <>
+				{
+	                StrTrimRight( newValue, "|")        ;; 去掉字符串var_read右边的“|”符号
+					StrTrimLeft( var_read, "|")			;; 去掉字符串newValue左边的“|”符号
+					newValue = %newValue%|%var_read%	;; 将var_read与newValue通过|连接起来
+
+					var_temp = 准备将 `"%var_RowKeyName%`" 更名为 `"%newKey%`" 但新单词名已经存在，`n`n
+					var_temp = %var_temp%点【是】将%var_RowKeyName%的值追加到%newKey%之后，效果如下：`n`n%newKey%=%newValue%`n`n是否确认此操作？
+					if not YesNoBox("单词新名称已经存在，确认更名", var_temp)
+					{
+						RETURN
+					}
+				}
+				else
+				{
+					newValue := var_read	;; 将var_read与newValue通过|连接起来
+				}
+				write_ini( g_INIFILE, var_RowSec, newKey, newValue, false )
+				del_dict( g_INIFILE, var_RowSec, var_RowKeyName )
+				g_CurKey := newKey
+				g_DBClickListView := true		;; 显示详细
+				GoSub 【重新加载数据并搜索】
+				RETURN
+			}
+			else
+			{
+				tooltip7("新的单词名不能为空!")
+			}
+		}
+	}
+	RETURN
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 响应菜单栏
+
+MenuFileOpen:                           ;; 打开字典
+	Gui +OwnDialogs  ; Force the user to dismiss the FileSelectFile dialog before RETURNing to the main window.
+
+	FileSelectFile, var_SelectedFile, 3, %A_WorkingDir%, 请选择字典文件, 字典文件 (*.dic; *.ini; *.txt; )
+	if var_SelectedFile <>
+	{
+		ControlSetText Edit4, %var_SelectedFile%, %g_WINTITLE%
+		SetIniFile( var_SelectedFile )
+		sleep 100
+		GoTo 【重新加载字典】
+	}
+
+	RETURN
+
+【用文本编辑器打开】:
+	Gui submit, nohide
+	IfExist %g_INIFILE%
+	{
+		run %g_INIFILE%
+	}
+	RETURN
+
+【复制搜索框】:
+	controlfocus Edit1, %g_WINTITLE%
+	send {home}{shift down}{end}{shift up}
+	send ^c
+	tooltip7("复制搜索框", 600)
+	RETURN
+
+【复制分类框】:
+	GuiControl, Focus, _Section
+;	controlfocus Edit3, %g_WINTITLE%
+	send {home}{shift down}{end}{shift up}
+	send ^c
+	tooltip7("复制分类框", 600)
+	RETURN
+
+【复制KeyValue】:
+	GuiControl, focus, _KeyValue
+;	controlfocus Edit2, %g_WINTITLE%
+	send {home}{shift down}{end}{shift up}
+	send ^c
+	tooltip7("复制KeyValue", 600)
+	RETURN
+
+【清空搜索编辑框】:
+	if a_GuiEvent = DoubleClick
+		GoSub 【清空搜索框】
+	return
+
+【清空搜索框】:
+	GuiControl , Text, _keyName
+	ControlSetText, Edit1, , %g_wintitle%
+	GuiControl, Focus, _keyName
+	RETURN
+
+【清空分类编辑框】:
+	if a_GuiEvent = DoubleClick
+		GoSub 【清空分类框】
+	return
+
+【清空分类框】:
+	GuiControl , Text, _Section
+;	ControlSetText, Edit3, , %g_wintitle%
+	GuiControl, Focus, _Section
+	RETURN
+
+【清空KeyValue编辑框】:
+	if a_GuiEvent = DoubleClick
+		GoSub 【清空KeyValue】
+	RETURN
+
+【清空KeyValue】:
+	GuiControl , Text, _keyValue,
+	GuiControl, Focus, _keyValue
+	RETURN
+
+【清空所有编辑框】:
+	GuiControl , Text, _keyName
+	GuiControl , Text, _Section
+	GuiControl , Text, _keyValue,
+	GuiControl, Focus, _keyName
+	RETURN
+
+
+【批量增加按钮】:
+	Gui submit, nohide
+	var_dict := _INIFILE
+	var_sec  := _Section
+	var_key  := _KeyName
+;	ControlGetText var_key, Edit1, %g_WINTITLE%
+;	ControlGetText var_sec, Edit3, %g_WINTITLE%
+;	ControlGetText var_dict, Edit4, %g_WINTITLE%
+	if var_dict <>
+		WriteTempIni("我的字典", "file", var_dict )
+	if var_sec <>
+		WriteTempIni("我的字典", "section", var_sec )
+	if var_key <>
+		WriteTempIni("我的字典", "key", var_key )
+
+	var_root := ∑获取根目录()
+	var_file = %var_root%\bin\dict\BatchAdd.ahk
+	run_ahk(var_file, a_wintitle, A_WorkingDir, "", true )
+	gosub 【重新加载数据并搜索】
+	RETURN
+
+;;---收藏夹菜单--------------------------------------------------------------
+【添加收藏】:
+	IfExist %g_INIFILE%
+	{
+		var_favorite := g_FAVORITE
+		g_FAVORITE := readTempIni("我的字典", "favorite", "")
+
+		if ∑Add字符串队列( g_FAVORITE, g_INIFILE, "|", false )
+		{
+			WriteTempIni("我的字典", "favorite", g_FAVORITE )
+
+			if var_favorite <>
+			{
+				LOOP parse, var_favorite, |
+				{
+					if a_LOOPField =
+						CONTINUE
+					if ( a_Index < 10 )
+						var_temp = `&%a_Index%
+					else
+						var_temp = %a_Index%
+					var_temp = %var_temp%) %a_LOOPField%
+					Menu, FavoriteMenu, delete, %var_temp%
+				}
+			}
+
+			if g_FAVORITE <>
+			{
+				LOOP parse, g_FAVORITE, |
+				{
+					if a_LOOPField =
+						CONTINUE
+					if ( a_Index < 10 )
+						var_temp = `&%a_Index%
+					else
+						var_temp = %a_Index%
+					var_temp = %var_temp%) %a_LOOPField%
+
+					Menu, FavoriteMenu, Add, %var_temp%, 【打开收藏】
+				}
+			}
+		}
+	}
+	RETURN
+
+【刷新收藏列表】:
+	if g_FAVORITE <>
+	{
+		LOOP parse, g_FAVORITE, |
+		{
+			if a_LOOPField =
+				CONTINUE
+			if ( a_Index < 10 )
+				var_temp = `&%a_Index%
+			else
+				var_temp = %a_Index%
+			var_temp = %var_temp%) %a_LOOPField%
+			Menu, FavoriteMenu, delete, %var_temp%
+		}
+	}
+	g_FAVORITE := readTempIni("我的字典", "favorite", "")
+	if g_FAVORITE <>
+	{
+		LOOP parse, g_FAVORITE, |
+		{
+			if a_LOOPField =
+				CONTINUE
+			if ( a_Index < 10 )
+				var_temp = `&%a_Index%
+			else
+				var_temp = %a_Index%
+			var_temp = %var_temp%) %a_LOOPField%
+			Menu, FavoriteMenu, Add, %var_temp%, 【打开收藏】
+		}
+	}
+	RETURN
+
+【管理收藏】:
+	SetIniFile ( "temp.ini" )
+	GoSub 【重新加载数据并搜索】
+	keyValue := read_ini( "temp.ini", "我的字典", "favorite", "" )
+	g_bAutoSearch := false
+	GuiControl , Text, _Section
+	ControlSetText, Edit3, 我的字典, %g_WINTITLE%
+	g_bAutoSearch := true
+	ControlSetText, Edit1, favorite, %g_WINTITLE%
+	∑展开单词项( "我的字典", "favorite", keyValue )
+	RETURN
+
+【打开收藏】:
+	var_index := A_ThisMenuItempos - 4
+	if var_index > 0
+	{
+		StringSplit, tempArray, g_FAVORITE, |
+		var_dic := tempArray%var_index%
+		IfExist %var_dic%
+		{
+			GuiControl , Text, _keyName
+			GuiControl , Text, _Section			;; 清空Setion编辑框
+			GuiControl , Text, _keyValue		;; 清空KeyValue编辑框
+			SetIniFile( var_dic )
+
+			ifnotexist %g_INIFILE%
+			{
+				g_Sections =
+				msgbox 字典文件%g_INIFILE%不存在, 加载字典失败!
+				RETURN
+			}
+			else if ( g_INIFILE != read_ini("temp.ini", "我的字典", "file", "dict.dic") )
+			{
+				write_ini("temp.ini", "我的字典", "file", g_INIFILE, false)
+				GoSub 【重新加载数据并搜索】
+			}
+		}
+	}
+	RETURN
+
+;;---帮助菜单----------------------------------------------------------------
+
+【操作说明】:
+	g_IsHelp := true
+	GuiControl, , _keyValue, 操作说明
+	var_tip =
+(
+★ 启动飞扬小字典 ★
+--------------------------------------------------------------------------------------------------
+可通过LWin+LAlt快捷键（快捷键可自定义）、画屏命令快速启动。
+也可以双击飞扬热键目录->bin->dict->dict.ahk或dict.exe启动。
+飞扬热键启动后，将在工作目录中搜索字典文件。
+
+
+★ 打开字典文件 ★
+--------------------------------------------------------------------------------------------------
+在使用飞扬小字典之前，需要打开字典文件。打开方法有以下方法：
+1、在“字典”编辑框中选择。
+2、通过File->Open菜单打开。
+3、通过Favorite菜单打开收藏的字典文件。
+4、通过快捷键Alt+Fn快捷键快速打开收藏的字典文件。
+
+注意：
+1、通过File->Open菜单，可打开任意INI格式的文件（如.dic,.ini).
+2、如果要新建字典，则直接在“字典”编辑框中直接输入新字典名即可，
+   如：new.dic，接下来执行添加操作时自动会新建并打开此文件。
+
+
+★ 搜索词汇 ★
+--------------------------------------------------------------------------------------------------
+打开字典后，在“分类”列表中，将显示该字典中的所有分类。
+
+1、现在可以在搜索框中输入文字实时搜索了，当你输入a时，将会立即搜索出
+单词名称中包含字母a的单词，并显示到右侧的列表框中。
+
+2、在分类编辑框中输入内容时，也会对搜索框中的内容进行实时搜索，但会
+限制在分类编辑框中指定的分类中进行搜索。
+
+3、在keyValue框中手动输入内容时，将会在已经搜索出的结果中继续搜索，
+并高度显示搜索到的结果。
+
+说明：
+1、搜索默认仅搜索单词名称，并不搜索单词释义项。如果在要释义项中搜索，
+   则需要勾选“同时搜索单词项”复选框（在搜索框正文）。
+2、如果要使用正则表达式进行搜索，请勾选“使用正则表达式”复选框。
+
+
+★ 关于词汇的说明 ★
+--------------------------------------------------------------------------------------------------
+词汇是以INI文件格式进行存储，Section对应分类，keyName对应单词名称，
+keyValue对应单词释义项。一个单词可以有多个释义项，释义项之间用“@#124;”进行分隔。
+每个释义项中，可以使用/**/引用注释，注释内的内容不作为释义项。
+例如：在字典文件“计算机知识.dic”中有这么一段，
+[VIM技巧]
+全文替换=:`%s/old_word/new_word/g /*全文替换*/@#124;如果只想替换某个范围内的字符呢，有两种灵活的办法.
+
+这段文本指明了单词分类为“VIM技巧”，单词名称为“全文替换”。
+释义项以@#124;为分隔符，有两项：
+1):`%s/old_word/new_word/g /*全文替换*/
+2)如果只想替换某个范围内的字符呢，有两种灵活的办法.
+其中第1)项的“/*全文替换*/ ”为注释部分。
+
+
+★ 搜索词汇的展示 ★
+--------------------------------------------------------------------------------------------------
+搜索得到的词汇有三种展示状态：
+1、收起状态：直接在右侧列表中显示，将分类、单词名称、释义项（收缩状态）分三列显示。
+2、展开状态：在收起状态选中点击某一行，将进入展开状态，
+   即只显示选中单词，将词汇多个释义项展开成多行显示。
+   （将@#124;替换为回车符，转义其他字符）（只显示释义项一列）。
+3、详细状态：在释义项所在列，选中某一行，点击右键，在弹出快捷菜单中
+   选择“查看”选项进行详细查看状态（只读），此状态是以富文本框显示多行文本，
+   并且自动换行，可以显示大段文字，并且支持复制。
+
+说明：
+1、默认使用收起状态显示搜索结果，此状态可显示多个搜索结果，但释义项收缩显示不完整。
+2、展开状态只显示一个单词，多个释义项将展开成多行显示，一个释义项对应一行。
+   但不会自动换行，如果一个释义项太长，将无法全部显示。（此状态不显示分类和单词列）
+3、详细状态可将选中的某一行，用富文本框进行显示，可自动换行，可复制，可显示大段文字。
+4、以上各种状态，都不允许直接编辑文本内容。
+5、在收起状态或展开状态，点击某一行可将该行的内容，显示到结果列表上方的
+   keyValue编辑框，在这里可以进行编辑，但所作的编辑不会保存。
+6、keyValue编辑框有单行和多行模式，按Ctrl+PGDN切换到多行模式，按Ctrl+PGUP进行
+   单行模式。
+7、显示状态切换：
+   在收起状态双击某行，将进入展开状态；
+   在展开状态的结果列表中按BackSpace退格键返回收起状态；
+   在收起或展开状态，可通过右键菜单->查看进入详细状态；
+   在详细状态按BackSpace退格键返回收起状态。
+
+
+★ 词汇发送到其他窗口 ★
+--------------------------------------------------------------------------------------------------
+飞扬小字典可将文本内容快速发送到其它窗口，有如下方法:
+1、拖拽粘贴功能:
+   拖拽粘贴即通过快捷键“LCtrl+鼠标左键”拖拽文本到其它窗口。
+
+   步骤:
+   a) 首先将鼠标定位到“搜索框”、“KeyValue”框、“分类框”或结果列表上。
+   b) 按下 左Ctrl键不放，点击鼠标左键并拖拽到其他窗口（飞扬小字典窗口将会暂时最小化）。
+   c) 拖拽到目标窗口之后释放鼠标左键（LCtrl键保持按下），将激活目标状态。
+   d) 按下 左Ctrl键不放，点击鼠标调整插入位置。
+   e) 释放Ctrl键时，自动将选择的内容插入到指定窗口。（自动还原飞扬小字典窗口）
+
+2、Ctrl+S将选中内容一键发送到打开飞扬小字典之前的窗口。操作步骤:
+   a) 在结果列表中点击选择要发送的单词项。
+   b) 按快捷键 Ctrl+S 键即可将选择的单词项内容发送到指定窗口。
+
+3、快速将单词项发送到下一窗口。
+   a) 在结果列表中点击选择发送的单词项。
+   b) 通过菜单或右键快捷菜单选择“复制粘贴”，将模拟用户输入Alt+Tab切换到下一个窗口，并将选中的单词项粘贴到此窗口。
+
+
+说明:
+   这三种发送文本的方式，都会自动过滤掉单词项的注释部分。
+
+
+★ 词汇编辑 ★
+--------------------------------------------------------------------------------------------------
+由于结果显示列表中不能直接编辑词汇，需要通过添加按钮和右键菜单来编辑修改词汇。
+
+添加词汇的方法：
+1、选择好字典，在分类编辑框中填好分类，在搜索框中输入单词，在keyValue编辑框中
+   输入释义项之后，按keyValue编辑框右边的“+”添加按钮或快捷键Alt+A/Ctrl+=添加。
+2、在展开状态下，右键单击结果列表，选择“插入”或“添加”可为选中的单词增加
+   一个释义项。
+
+修改、删除词汇：
+右键单击结果列表，在右键菜单中选择“修改”或“删除”菜单项，可为选中的单词
+（或释义项）进行修改或删除操作。
+
+
+
+★ 界面操作 ★
+--------------------------------------------------------------------------------------------------
+1、退出：可通过File->Exit菜单、关闭按钮、Esc键退出飞扬小字典。
+2、最小化：可按F1最小化窗口。
+3、窗口最前面：F11或点击“窗口置顶”复选框，将窗口置顶，即始终在最上面。
+4、窗口半透明：F12或点击“窗口半透明”复选框，使用窗口半透明，同时置顶。
+5、取消半透明：在字典窗口内输入Alt+0 或 F10，取消窗口的半透明和置顶。
+
+
+
+★ 其他操作 ★
+--------------------------------------------------------------------------------------------------
+1、可通过右键菜单->复制、复制粘贴或快捷键Ctrl+S可将选中的内容直接粘贴到指定窗口。（注释部分将自动过滤，@#124;转义成回车符）。
+2、可通过右键菜单->Run可直接执行文件、网址及命令。
+3、可通过Copy->批量添加菜单，从文件或剪贴板中批量添加单词（释义项）。
+4、在其他窗口选中文字，按Win+V可复制选中文字到飞扬小字典中的搜索框、
+   keyValue编辑框。
+5、keyValue编辑框多行切换：
+   单选切换至多行的操作：Enter/NumpadEnter/Ctrl+PGDN/Ctrl+Enter.
+   多行切换至单行的操作：Enter/Ctrl+PGUP/Ctrl+Enter或按“^”收起按钮。
+   在多行状态下按 NumpadEnter 键不能切换至单行状态，而是输入回车键。
+
+
+
+)
+	ShowText( var_tip )
+	RETURN
+
+【快捷键说明】:
+	g_IsHelp := true
+	GuiControl, , _keyValue, 快捷键说明
+	var_tip =
+(
+【快捷键】	- 【 功能 】	- 【 说明 】
+
+在飞扬小字典窗口:
+--------------------------------------------------------------------------------------------------
+F1		- 最小化 		- 最小化窗口
+F2		- 修改 		- 对输入框指定的内容进行修改
+F3		- 搜索全部		- 清空分类编辑框，再进行搜索，即对取消分类过滤。
+F5		- 刷新 		- 初始化所有编辑框, 重新搜索
+F6		- 下拉搜索列表	- 弹出/收缩搜索框的下拉列表，显示/隐藏历史搜索记录。
+Ctrl+=		- 添加		- 将编辑框中指定的单词内容添加到字典中。
+Ctrl+S		- 发送		- 将KeyValue框的内容发送到指定窗口。如果按住Ctrl不放，会转化成大写字母。
+Ctrl+I		- 插入		- 将KeyValue框的内容插入到目标位置, 并退出我的小字典
+Ctrl+E		- 文本编辑		- 用默认文本编辑器（如记事本）打开当前字典文件。
+Alt+F1~F12	- 打开收藏		- 通过Alt+F1~F12，快速打开收藏菜单下序号为1~12的字典。
+Ctrl+鼠标左键	- 拖拽粘贴		- 即在飞扬小字典中按“LCtrl+鼠标左键”可拖拽鼠标下的文本到其他窗口。
+
+
+在其他窗口:
+--------------------------------------------------------------------------------------------------
+Win+V			-复制选中的文本并弹出右键菜单，指定粘贴到飞扬小字典的哪个编辑框。
+ins+home/NumpadHome 	-将复制选中的文本到字典的搜索框
+ins+pgup/numpadUp	-将复制选中的文本到字典的KeyValue框
+ins+pgdn/numpadPgup	-将复制选中的文本, 作为注释增加到字典的KeyValue框末尾
+ins+end/numpadAdd	-将自动点击字典窗口的Add按钮。
+
+)
+	ShowText( var_tip )
+	RETURN
+
+【注意事项】:
+	g_IsHelp := true
+	GuiControl, , _keyValue, 注意事项
+	var_tip =
+(
+搜索	- 搜索之前需要先指定字典，你在搜索关键字的过程中，程序会实时搜索
+	- 单击分类列表，右边KeyValue列表仅显示选择的分类结果，过滤掉其他结果！
+	- 双击分类列表，则取消过滤，显示所有查寻结果！
+	- 双击KeyValue列表，则将该记录的关键字、分类、值分别填充到搜索框、分类框和KeyValue框
+	- 当只查询到一条结果时或双击KeyValue列表时，会将KeyValue值展开成多项
+添加	- 需要在搜索框、分类框、KeyValue框输入内容，按添加按钮才能成功添加！
+修改	- 先在各个编辑框填入修改之前的内容，点击修改按钮之后会弹出窗口让你输入修改之后的内容
+删除	- 先在各个编辑框填入想要删除的内容，再点删除按钮
+复制	- 复制KeyValue框的内容，并自动切换窗口进行粘贴,在粘贴时自动会过滤掉/**/之间的注释内容！
+插入	- 将KeyValue框的内容复制到剪贴板并插入到目标位置, 并关闭窗口
+)
+	ShowText( var_tip )
+	RETURN
+
+
+
+【关于】:
+	g_IsHelp := true
+	GuiControl, , _keyValue, 关于
+	var_tip =
+(
+关于飞扬小字典 V2.15
+--------------------------------------------------------------------------------------------------
+飞扬小字典，致力于打造一个辅助记忆的小工具，
+要求能够极速地记录和搜索零碎的文本片段，追求速度！
+
+其特点如下：
+1、一个快捷键瞬间启动，ESC立刻退出（快到不会打断思路）。
+2、在搜索栏输入时，能够实时快速地查询（闪电般的速度）。
+3、能够一键将查询结果复制并粘贴到指定窗口。
+4、添加词汇十分快捷方便。
+5、可用来管理INI配置文件。
+6、可作为扩展的“剪贴板”用。
+
+
+博客文章
+--------------------------------------------------------------------------------------------------
+AutoHotkey打造“我的小字典”
+http://blog.csdn.net/teshorse/archive/2010/07/28/5771987.aspx
+
+
+关于作者
+--------------------------------------------------------------------------------------------------
+作者	- 陈建平
+博客	- http://blog.csdn.net/teshorse
+Email	- teshorse@qq.com
+MSN	- teshorse@hotmail.com
+QQ群	- 10504143
+)
+	ShowText( var_tip )
+	RETURN
+
+【帮助更新说明】:
+	g_IsHelp := true
+	GuiControl, , _keyValue, 更新说明
+	var_tip =
+(
+版本更新
+--------------------------------------------------------------------------------------------------
+v2.16	- 2014-08-26
+1、keyvalue控件优化回车键事件，
+	当单行显示时回车变成多行显示；
+	当多行显示时回车就是回车换行功能；
+	Alt+Enter可将多行Edit切换回单行编辑框。
+2、在搜索框输入Alt+J将激活结果列表框并输入↓方向键；
+	在其他地方输入Alt+J直接输入↓方向键。
+
+
+v2.15   - 2012-12-4
+1、将飞扬小字典默认的工作目录下移至子目录 Dict 文件夹。
+2、字典选择框: 可以通过输入文字，对字典列表进行过滤。
+
+
+v2.14   - 2012-9-29
+※ 左侧的分类栏可调整宽度或隐藏
+   （通过新增的【<<】，【<-】，【+>】，【宽】按钮调整）。
+   【宽】按钮的使用方法：在分类编辑框中输入不小于50的数字，
+   然后按此按钮，将会把左侧的分类栏的宽度调整为此值。
+   【<<】按钮可隐藏左侧分类栏，以加大结果列表的显示宽度。
+   【<<】按下之后变成【>>】按钮，并移动到“分类”框上方，
+   【>>】按钮可恢复左侧分类栏。
+
+
+v2.13   - 2012-4-15
+1、实现拖拽粘贴的功能: 即在飞扬小字典中按“LCtrl+鼠标左键”可拖拽鼠标下的文本到其他窗口。
+2、在其实窗口，可通过 Win+V键 复制选中文本，弹出右键菜单让用户指定粘贴到飞扬小字典的哪个编辑框。
+3、打开飞扬小字典时，如果已经打开则激活之，在2秒之内按下LAlt键可以再打开一个相同的飞扬小字典。
+4、当临时打开配置文件时（即传递了section参数），不将该字典添加到最近使用的字典（file配置）。
+5、将V2.1版本中增加的_ShowText编辑框（用于查看状态下显示详细内容），替换为RichEdit控件，从而支持彩色显示。
+
+
+V2.12	- 2012-3-27
+批量添加完成之后，重新加载字典文件，并重新搜索。
+使用多功能模态对话框窗口代替MsgBox，InputBox。
+
+
+V2.11	- 2012-02-10
+_keyValue编辑框允许向下扩大，显示多行以便编辑。
+_keyValue显示多行时，显示Text原始格式。
+_keyValue显示单行时，则调用EncodeToString()将Text编码成一行字符串，并显示为一行。
+
+
+V2.1	- 2012-02-09
+增加显示文本的_ShowText编辑框，用于替换右键“查看”时弹出对话框提示。
+使用此编辑框，一方面方便阅读，另一方面可以选中、复制文本。
+此外，帮助内容也通过此编辑框显示。
+
+
+V2.0	- 2011-09-05
+重新编写搜索代码，有以下改进：
+1、支持正则表达式
+2、分类与单词名称可使用空格等特殊字符（但分类中不允许使用[和]，而单词名中不可以包含=号）
+
+
+V1.4	- 2011-07-22
+1、ListView使用彩色字体。
+2、增加双击编辑框上方的文字标签时清空编辑框的功能。
+3、打开字典时自动备份功能。
+4、ListView右键菜单增加‘查看’功能。
+5、新增Alt+Fx快捷键，快速打开收藏的字典。
+
+
+V1.3
+1、优化ListView显示与提示
+2、在KeyValue编辑框手动输入内容时，ListView会查找并加亮相关行
+3、完善收藏夹功能
+
+
+V1.2
+1、搜索速度更快，允许搜索KeyValue
+2、双击ListView展开详细单词项，退格键收缩详细单词项
+3、增加收藏夹功能
+)
+	ShowText( var_tip )
+	RETURN
+
+
+【配色说明】:
+	g_IsHelp := True
+	GuiControl, , _keyValue, 加亮说明
+	var_tip =
+(
+在详细查看状态下，对一些关键字是有加亮显示的，如下：
+
+★五角星包围的内容★
+--------------------------------------------------------------------------------------------------
+1、上面那条直接其实是 -- 连成的
+2、>>> 三个>号及右边的内容 /*注释内容*/
+3、“双引号内容”  "半角双引号内容"
+4、【强调内容】
+5、数字序号 1. 2) 3、 a) D.
+6、<<< 三个<号及右边的内容
+§7 整行淡蓝色
+八、整行淡蓝色
+※ 整行粉红色
+)
+	ShowText( var_tip )
+	Return

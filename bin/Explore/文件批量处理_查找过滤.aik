@@ -1,0 +1,188 @@
+
+【实时查找文件名】:
+;	msgbox loop %g_loadcount%
+	SB_SetText("正在实时查找文件名......")
+	GuiControl, -Redraw, _MyListView
+	lv_delete()
+	gui submit, nohide
+	StringSplit arrFindName, _findname, |
+;	msgbox StringSplit arrFindName[%arrFindName0%], %_findname%, |
+	loop %g_loadcount%
+	{
+		line := aFileName%a_index%
+		if _findname <>
+		{
+			bFind := false
+			loop %arrFindName0%
+			{
+				var_findname := arrFindName%a_index%
+				if var_findname =
+					continue
+
+				ifinstring line, %var_findname%
+				{
+;					msgbox ifnotinstring aFileName%a_index%, %var_findname%
+					bFind := true
+					break
+				}
+			}
+			if not bFind
+			{
+                continue                        ;; 如果没在查找内，则过滤
+			}
+		}
+		LV_Add("", aFileName%a_index%, aFileExt%a_index%, aFileSize%a_index%, aFileDir%a_index% )
+	}
+	AutoModifyCol()
+	GuiControl, +Redraw, _MyListView	
+	GuiControl, Choose, _ListTab, 1             ;; 切换到文件列表ListView
+	SB_SetText("")
+	return
+
+【实时查找扩展名】:
+	SB_SetText("正在实时查找扩展名......")
+	GuiControl, -Redraw, _MyListView
+	lv_delete()
+	gui submit, nohide
+	StringSplit arrFindExt, _findext, |
+	loop %g_loadcount%
+	{
+		line := aFileExt%a_index%
+		if _findext <>
+		{
+			bFind := false
+			loop %arrFindExt0%
+			{
+				var_findext := arrFindExt%a_index%
+				if var_findext =
+					continue
+
+				ifinstring line, %var_findext%
+				{
+;					msgbox ifnotinstring aFileName%a_index%, %var_findname%
+					bFind := true
+					break
+				}
+			}
+			if not bFind
+			{
+                continue                        ;; 如果没在查找内，则过滤
+			}
+		}
+		LV_Add("", aFileName%a_index%, aFileExt%a_index%, aFileSize%a_index%, aFileDir%a_index% )
+	}
+	AutoModifyCol()
+	GuiControl, +Redraw, _MyListView
+	GuiControl, Choose, _ListTab, 1             ;; 切换到文件列表ListView
+	SB_SetText("")
+	return
+
+【查找按钮】:
+	SB_SetText("正在【查找】......")
+	GuiControl, -Redraw, _MyListView
+	lv_delete()
+	gui submit, nohide
+	StringSplit arrFindName, _findname, |
+	StringSplit arrFindExt, _findext, |
+	loop %g_loadcount%
+	{
+		line := aFileName%a_index%
+
+		bFind := false
+		loop %arrFindName0%
+		{
+			var_findname := arrFindName%a_index%
+			if var_findname =
+				continue
+
+			ifinstring line, %var_findname%
+			{
+;					msgbox ifnotinstring aFileName%a_index%, %var_findname%
+				bFind := true
+				break
+			}
+		}
+		if not bFind
+		{
+			line := aFileExt%a_index%
+			loop %arrFindExt0%
+			{
+				var_findext := arrFindExt%a_index%
+				if var_findext =
+					continue
+
+				ifinstring line, %var_findext%
+				{
+;					msgbox ifnotinstring aFileName%a_index%, %var_findname%
+					bFind := true
+					break
+				}
+			}
+			if not bFind
+			{
+				continue                        ;; 如果没在查找内，则过滤
+			}
+		}
+
+		LV_Add("", aFileName%a_index%, aFileExt%a_index%, aFileSize%a_index%, aFileDir%a_index% )
+	}
+	AutoModifyCol()
+	GuiControl, +Redraw, _MyListView	
+    GuiControl, Choose, _ListTab, 1             ;; 切换到文件列表ListView
+	SB_SetText("")
+	return
+
+【过滤按钮】:
+	SB_SetText("正在【查找并过滤】......")
+	GuiControl, -Redraw, _MyListView
+	lv_delete()
+	gui submit, nohide
+	StringSplit arrFindName, _findname, |
+	StringSplit arrFindExt, _findext, |
+	loop %g_loadcount%
+	{
+		line := aFileName%a_index%
+
+		bFind := false
+		loop %arrFindName0%
+		{
+			var_findname := arrFindName%a_index%
+			if var_findname =
+				continue
+
+			ifinstring line, %var_findname%
+			{
+;					msgbox ifnotinstring aFileName%a_index%, %var_findname%
+				bFind := true
+				break
+			}
+		}
+		if not bFind
+		{
+			line := aFileExt%a_index%
+			loop %arrFindExt0%
+			{
+				var_findext := arrFindExt%a_index%
+				if var_findext =
+					continue
+
+				ifinstring line, %var_findext%
+				{
+;					msgbox ifnotinstring aFileName%a_index%, %var_findname%
+					bFind := true
+					break
+				}
+			}
+			if not bFind
+			{
+				continue                        ;; 如果没在查找内，则过滤
+			}
+		}
+
+		LV_Add("", aFileName%a_index%, aFileExt%a_index%, aFileSize%a_index%, aFileDir%a_index% )
+	}
+	AutoModifyCol()
+	GuiControl, +Redraw, _MyListView	
+    GuiControl, Choose, _ListTab, 1             ;; 切换到文件列表ListView
+	SB_SetText("")
+	return

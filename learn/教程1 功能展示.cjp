@@ -1,0 +1,224 @@
+简要介绍AutoHotkey的功能 
+----------------------------------------------------------
+作者: 陈建平 时间:2010-4-8 16:17:04	邮箱:cwin@live.cn
+
+记得以前曾经用过一个定时软件，可以通过写程序定制要完成的任务，于是在网上搜索这个软件，但是没有搜索到，却不小心闯入了“善用佳软”的家里，发现了AutoHotkey。发现它越来越强大，远远不至善用佳软里介绍的功能，此后一发不可收拾，几年来不断地完善自己的代码，到目前为止到了依恋它的程序，有了它，我的电脑就比别人更神奇！
+
+找到了这样的好东西，自然想拿出来与大家分享一下。我的同事对这个脚本很感兴趣，也想学习一下，但由于我没有对它进行整理过，自然也说不清。其实AutoHotkey是一种脚本程序，相对其他编程来说很简单，但初学者会被它的多种函数的调用方法及多样的赋值方法而迷乱。现在，我下定决心整理一下AutoHotkey，拿出来与朋友们分享，希望它能提高你们的工作效率！
+
+我基本上是通过AutoHotkey自带的帮助文档学习的，我觉得这份文档的质量很好，简单易懂，不过是英文的，如果是搞程序的，应该不会有什么困难。我的这份笔记，是通过介绍常用功能的脚本来学习AutoHotkey的使用的。其实，我只不过用了AutoHotkey的冰山一角，就已经能满足我各种各样的需求了。
+
+在学习这份教程之前, 你也许要做以下几项准备工作:
+1、安装AutoHotkey编译器，只有4M左右的大小，官方网址：http://www.autohotkey.com/
+2、了解一下AutoHotkey的基本知识，例如：
+	AutoHotkey 0级入门教程:让重复工作一键完成 http://blog.sina.com.cn/s/blog_46dac66f010005g7.html
+	AutoHotkey:帮助win run更方便 http://blog.sina.com.cn/s/blog_46dac66f010005cf.html
+	AutoHotkey组简介：http://www.douban.com/group/AutoHotkey/
+3、多看AutoHotkey自带的帮助文档
+
+
+有了AutoHotkey，很多小程序就不再需要， 如Lunchy，定时关机的程序等，更不需要可编程键盘了!
+下面我罗列一下，我常用AutoHotkey做什么：
+
+1、更改键盘：
+	通过AutoHotkey 来 Hook 键盘输入，再执行自己的程序，
+	当然也可以不执行什么东西达到屏蔽按键的目的。
+	比如：在玩一些全屏游戏时，很容易一不小心就按到{win}徽标键
+	（注：就是左下角介于{ctrl}与{alt}之间的按键，在这份教程中，将用{}来表示一个按键，
+	如{shift}、{esc}、{space}空格键、{pageup}上一页 等等），
+	那么我想屏蔽{win}键就只要写一行代码就行：
+	
+		LWin::return	; 注释: LWin表示左边的{win}键
+		
+	就这么一行代码就屏蔽了左边的Window徽标键，
+	这样在全屏玩游戏时不用担心不小心按到了左边的徽标键，就算按到也没反应的。
+	后面分号以后的， 是注释，程序不会执行。在AutoHotkey中，行注释是以分号开头的，
+	值得注意的是，如果分号不在行首，分号前面还有其他字符，则分号之前必须用空格隔开，
+	否则程序不会将分号视为行注释，而将其视为单词的一部分。
+
+	再举个例子：你可以将P键与Q键调换， 两行代码即可：
+		P::Q
+		Q::P
+	如此一来,你按键盘上的P就输出Q, 反之亦然。
+	
+	精彩应用:
+	你是否见过多媒体键盘，有控制多媒体播放，一键上网，一键静音等等
+	其实AutoHotkey中就包含了这些逻辑按钮，可以就像上面那行代码那样轻松地实现。
+	
+	此外，有些特殊的键盘(如日本过来的IBM R40e笔记本的键盘)在中文操作系统没有一点用处，
+	但有了AutoHotkey之后，你可以将这些没用的神秘键变废为宝，达到奇妙的效果。
+
+2、HotString 定义快捷输入：
+	快捷输入，就是输入法中所谓的自定义词组或段落，
+	以后就可以通过输入简短的自定义关键字来输出一段文字，如：
+	::mail::goomood-cwin@yahoo.com.cn
+	::blog::http://blog.csdn.net/teshorse
+	如此，当我输入mail并回车时,便会输出我的邮箱goomood-cwin@yahoo.com.cn 
+	输入blog回车时，就会输出 http://blog.csdn.net/teshorse 
+	很简单吧! 你应该发现关键字mail与输出的内容之间,用了两个冒号分隔。
+	对了，在AutoHotkey中，就是用两个冒号来分隔关键字与要执行的命令的
+	细心的你还可能会发现，前面Lwin::return之前没有两个冒号，而这里在关键字之前多了两个冒号::mail::...
+	没有错，这两者是有区别的，关键字前不带冒号的，表示它是单个键或者是组合键，一按下该键或组合键，马上生效
+	而关键字前带了两个冒号，表示这是一个单词，在输入这个单词之后，
+	还要输入回车或者空格之类的键表示单词输入结束，后面的命令才会生效
+	
+	令人遗憾的是，这种方法不支持中文，
+	不过我们可以借助剪贴板来让它支持中文，请留意后面教程
+
+3、执行程序
+	要执行一个程序，也是非常简单地，用run命令，一行代码即可：
+	run , http://blog.csdn.net/teshorse 		; 打开我的博客
+	Run , c:\000.txt							; 打开文件或文件夹
+	Run Notepad							; 直接打开记事本
+	
+	与前面介绍的Hotstring结合起来，就可以定义一个关键字（我称之为HotString热键的关键字吧）来执行打开程序的命令，如：
+	#n::Run Notepad							; 同时按下{win}{n}键, 打开记事本
+	^!c::Run calc.exe							; 同时按下{ctrl}{alt}{c} 组合键将打开计算器程序
+	这里#n和^!c是组合键, 在组合键中, #代表{win}键,^代表{ctrl}, !代表{alt}, +代表{shift}
+	{ctrl}、{alt}、{shift}一般有左右两个，可以在前面加<代表左边的那个,>代表右边的那个
+	如<#n代表组合键 左{win}{n}, 而>#n代表组合键 右{win}{n}
+	
+	注意:^!z将会Hook掉{ctrl}{alt}{z}, 即运行了有 ^!z::... 的脚本文件之后, 
+	按下组合键{ctrl}{alt}{z}之后,  其他程序将收不到这个组合键, 即屏蔽掉了这个热键
+	比如QQ程序的{ctrl}{alt}{z}热键就被屏蔽了, 按下ctr+alt+z不会弹出消息窗口了
+	
+	如果想某热键运行自己的程序，同时不影响其他程序设置该热键，那么在该热键关键字前加个符号~
+	如 ~^!z::run notepad
+	如此一来， 当前按下ctrl+alt+z的时候，会打开记事本，同时不会影响QQ弹出消息窗口
+	
+	以后教程中，将介绍以下几个关于运行程序更高级的应用：
+	运行窗口，快速启动程序
+	在资源管理器中，一键用指定程序打开选中文件
+	在文本编辑器是，一键打开当前编辑的文本所在的目录
+	先来看一下Flash预览一下它们的功能：
+	todo: flash
+	
+4、对窗口进行操作
+	窗口最大化、最小化：
+		WinMaximize A			; 最大化当前窗口
+		WinRestore  A			; 还原窗口大小
+		WinMinimize A			; 最小化当前活动窗口
+	窗口置顶：
+		winset,AlwaysOnTop,, A	; 将当前窗口置顶, 即始终保持窗口在其他窗口上面
+	窗口透明：
+		WinSet, Transparent, 210, A		; 设置当前窗口透明度, 210为透明度, 该值越小越透明
+		WinSet, Transparent, off, A		; 取消透明度
+	改变窗口大小和位置：
+		winmove,A,,300,200,640,400		; 将当前窗口移动到(300, 200), 并且设置宽度为640, 高度为400
+	注意:在AutoHotkey中, 单词A代表当前窗口的标题
+	
+	以后讲解更高级的应用:自动缩放窗口大小，自动调整窗口透明度：
+
+5、模拟用户输入
+	通过使用send / sendInput / sendevent / sendraw 命令可以模拟用户输入
+	例如可以将前面的 ::blog::http://blog.csdn.net/teshorse 改写成
+	::blog::
+		send http://blog.csdn.net/teshorse
+		return
+	这种方法模拟了用户将http://blog.csdn.net/teshorse字符串一个一个字符输入
+	注意: 当HotString命令写成多行时, 必须在命令最后用return结束该命令, 否则会执行到后面其他的命令
+	send 命令还可以模拟输入组合快捷键
+	::cn;::
+		send ^{space}
+		return
+	这里就是通过cn;关键字, 调用send命令输出组合快捷键ctrl+space, 在中文操作系统一般用来切换中英文输入法.
+	你可以在输入文字的时候, 随时通过输入cn;;切换中英文输入法, 而不用再去按ctrl+space.
+	
+	sendinput 与 send 效果一样, 只是将要输入的字符串当作一个整体一次性输出, 而不像send将一个字符一个字符进行输出.
+	因此, sendinput 的输出速度要比send 快得多.
+	sendraw 将字符串原样输出, 就像使用剪贴板粘贴一样, 因此:
+	::cn::
+		sendraw ^{space}
+		return 
+	输出的不是组合ctrl+space, 而是字符串"^{space}"
+	
+	以后将会介绍奇妙的应用:
+	自动给你格式化注释行, 即先选中你要注释的内容, 
+	然后按个快捷键并选择需要的线形, 就会根据内容长度,
+	注释成一个漂亮的注释格式, 请看Flash
+
+	或许, 你可以使用send模拟玩家输入, 写出一个游戏的外挂出来.
+	
+6、修改系统时间
+	写个修改系统时间的函数
+	ChangeSystemDate(datetoset)
+	{
+		char = -
+		formattime,toSet,%datetoset%,yyyy%char%MM%char%dd 
+		runwait %comspec% /c date %toSet%,,hide, 
+	}
+	调用该函数即可, 如:
+	::changeSysTime::
+		ChangeSystemDate(20090913)
+		return
+	可将系统时间设置为2009年9月13日
+	
+7、定时器，提醒任务，开关机
+	示例: 写一个定时关机程序, 每当晚上超过23点就进入关机倒计时(30分钟),
+	30分钟过后就会提醒关机睡觉, 再等一分钟还没关机, 则强制自动关机!
+	
+	settimer 每分钟检查,60000 		; settimer 命令启动定时器 "每分钟检查", 60000 是毫秒, 即一分钟执行一次
+	
+	每分钟检查:						; 定时器, 循环执行定时器里的代码.
+		if (a_hour=23 or a_hour<5)	; a_hour 是系统变量, 是当前系统时间中的小时
+		{
+			if (var_shutdown>30)	; var_shutdown 是自定义变量, 倒计时, 单位(分钟)
+			{
+			var_shutdown := 30
+			iniwrite %var_shutdown%,log.ini,time,shutdown	; 将倒计时间写到配置文件log.ini
+			}
+		}
+		if (var_shutdown<=0 or var_shutdown>var_maxtime)
+		{
+			iniread var_shutdown,log.ini,time,shutdown
+			if(var_shutdown<=0)
+				var_shutdown := var_mintime
+			else if (var_shutdown>var_maxtime)
+				var_shutdown := var_maxtime
+		}
+		if (var_shutdown<=1)		; 倒计时剩下最后一分钟, 弹出消息窗口, 提醒用户关机
+		{
+			BlockInput,MouseMove
+			msgbox 4,限定时间到, 本次开机时间还有一分钟结束`n准备关机!, 30
+			sleep 6000
+			Shutdown, 9				; 时间到, 强制关机, Shutdown 是关机命令
+			return
+		}
+		var_shutdown--
+		iniwrite %var_shutdown%,log.ini,time,shutdown
+	return
+	
+8、超级计算器, 示例:
+	用文本输入:
+	x:=12
+	y:=23
+	r:= sqrt(x*x + y*y)
+	cout(r)
+	
+	选中上面的几行代码, 按下 win+alt+r，将会输出得到结果 25.942244
+	
+9、自己的输入法
+	这是我的得意之作，可以很快速地将一段文字定义成HotString。
+	与输入法中的自定义快捷段落不同的是，
+	同样一个关键字，在不同的窗口将会输出不同的内容。
+	举个具体一点例子，我可以定义一组关键字为myadd的HotString，
+	实现用QQ跟张三聊天时输入myadd时输出“深圳市福田区会展中心”，
+	跟李四聊天同样输入myadd时却输出“上海市浦东新区张江科技园”
+	而在VS2005里则输出一段程序代码片段。
+	输入法是无法做到的这个因窗口而异的功能！
+
+	听晕了吧, 看看这个Flash你就知道它的强大了!
+
+	
+最后, 总结一下本节教程要点:
+
+1. 行注释用分号，当分号不在行首时，前面要用空格隔开
+2. 不区分大小写
+3. 关键字与程序命令之间，用两个冒号 :: 进行分隔
+4. 单个键或组合键，关键字前面不要加两个冒号，一按此键命令马上执行
+   如果关键字是一个单词，则要在前面加两个冒号，输入单词并回车命令才会执行
+5. AutoHotkey可在Window XP/2000/Vista上很好地工作，在98之前高级功能受限，Linux操作系统不支持
+6. 单词A代表当前窗口的标题
+7. 当HotString命令写成多行时, 必须在命令最后用return结束该命令, 否则会执行到后面其他的命令
+8. 使用send / sendInput / sendevent / sendraw 命令可以模拟用户输入
+9. HotString 可以识别窗口，可以根据不同的窗口输出不同的内容

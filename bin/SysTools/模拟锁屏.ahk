@@ -1,0 +1,288 @@
+/*
+|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+ 
+ When a Windows XP PC is locked by CTRL-ALT-DEL or Win-L, the system does not
+ merely initiate a screensaver.  It actually initiates an alternate desktop (the winlogon desktop).
+ This alternate desktop has no icons and no application windows can open on it.  Therefore, it is
+ not possible for AHK to manipulate windows or send keystrokes and mouseclicks because there is
+ no active window when the system is locked.
+ 
+ LockUP was written as a substitute to Windows' locked workstation state.  LockUP allows the user
+ to be compliant by disallowing unauthorized access to the PC, but at the same time allows AHK to manipulate
+ windows as needed.  
+ 
+ The script does the following.
+ 
+   -- Disables keyboard and mouse inputs
+   -- Sets a password to unlock the station
+   -- Creates a black colored window that covers the entire desktop
+   -- Sends a mousemove every 10 minutes to prevent the system from entering 
+       Windows' locked workstation state.
+   -- Handles TaskManager in the event someone tries to enter the system
+       by killing the AHK process.
+   -- Handles Remote Desktop lockout.  This is needed because when disconnecting
+       from a remote computer, that machine automatically becomes locked by Windows.
+   -- Allows keyboard and mouse unlock via a hotkey combination which presents
+       a GUI requesting the password to kill LockUP.
+      
+|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+*/
+#singleinstance IGNORE 
+change_icon()
+
+;; 参数1: psw:密码|tip:请休息一下！|time:自动解锁时间
+var_param = %1%
+Loop, Parse, var_param , |
+{
+	if A_LoopField =
+		continue
+	
+	ifInString A_LoopField, psw:
+		StringMid pwd, A_LoopField, 5
+	else ifInString A_LoopField, tip:
+		StringMid var_tip, A_LoopField, 5
+	else ifInstring A_LoopField, time:
+		StringMid var_time, A_LoopField, 6
+}
+
+
+g_unlockTitle = 屏幕解锁
+
+
+g_ColorArray = Green|Lime|Olive|White|Yellow|Maroon|Red|Blue|Purple|Teal|Fuchsia|Aqua
+StringSplit g_ColorArray, g_ColorArray, |
+
+#include ../../
+#NoEnv ; Avoids checking empty variables to see if they are environment variables
+#Persistent
+DetectHiddenWindows, On
+SetTimer,TaskManager
+SetTimer,MMove, 600000
+;FileInstall, locked.bmp,%A_ScriptDir%\locked.bmp
+
+;; 设置任务管理器标题组
+GroupAdd, 任务管理器组,  Windows 任务管理器
+GroupAdd, 任务管理器组,  Windows Task Manager
+
+; SET the quit hotkey
+; Note: the quit hotkey MUST be based on at least one of these: Control, Shift, Alt
+QUIT_HOTKEY=esc
+;QUIT_HOTKEY=RButton
+Hotkey, %QUIT_HOTKEY%, ExitSub
+Hotkey, *Rwin, ExitSub
+Hotkey, *^!Del, ExitSub  ;;屏蔽Ctrl_Alt_Del键
+
+
+;; 如果参数中带有账号与密码，则不用弹出设置密码的窗口，直接锁屏
+if pwd <>
+{
+	Gosub  【开始锁屏】
+	return
+}
+
+; 'SET pwd' GUI
+Gui, Margin,-1,0
+Gui, Add, Picture,Section,%A_ScriptDir%\locked.bmp
+Gui, Add, Text, Section ym+50 xm+50, 即将锁定电脑，请设置解锁密码.`n`n锁定后，您需要按ESC键弹出账号输入框，`n然后输入当前设置的密码方可解锁.
+Gui, Add, Text, Section yp+70 , 设置密码:
+Gui, Add, Edit, Password vpwd ys-3 xs+65 w180,
+Gui, Add, Text, Section ys+30 xm+50 , 密码确认:
+Gui, Add, Edit, Password vpwdc ys-3 xs+65 w180,
+Gui, Add, Button, ys+30 xm+140 w75 Default, OK
+Gui, Add, Button, ys+30 xm+225 w75, Cancel
+Gui, Show, w411 h255, 设置锁屏
+return
+
+ButtonOK:
+Gui, Submit, NoHide
+If pwd is space
+   {
+   MsgBox, 4112,ERROR, You must set a password.
+   GuiControl,,pwd,
+   GuiControl,,pwdc,
+   GuiControl,Focus,pwd
+   Exit
+   }
+If pwd <> %pwdc%
+   {
+   MsgBox, 4112,ERROR, The confirmation does not match the password.  Please try again.
+   GuiControl,,pwd,
+   GuiControl,,pwdc,
+   GuiControl,Focus,pwd
+   Exit
+   }
+Gui, Destroy
+
+【开始锁屏】:
+	; AFTER the pwd is set, block inputs
+	WinHide ahk_class Shell_TrayWnd
+
+	if var_time > 0
+	{
+		settimer 【延时自动解锁】, %var_time%   ;; 30 秒后自动解锁
+	}
+
+	BlockKeyboardInputs("On")      
+	BlockMouseClicks("On")
+
+
+
+	BlockInput MouseMove
+
+	; DETERMINE size of desktop area to cover
+	SysGet, numOfMonitors, MonitorCount
+	screenX=0
+	screenY=0
+	Loop, %numOfMonitors%
+	{
+	   SysGet, currentMon, Monitor, %A_Index%
+	   if (currentMonLeft < screenX)
+				screenX = %currentMonLeft%
+	   if (currentMonTop < screenY)
+				screenY = %currentMonTop%
+	}
+	SysGet, mX, 78
+	SysGet, mY, 79
+
+	; HIDE cursor
+	MouseMove, %mX%,%mX%,0
+
+	; SHOW Blank Window
+	Gui, 2:Color, 000000
+	Gui, 2: +AlwaysOnTop -Caption
+	if var_tip <>
+	{
+		random var_index, 1, g_ColorArray0
+		var_color := g_ColorArray%var_index%
+
+
+		StringReplace, var_temp, var_tip,  now ,  %a_hour%:%a_min%:%a_sec%
+
+		if strlen(var_temp) > 12
+			var_size := 48
+		else 
+			var_size := 72
+
+		gui, 2:font, s%var_size% c%var_color% bold,  华文彩云
+		Gui, 2:Add, Text, +BackgroundTrans v_TipEdit, %var_temp%
+	}
+	Gui, 2:Show, NoActivate w%mX% h%mX% x%screenX% y%screenY%, cover
+
+	if var_tip <>
+	{
+		GuiControl, 2:MoveDraw, _TipEdit, x300 y200
+		GuiControlGet, EditPos , 2:pos, _TipEdit
+		settimer, 【随机显示提示文字】, 3000
+	}
+
+	; HANDLE RDP Lockout
+	SysGet, rdp, 4096
+	if rdp <> 0
+	{
+	FileAppend, @`%windir`%\System32\tscon.exe 0 /dest:console,%A_ScriptDir%\rdpdisc.bat
+	RunWait, %A_ScriptDir%\rdpdisc.bat, ,Hide
+	FileDelete, %A_ScriptDir%\rdpdisc.bat
+	}
+	; SEND the monitor into off mode
+	Sleep 500
+
+	;; 如果需要提示信息，则延时1秒进入省电模式
+	if var_tip <>
+		Sleep 1000
+
+	;; 如果没有设置自动解锁时间或解锁时间大于3分钟，则关闭显示器进入省电模式
+	if var_time =
+		SendMessage 0x112, 0xF170, 2,,Program Manager
+	else if var_time > 180000
+		SendMessage 0x112, 0xF170, 2,,Program Manager
+
+	return
+
+【随机显示提示文字】:
+	random, randomx, 0, A_ScreenWidth - EditPosW
+	random, randomy, 0, a_ScreenHeight - EditPosH
+	StringReplace, var_temp, var_tip,  now ,  %a_hour%:%a_min%:%a_sec%
+	GuiControl, 2:Text,  _TipEdit, %var_temp%
+	GuiControl, 2:MoveDraw, _TipEdit, x%randomx% y%randomy%
+	return
+
+;|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+
+ExitSub:
+IfWinExist, %g_unlockTitle%
+   WinActivate
+Else
+{
+	Gui, 2: -AlwaysOnTop
+	Gui, 3:Margin,-1,0
+	Gui, 3:Add, Picture,Section,%A_ScriptDir%\locked.bmp
+	Gui, 3:Add, Text, Section ym+90 xm+70, 本机已经锁定，请输入密码解锁！
+	Gui, 3:Add, Text, Section yp+40 , 输入密码:
+	Gui, 3:Add, Edit, Password vpwdu ys-3 xs+65 w180,
+	Gui, 3:Add, Button, ys+30 xm+140 w75 Default, OK
+	Gui, 3:Add, Button, ys+30 xm+225 w75, Cancel
+	Gui, 3: +AlwaysOnTop
+	Gui, 3:+owner2
+	Gui, 2: -Disabled
+	Gui, 3:Show,  w411 h225, %g_unlockTitle%
+	BlockKeyboardInputs("Off")      
+	BlockMouseClicks("Off")
+	BlockInput MouseMoveOff
+}
+return
+
+3ButtonCancel:
+Gui, 2: +AlwaysOnTop
+Gui, 3:Destroy
+BlockKeyboardInputs("On")      
+BlockMouseClicks("On")
+BlockInput MouseMove
+MouseMove, %mX%,%mX%,0
+return
+
+
+
+
+【延时自动解锁】:
+	gosub ButtonCancel
+	return
+
+;; 输入解锁密码后确定。
+3ButtonOK:
+Gui, 3:Submit, NoHide
+;msgbox mm=%pwd%
+If pwdu <> %pwd%
+   {
+   MsgBox, 262144, 密码错误, 密码错误，请重新输入！    ;; 262144 选项，使弹出的提示窗口置顶
+   GuiControl,3:,pwdu,
+   GuiControl,3:Focus,pwdu
+   Exit
+   }
+
+
+ButtonCancel:
+WinShow ahk_class Shell_TrayWnd
+FileDelete locked.bmp
+ExitApp ; The only way for an OnExit script to terminate itself is to use ExitApp in the OnExit subroutine.
+
+
+;|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+; Timers to handle TaskManager and prevent initiation of Windows locked workstation state
+
+TaskManager:
+IfWinExist, ahk_group 任务管理器组 
+WinHide, ahk_group 任务管理器组 
+WinClose, ahk_group 任务管理器组 
+return
+
+MMove:
+ID := WinExist("A") 
+If ID <> 0
+   {
+   MouseMove, 5,5,0,R
+   Sleep 2000
+   MouseMove, -5,-5,0,R
+   }
+Return 
+
+#include ./inc/common.aik

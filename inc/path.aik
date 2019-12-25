@@ -1,0 +1,212 @@
+#include .\inc\common.aik
+#include .\inc\string.aik
+
+g_root = ; 脚本根目录，包含root.cfg文件的那一级
+
+;; 判断给定的字符串是否是一个路径
+IsPath( var_path )
+{
+	IfNotInString var_path, \
+	return false
+
+	SplitPath, var_path , OutFileName, OutDir
+	if OutDir = 
+	return false
+
+	return true
+}
+
+;; 得到脚本根目录, 该目录下有root.cfg作为标记
+get_script_root()
+{
+	g_root := a_scriptdir
+	Loop 
+	{
+		IfNotInString ,g_root, \
+		{
+			Break	; 路径不对， 
+		}
+		RootFile = %g_root%\root.cfg
+		
+		IfExist, %RootFile%
+			Return g_root
+			
+		SplitPath, g_root, , g_root	; 向上一级
+	}
+	Return False
+}
+
+∑获取根目录()
+{
+	global g_root
+	if g_root =
+		g_root := get_script_root()
+	return g_root
+}
+
+get_parent_dir(Path)
+{
+	var_return := Path
+	if (StrLastWord(var_return, 1) == "\")		
+		StringGetPos, pos, Path, \, R2
+	else 		
+		StringGetPos, pos, Path, \, R
+	
+	if (pos >= 0) 
+		StringLeft var_return, var_return, pos
+	return var_return
+}
+
+∑得到上一级路径(Path)
+{
+	return get_parent_dir(Path)
+}
+
+;; 给一个绝对路径， 返回它相对脚本根目录的相对路径， 如果给定的绝对不在脚本根目录范围之内， 返回 False
+∑绝对路径转相对根路径(RealPath_)
+{
+	RootDir := ∑获取根目录()
+	IfInString RealPath_, %RootDir%
+	{
+		StringReplace, OutputVar, RealPath_, %RootDir%, .
+		return OutputVar
+	}
+	Return False
+}
+
+;; 给一个相对var_dir的路径RelaFileName， 转换成绝对路径
+∑相对路径转绝对路径( var_dir, RelaFileName )
+{
+	while StrFirstWord( RelaFileName, 3 ) = "..\"
+	{
+		IfNotInString var_dir, \
+			return False
+			
+		SplitPath, var_dir,, var_dir		; 向上一层
+		StringMid, RelaFileName, RelaFileName, 4
+	}
+
+	if ( StrFirstWord(RelaFileName, 2) = ".\" )
+	{
+		StringMid, RelaFileName, RelaFileName, 3
+	}
+	
+	FirstWord := StrFirstWord( RelaFileName, 1 )
+	if ( FirstWord = "\" )
+	{
+		StringMid , RelaFileName, RelaFileName, 2
+	}
+	var_return = %var_dir%\%RelaFileName%
+	Return var_return
+}
+
+;; 返回绝对路径
+GetRealPath( _filepath )
+{
+	StringReplace _filepath, _filepath, /, \, all
+	SplitPath, _filepath , OutFileName, OutDir, OutExtension, OutNameNoExt, OutDrive
+	if ( OutDrive = "" && OutDir != "" )
+	{
+		;; _filepath是相对根目录的路径，将其转化为绝对路径之后返回
+		RootDir := ∑获取根目录()
+		ret := ∑相对路径转绝对路径( RootDir, _filepath )
+	}
+	else
+	{
+        ret := _filepath                ;; _filepath是绝对路径则返回本身
+	}
+	return ret
+}
+
+
+;; 给一个相对WorkingDir的路径， 转换成绝对路径
+∑相对工作路径转绝对路径( RelaWorkingDir_ )
+{
+	var_dir := A_WorkingDir
+	RelaFileName := RelaWorkingDir_
+	while StrFirstWord( RelaFileName, 3 ) = "..\"
+	{
+		IfNotInString var_dir, \
+			return False
+			
+		SplitPath, var_dir,, var_dir		; 向上一层
+		StringMid, RelaFileName, RelaFileName, 4
+	}
+
+	if ( StrFirstWord(RelaFileName, 2) = ".\" )
+	{
+		StringMid, RelaFileName, RelaFileName, 3
+	}
+	
+	FirstWord := StrFirstWord( RelaFileName, 1 )
+	if ( FirstWord = "\" )
+	{
+		StringMid , RelaFileName, RelaFileName, 2
+	}
+	var_return = %var_dir%\%RelaFileName%
+	Return var_return
+}
+
+; 给一个相对WorkingDir的路径, 返回它相对脚本根目录的相对路径
+∑相对工作路径转相对根路径( RelaWorkingDir_ )
+{
+	RealPath := ∑相对工作路径转绝对路径( RelaWorkingDir_ )
+	if RealPath
+	{
+		RelaRoot := ∑绝对路径转相对根路径( RealPath )
+		if RelaRoot 
+		{
+			return RelaRoot
+		}
+	}
+	Return false
+}
+
+; 分析路径得到目录、文件名（不带扩展名）、扩展名
+∑分解路径( var_path, byref _dir, byref _filename, byref _ext )
+{
+	splitpath var_path, , _dir, _ext, _filename
+}
+
+;; 得到路径的扩展名，并将扩展名中的空格和TAB替换成_
+get_path_ext( var_path )
+{
+	splitpath var_path, , , var_ext
+	if var_ext <>
+	{
+		StringReplace var_ext, var_ext, %a_space%, _, All
+		StringReplace var_ext, var_ext, %a_tab%, _, All
+	}
+	return var_ext
+}
+
+;; 将路径var_path缩短到指定长度var_len，可能会省略中间某些内容
+∑缩短路径( var_path, var_len )
+{
+	pathlen := strlen(var_path)
+	if ( pathlen <= var_len )
+	{
+		return var_path		;; 路径长度本身没有超过指定长度，无需压缩
+	}
+	ifnotinstring var_path, \
+	{
+		return var_path		;; 路径中没有\符号，则不管长度，不缩短
+	}
+	SplitPath, var_path, name, dir, ext, name_no_ext, drive
+	
+	ret := name
+	namelen := strlen(name)
+	drivelen := strlen(drive)
+	
+	if ( drivelen > 0 && ( namelen >= var_len - 5 ) )
+		ret = %drive%\...\%name%
+	else
+	{
+		len := var_len - namelen - 4
+;		msgbox len[%len%] := %pathlen% - %namelen% - 4
+		ret := substr( dir, 1, len )
+;		msgbox %ret% := substr( %dir%, 1, %len% )
+		ret = %ret%...\%name%
+	}
+	return ret
+}

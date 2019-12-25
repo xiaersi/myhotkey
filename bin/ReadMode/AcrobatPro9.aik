@@ -1,0 +1,13 @@
+; Adobe Acrobat Pro 9
+#IfWinActive ahk_class AcrobatSDIWindow
+x::	; 退出
+	send ^q
+	return
+
+s::	; 导出为文本
+	send !f{down}t{down}t{down}{enter}
+	return
+
+t::!t
+
+#ifwinactive

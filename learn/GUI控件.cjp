@@ -1,0 +1,31 @@
+1. ListBox
+	Gui, Add, ListBox, +AltSubmit v_MyListBox g【注释列表】
+
+	清空ListBox的方法 
+	GuiControl,, _MyListBox, | 
+
+	在响应ListBox点击的模块中，需要调用下面的方法来获取ListBox当前的值
+	GuiControlGet, _MyListBox
+
+2. 当你在某个窗口通过快捷键呼出一个GUI窗口, 在GUI中处理事情完毕之后,
+	如果想在按了确定按钮时直接 send something 到原来的窗口并关闭GUI窗口, 
+	那么需要注意的是, 在确定按钮的响应代码中, 必须调用
+	gui, submit, hide
+	举例:
+
+	button确定:
+	gui submit, nohide
+	clipboard := _KeyValue
+	send ^v
+	ExitAPP
+
+	这段代码因为调用了ExitAPP, 在按了"确定"按钮之后会关闭GUI窗口, 但是 send ^v 无效. 
+	将 gui submit, nohide 这行改成 gui submit, hide 之后, send 命令在原窗口中有效了.
+	
+3. ListView 中遍历整个列表的方法
+	Loop % LV_GetCount()			; 先通过LV_GetCount()获得行数
+	{
+	    LV_GetText(var_key, RowNumber, 1)	; 得到一行中第1列的值
+	    LV_GetText(var_value, RowNumber, 2) ; 得到当前行第2列的值
+	    ……
+	}

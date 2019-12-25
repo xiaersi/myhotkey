@@ -1,0 +1,724 @@
+﻿
+;; g_debug = false
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 读取模板文件
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ReadXlsTemp( xls_, byref o_ )
+{
+	ifNotExist %xls_%
+		return false
+
+	var_ret := false
+	Xl := ComObjCreate("Excel.Application")
+	Xl.Workbooks.Open(xls_) ;open an existing file
+
+;	Xl.Visible := True
+	MAX_COLUMN := 256
+	MAX_ROW	   := 100
+
+	SetTempParam( o_, "$nTitleCol", MAX_ROW )
+	SetTempParam( o_, "$nTotalCol" , MAX_ROW )
+
+	;; 模板文件必须以A1=“参数中文名”开始
+	var_A1 := Xl.Range( CellRange( 1, 1 ) ).Value
+	if var_A1 <> 参数中文名
+	{
+		return false
+	}
+
+	;; 读取参数
+	loop %MAX_COLUMN%
+	{
+		;; B~Z
+		R2 := CellRange( a_index + 1, 2 )
+		R3 := CellRange( a_index + 1, 3 )
+
+		var_name  := Xl.Range( R2 ).Value
+		var_value := Xl.Range( R3 ).Value
+	
+		if var_name =
+			break
+	
+		SetTempParam( o_, var_name, var_value )
+	}
+
+	;; 读取数据文件模板信息
+	var_step =
+    j_rowtype =	
+	j_varname =
+	j_value =
+	j_ColEnd = %MAX_COLUMN%
+	
+	loop %MAX_ROW%
+	{
+		iRow := 4 + a_index
+
+		Range := CellRange( 1, iRow )   ;; A%x%
+		v_A   := Xl.Range( Range ).Value
+
+				
+		;; 遇到结束标志
+		if v_A = ${LoopEnd}
+		{
+			j_rowtype =	
+			j_varname =
+			j_value =
+			j_ColEnd = %MAX_COLUMN%		
+			var_step = ${LoopEnd}
+
+		;	msgbox v_A = %v_A%`n遇到结束标志
+
+			break
+		}
+
+
+
+		;; 开始分析
+		if v_A in ${Title},${Total}
+		{
+		
+			j_rowtype =	
+			j_varname =
+			j_value =
+			j_ColEnd = %MAX_COLUMN%
+
+			if v_A = ${Title}
+				var_step = ${Title}
+			else if v_A = ${Total}
+				var_step = ${Total}
+
+
+		;	msgbox v_A = %v_A%`n loop %MAX_COLUMN%
+
+			loop %MAX_COLUMN%
+			{			
+				iCol  := a_index + 1
+				Range := CellRange( iCol, iRow )
+				cell  := Xl.Range( Range ).Value
+			  ;	tooltip %Range% := CellRange( %iCol%`, %iRow% ) `n cell = Xl.Range( %Range% ).Value = %cell%`n`nfile:%xls_%
+
+				;; 设置最大列数
+				if cell in ${ColEnd},${rowtype},${varname},${value}
+				{
+					if v_A = ${Title}
+					{
+						if ( iCol < GetTempParam( o_, "$nTitleCol") )
+							SetTempParam( o_, "$nTitleCol" , iCol - 1 )
+					}
+					else if v_A = ${Total}
+					{
+						if ( iCol < GetTempParam( o_, "$nTotalCol") )
+							SetTempParam( o_, "$nTotalCol" , iCol - 1 )
+					}
+				}
+
+				if cell = ${ColEnd}
+				{
+				;	msgbox %Range% := CellRange( %iCol%`, %iRow% ) `n Xl.Range( %Range% ).Value = %cell% `n>>>>>>>>
+					j_ColEnd := iCol
+					break
+				}
+				else if cell = ${rowtype}
+				{
+					j_rowtype := iCol
+				}
+				else if cell = ${varname}
+				{
+					j_varname := iCol
+				}
+				else if cell = ${value}
+				{
+					j_value := iCol
+				}
+			}
+		}
+		;; 当前处于读取标题状态
+		else if var_step in ${Title},${Total}
+		{
+			if ( j_varname >= 1  && j_rowtype >= 1 && j_value >= 1 )
+			{
+				Range := CellRange( j_varname, iRow )
+
+				var_name  := Xl.Range( Range ).Value
+
+				Range := CellRange( j_value, iRow )
+				var_value := Xl.Range( Range ).Value
+
+				if var_name <>
+					SetTempParam( o_, var_name, var_value )
+
+
+				Range := CellRange( j_rowtype, iRow )
+				var_type  := Xl.Range( Range ).Value
+
+				if var_type <>
+				{
+					SetTempParam( o_, "i_" . var_type, iRow )
+				}
+			}
+		}
+	}
+	
+
+	l_title 	:= Round(GetTempParam( o_, "i_$match" ))
+	l_varName 	:= Round(GetTempParam( o_, "i_$varName" ))
+	l_level 	:= Round(GetTempParam( o_, "i_$level" ))
+	l_end 		:= Round(GetTempParam( o_, "i_$endMatch" ))
+	l_opt 		:= Round(GetTempParam( o_, "i_$opt" ))
+
+
+
+/*
+	stringleft l_title, 	l_title, 	instr( l_title, "." ) - 1
+	stringleft l_varName, 	l_varName, 	instr( l_varName, "." ) - 1
+	stringleft l_level, 	l_level, 	instr( l_level, "." ) - 1
+	stringleft l_end, 		l_end, 		instr( l_end, "." ) - 1
+	stringleft l_iskey, 	l_iskey, 	instr( l_iskey, "." ) - 1
+*/
+	if ( l_title < 1 ||  l_varName < 1 || && l_level < 1 )
+	{
+		;; 模板文件不合格
+		var_ret := false
+		msgbox 模板文件不合格!`n`n请指定参数 $match、$varName、$level的值。
+	}
+	else
+	{
+		;; 读取数据文件格式，得到校验数据文件的标题匹配信息，以及数据信息
+		n_colnum	:= GetTempParam( o_, "$nTitleCol" )
+		if n_colnum < 1
+			n_colnum = 20
+
+		loop %n_colnum%
+		{
+			;; A~Z
+
+			R_Title   := CellRange( a_index , l_title )
+			v_Title   := Xl.Range( R_Title ).Value
+			if v_Title <>
+				AddTempMatch( o_, a_index, v_Title )
+
+			R_VarName := CellRange( a_index , l_varName )
+			v_VarName   := Xl.Range( R_VarName ).Value
+			if v_VarName <>
+			{
+				R_level   := CellRange( a_index , l_level )
+				v_level   := Round(Xl.Range( R_level ).Value)
+
+				v_opt =
+				if l_opt > 0 
+				{
+					R_opt   := CellRange( a_index , l_opt )
+					v_opt   := Xl.Range( R_opt ).Value
+				;	msgbox $opt = %l_opt%`n [%R_opt%]{%v_opt%}   := CellRange( %a_index%`, %l_opt% )  
+				}
+
+
+				AddTempNode( o_, v_level, a_index, v_VarName, v_opt )
+			}
+
+			;msgbox match[%R_Title%] = %v_Title%`nvar[%R_VarName%] = %v_VarName%`nlevel[%R_level%] = %R_level%`nend[%R_End%] = %v_End%
+		}	
+
+		;; 读取结束匹配条件
+		n_colnum	:= GetTempParam( o_, "$nTotalCol" )
+		if n_colnum < 1
+			n_colnum = 20
+		
+		loop %n_colnum%
+		{
+			;; A~Z
+			R_End =
+			if l_end > 0
+			{
+				R_End := CellRange( a_index , l_end )
+				v_End := Xl.Range( R_End ).Value
+				if v_End <>
+					AddEndMatch( o_, a_index, v_End )
+			}
+		}
+		var_ret := true
+	}
+	
+	Xl.Workbooks.Close()
+
+	return var_ret
+}
+
+GetTempParam( o_, param_ )
+{
+	return o_["param", param_]
+}
+
+SetTempParam( o_, param_, value_ )
+{
+	;msgbox SetTempParam( o_`, %param_%`, %value_% )
+	o_["param", param_] := value_
+}
+
+AddTempMatch(o_, col_, NeedleRegEx_ )
+{
+	o_["match", col_] := NeedleRegEx_
+}
+
+AddEndMatch( o_, col_, NeedleRegEx_ )
+{
+	o_["EndMatch", col_] := NeedleRegEx_
+}
+
+
+;;
+;; opt_ = type:int|notnull:1|onlyone:1
+AddTempNode( o_, level_, col_, name_, opt_ )
+{
+	if level_ > 0
+	{
+		o_["key", level_,  "col"] := col_
+		o_["key", level_,  "name"] := name_
+	}
+	else
+	{
+		o_["data", col_, "name" ] := name_
+	}
+
+	if opt_ <>
+	{
+		;msgbox AddTempNode( o_`, %level_%`, %col_%`, %name_%`, %opt_% )
+		loop parse, opt_, |
+		{
+			pos := instr( a_loopfield, ":" )
+			;msgbox opt_ = %opt_%`na_loopfield = %a_loopfield%`npos = %pos%
+			if pos > 0
+			{
+				stringleft paramName, a_loopfield, pos -1
+				stringmid  paramValue, a_loopfield, pos + 1
+				if paramName <>
+				{
+					if level_ > 0
+						o_["key", level_,  paramName] := paramValue
+					else
+						o_["data", col_,  paramName] := paramValue
+				}
+			}
+		}
+	}		
+	
+}
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 读取数据文件
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+LoadXlsData( xls_, oTemp_, byref oData_, byref _errlog_ )
+{
+	global g_debug
+	_errlog_ =
+
+	;; 检查数据文件是否存在
+	ifNotExist %xls_%
+	{
+		if g_debug
+			msgbox 数据文件 不存在！`n %xls_%
+		return false
+	}
+
+
+	v_EndNullLine := GetTempParam( oTemp_, "EndNullLine" )  ;; 空行（关键列都为空）是否作为结束行
+	v_titleRow := GetTempParam( oTemp_, "TitleRow" )  
+	v_MaxLine  := GetTempParam( oTemp_, "MaxLine" ) 
+	v_dataRow  := GetTempParam( oTemp_, "DataRow" )  
+
+	v_MaxLine  := GetTempParam( oTemp_, "MaxLine" )
+	if v_MaxLine <= 0
+		v_MaxLine := 10000
+
+;msgbox v_EndNullLine = %v_EndNullLine%`nv_MaxLine = %v_MaxLine%
+
+	;; 读取EXCEL文件数据
+	var_ret := false
+	Xl := ComObjCreate("Excel.Application")
+	Xl.Workbooks.Open(xls_) ;open an existing file
+
+	v_DataLine := LocalTitleLine( Xl, oTemp_ )
+
+	if g_debug
+		msgbox 查找到数据行 v_DataLine = %v_DataLine% `nv_MaxLine = %v_MaxLine%
+
+	;msgbox 查找到 数据行 为 【%v_DataLine%】
+	if v_DataLine > 0
+	{
+		v_row := v_DataLine - 1
+
+		
+
+		loop %v_MaxLine%
+		{
+			v_row ++
+
+
+			;; 判断是否到了结束行
+			bMatch := true
+			n := 0
+			for col, needle in oTemp_["EndMatch"]
+			{
+				n++
+
+				if ( col >= 1 and needle != "" )
+				{
+					R_Cell := CellRange( col , v_row )
+					;tooltip %R_Cell% := CellRange( %col% `, %v_row% )s
+					cell := Xl.Range( R_Cell ).Value
+				
+					x := RegExMatch( cell, needle )
+
+					;if v_row >= 440
+					;	msgbox %R_Cell% := CellRange( %col% `, %v_row% )`n %cell% := Xl.Range( %R_Cell% ).Value`n%x% := RegExMatch( %cell%`, %needle% )
+
+					if x <= 0 ; RegExMatch( cell, needle ) <= 0
+					{
+						bMatch := false
+						break	
+					}					
+				}
+			}
+			;; 已经到了结束行，结束循环
+			if ( bMatch && n > 0 )
+			{
+			    tooltip [%v_row%]已经到了结束行，结束循环!
+				var_ret := true
+				break
+			}
+
+
+			;; 记录当前处理的行数
+			SetTempParam( oTemp_, "CurRow", v_row )
+
+			keyArray0 := 0
+			isError := false  ;; 是否存在值为空的的关键字
+
+			;; 没有遇到结束行，则读取数据
+			for l, element in oTemp_["key"]
+			{
+				col  := element["col"]
+				name := element["name"]
+			;	stringleft col, 	col, 	instr( col, "." ) - 1
+				R_Cell := CellRange( col , v_row )
+			;	msgbox %R_Cell% := CellRange( %col% `, %v_row% )`ncol=%col%`nname=%name%
+				cell := Xl.Range( R_Cell ).Value
+
+				var_type := element["type"]
+				if cell <>
+				{
+					if var_type in float,int
+					{
+						Stringreplace cell, cell, `,,, all
+						if var_type = int
+							cell := round(cell)
+					}
+					else if var_type = date
+					{
+						cell := GetFormatDate(cell)
+					}
+				}
+
+				element["value"] := cell
+
+				keyArray0++
+				keyArray%keyArray0% := cell
+
+				if cell = 
+					isError := true
+					
+			}
+
+			;; 判断是否以遇到空行结束
+			if ( v_EndNullLine && isError && keyArray0 > 0 )
+			{
+				isNull := true  ;; 标志是否空行，先假设为空行
+
+				loop %keyArray0%
+				{
+					if keyArray%a_index% <>
+					{
+						isNull := false
+						break
+					}
+				}
+				;; 空行，则认为遇到结束行，结束数据读取
+				if isNull
+				{
+					tooltip [%v_row%]遇到空行，结束循环!
+					var_ret := true
+					break
+				}
+			}
+
+			for col, element in oTemp_["data"]
+			{
+				;stringleft col, 	col, 	instr( col, "." ) - 1
+				R_Cell := CellRange( col , v_row )
+				cell := Xl.Range( R_Cell ).Value
+
+				var_type := element["type"]
+				if cell <>
+				{
+					if var_type in float,int
+					{
+						Stringreplace cell, cell, `,,, all
+						if var_type = int
+							cell := round(cell)
+					}
+					else if var_type = date
+					{
+						cell := GetFormatDate(cell)
+					}
+				}
+
+				element["value"] := cell
+			}
+
+			if isError
+			{
+				line =
+				for l, element in oTemp_["key"]
+				{
+					col  := element["col"]
+					cell := element["value"] 
+					line = %line%%col%:%cell%,%a_space%	
+				}
+
+				for col, element in oTemp_["data"]
+				{
+					cell := element["value"]
+					line = %line%%col%:%cell%,%a_space%	
+				}			
+				_errlog_ = %_errlog_%%v_row%`t%line%`r`n
+			}
+			;; 将读取的数据保存到 oData_ 结构
+			else 
+			{
+				node := oData_
+				loop %keyArray0%
+				{
+					
+					var_key  := keyArray%a_index%
+					if not IsObject(node[var_key])
+					{
+						node[var_key] := object()
+					}
+					node := node[var_key]
+				}
+				iMax := node.MaxIndex() 
+				iMax++
+				node[iMax, "_i_"] := v_row
+				for col, element in oTemp_["data"]
+				{
+					varname := element["name"]
+					varvalue := element["value"]
+					node[iMax, varname] := varvalue
+				}					
+			}
+		}
+	}
+	Xl.Workbooks.Close()
+	return var_ret	
+}
+
+
+
+CreateKeyNode( key, o_ )
+{
+	o := object()
+	o[key] := o_
+	return o
+}
+
+CreateDataNode( key, oTemp_ )
+{
+	o := object()
+	if key <>
+	{
+		for col, element in oTemp_["data"]
+		{
+			var_name  := element["name"]
+			if var_name <>
+			{
+				var_value := element["value"]
+				o[key, var_name] := var_value
+			}
+		}		
+	}
+	return o
+}
+
+
+;; 根据模板文件数据，检验数据文件对象 xl_ 是否匹配，如果匹配返回匹配的数据第一行，否则返回0
+LocalTitleLine( Xl_, oTemp_ )
+{
+	;; 检查模板对象oTemp是否有效
+	v_titleRow := GetTempParam( oTemp_, "TitleRow" )  
+	v_MaxLine  := GetTempParam( oTemp_, "MaxLine" ) 
+	v_dataRow  := GetTempParam( oTemp_, "DataRow" ) 
+	v_off 	   := 1
+
+	var_titleRow := v_titleRow
+	if var_titleRow > 0 
+	{
+		if ( v_dataRow > var_titleRow )
+			v_off :=  v_dataRow - var_titleRow
+	}
+	else if var_titleRow <= 0
+		var_titleRow := 1	
+	
+	
+	;; 检查是否设置结束条件（结束行或最大行数）
+	n := 0
+	for index, element in oTemp_["EndMatch"]
+	{
+		n++
+	}
+	if n <= 0
+	{
+		if v_MaxLine <= 0
+		{
+			msgbox 即没有设置结束行，也没有设置最大数据行数，返回0
+			return 0	;; 即没有设置结束行，也没有设置最大数据行数，返回0	
+		}
+
+	}		
+
+	;; 检查标题匹配条件（个数为0则表示出错，返回false）
+	bMatch := true  	;; 预设标题匹配
+	n := 0
+	for col, needle in oTemp_["match"]
+	{
+		n++
+		R_Cell := CellRange( col , var_titleRow )
+		cell := Xl.Range( R_Cell ).Value
+		if RegExMatch( cell, needle ) <= 0
+		{
+			bMatch := false
+			break	
+		}
+	}
+	if n <= 0
+	{
+		msgbox 没有设置标题匹配条件，返回0
+		return 0    	;; 没有设置标题匹配条件，返回0
+	}
+
+	
+	;; 设置了标题匹配条件，但没有匹配成功，则尝试从前20行进行匹配，如果依然匹配不成功，则返回0
+	if not bMatch
+	{
+		var_titleRow := 0
+		loop 20
+		{
+			var_titleRow++
+			bMatch := true
+			for col, needle in oTemp_["match"]
+			{
+				R_Cell := CellRange( col , var_titleRow )
+				cell := Xl_.Range( R_Cell ).Value
+				if RegExMatch( cell, needle ) <= 0
+				{
+					bMatch := false
+					break	
+				}
+			}	
+			;; 找到了完全匹配的行
+			if bMatch
+			{
+				break
+			}
+		}
+	}
+
+	if  bMatch
+	{
+		if (var_titleRow == v_titleRow )
+		{
+			return round(v_dataRow)
+		}
+		else
+		{
+			return round(var_titleRow + v_off)
+		}
+	}
+
+	msgbox 数据文件不合法，标题栏不匹配！
+	return 0
+}
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 函数
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+CellRange(col_, row_)
+{
+	arr0 := 0
+	n := col_ 
+	m := 0
+
+	loop 10
+	{
+		n := n - 1
+		m := mod( n, 26 ) 
+		if m < 0
+			break
+
+		arr0++
+		arr%arr0% := m
+
+		n := n // 26
+		if n <= 0
+			break
+
+	}
+
+	ret =
+
+	if arr0 > 0
+	{
+		loop %arr0%
+		{
+			i := a_index 
+			c := chr( 65 + arr%i% )
+			ret = %c%%ret%
+		}
+		ret = %ret%%row_%
+	}
+
+	return ret
+}
+
+GetObjectText( byref o_, t_=0 )
+{
+	var_temp = 
+	var_tab =
+	loop %t_%
+	{
+		var_tab .= a_tab
+	}
+
+	for key, element in o_
+	{
+	;	msgbox key = %key%
+		var_txt = 
+		if IsObject(element)
+		{
+			var_txt := GetObjectText( o_[key], t_+1 )
+			var_txt = `n%var_tab%[%key%]%var_txt%
+		}
+		else 
+		{
+			var_txt = `n%var_tab%    %key% %a_tab%= %element%
+		}
+		
+
+		var_ret = %var_ret%%var_txt%
+	}
+	return var_ret
+}
+

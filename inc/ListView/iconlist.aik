@@ -1,0 +1,186 @@
+/**
+*@file 		iconlist.aik
+*@author	teshorse
+*@date 		2011.01.14
+*@brief 	为ListView创建、维护一个ImageList，用作各行的ICON
+* 全局变量 g_ICON_扩展名_ 保存某扩展名的图标在ImageList中的序号
+*/
+#include .\inc\common.aik
+
+InitIconList( byref hLVIL )
+{
+	Global
+	IL_Destroy(hLVIL)
+	hLVIL := IL_Create( 2, 2, 0 )
+	g_iconDef := IL_Add(hLVIL, "shell32.dll", 50)
+	g_iconUnkown := IL_Add(hLVIL, "shell32.dll", 1)
+	g_iconFolder := IL_Add(hLVIL, "shell32.dll", 4)
+	g_iconPic := IL_Add(hLVIL, "shell32.dll", 131)
+	g_iconMusic := IL_Add(hLVIL, "shell32.dll", 117)
+	g_iconFilm := IL_Add(hLVIL, "shell32.dll", 116)
+	g_iconStar := IL_Add(hLVIL, "shell32.dll", 209)
+	g_iconTree := IL_Add(hLVIL, "shell32.dll", 42)
+	g_iconWin := IL_Add(hLVIL, "shell32.dll", 3)
+	g_iconDoc := IL_Add(hLVIL, "shell32.dll", 2)
+	g_iconForbid := IL_Add(hLVIL, "shell32.dll", 220)
+	g_iconInfo := IL_Add(hLVIL, "shell32.dll", 222)
+	g_iconPlay := IL_Add(hLVIL, "shell32.dll", 138)
+	g_iconRight := IL_Add(hLVIL, "shell32.dll", 177)
+	g_iconLT := IL_Add(hLVIL, "shell32.dll", 147)
+	g_iconHelp := IL_Add(hLVIL, "shell32.dll", 211)
+	g_iconRun := IL_Add(hLVIL, "shell32.dll", 215)
+	g_iconLink := IL_Add(hLVIL, "shell32.dll", 30)
+	g_iconWeb := IL_Add(hLVIL, "shell32.dll", 221)
+	g_iconWrong := IL_Add(hLVIL, "shell32.dll", 132)
+	g_iconSearch := IL_Add(hLVIL, "shell32.dll", 210)
+	g_iconRemote := IL_Add(hLVIL, "shell32.dll",  10)
+}
+
+NewIconList( byref hLVIL, var_ext, var_file )
+{
+	Global
+	if var_ext =
+		return
+	if var_file =
+		return
+	iconIndex := IL_ADD( hLVIL, var_file, 1 )
+	if iconIndex > 1
+	{
+		g_icon_%var_ext%_ := iconIndex 
+;		msgbox g_icon_%var_ext%_ := %iconIndex% 
+		return iconIndex
+	}	
+}
+
+;; 根据文件名或扩展名获得图标，添加到指定的ImageList中，并返回添加的图像在ImageList中的位置。
+AddIconList( byref hLVIL, var_file="", byref ext_="", bForce=0 )
+{
+	Local iconIndex
+	Local var_exe 
+;	msgbox AddIconList( hLVIL, %var_file%, %ext_%, %bForce% )	
+	if ( ext_ = "" || bForce )
+	{
+		if var_file =
+			return g_iconDef
+
+		ext_ := get_file_ext( var_file )
+        if ext_ =                       ;; 文件不存在
+		 	return g_iconWrong
+	}
+	;; 检查扩展名中是否包含非法字符
+	if ext_ contains ~, ,`n,*,?
+	{
+		return g_iconUnkown
+	}
+	
+	
+	if ext_ =
+	{
+		return g_iconDef
+	}
+	else if ext_ = $NoExt$
+	{
+		return g_icondef
+	}
+	else if ext_ = $Dir$
+	{
+		return g_iconFolder
+	}
+	else if ext_ = $Web$
+		return g_iconWeb
+	else if ext_ in exe,dll,ico,cur,cpl,scr
+	{
+		iconindex := IL_ADD( hLVIL, var_file )
+		if iconIndex > 1
+			return iconIndex
+		ifNotExist %var_file%
+			return g_iconWrong		
+		return g_iconDef
+	}
+	else if ext_ in bmp,jpg,gif,png,tif
+	{
+		return g_iconPic
+	}
+	else
+	{	
+		if g_icon_%ext_%_ > 1
+		{
+			return g_icon_%ext_%_
+		}
+		var_exe := get_open_exe( var_file )
+		if var_exe =
+		{	
+			ifNotExist %var_file%
+                return g_iconWrong      ;; 文件不存在
+			else 
+                return g_iconUnkown     ;; 文件找不到关联程序
+		}
+		else
+		{
+			iconIndex := IL_ADD( hLVIL, var_file )
+			if iconIndex > 1
+			{
+				g_icon_%ext_%_ := iconIndex 
+				return iconIndex
+			}		
+		}
+	}
+	return g_iconDef
+}
+
+;; 获取文件数组 _FileArray 中第_index个文件的图标
+;; 并将其扩展名保存到_ExtArray数组, 将获得的图标保存到_IconArray数组
+AddFileArrayIcon(  byref hLVIL, _FileArray, _ExtArray, _IconArray, _index )
+{
+	Local nCount = 0
+	Local var_file
+	Local iconIndex
+	Local var_ext
+	Local var_temp, var_pos
+	Local var_quotation  ;; 双绰号
+	var_quotation = `"
+	
+	if _FileArray =
+		return 
+	nCount := %_FileArray%0
+	if ( _index > nCount || nCount <= 0 || _index < 1 )
+		return
+
+	if _iconArray =
+		_iconArray = g_iconArray
+
+	;; 如果该文件已经有了图标, 无需再获取图标, 直接返回现有的图标ID
+	iconIndex := %_IconArray%%_index%
+	if iconIndex > 0
+		return iconIndex
+	
+	var_ext  := %_ExtArray%%_index%
+	var_file := %_FileArray%%_index%
+	
+	StrTrimLeft( var_file )
+	if var_file =
+	{
+        return g_iconDef                ;; 无效的文件名，返回默认值 
+	}
+	
+	;; 如果var_file包含了分号，如： "C:\Program Files\Common Files\Microsoft Shared\Virtualization Handler\CVH.EXE" "Microsoft Excel 2010 (Beta) 2014006208040000"
+	;; 则取第一个分号内的字符串 C:\Program Files\Common Files\Microsoft Shared\Virtualization Handler\CVH.EXE 
+	if ( instr( var_file, var_quotation ) == 1 )
+	{
+		StringMid var_temp, var_file, 2
+		var_pos := instr( var_temp, var_quotation )
+		if var_pos > 0
+		{
+			StringLeft var_file, var_temp, var_pos - 1
+		}
+	}
+	
+	;; 如果还没有图标, 则尝试将其添加 hLVIL
+	iconIndex := AddIconList( hLVIL, var_file, var_ext, 0 )
+	%_IconArray%%_index% := iconIndex
+	if ( var_ext <> %_ExtArray%%_index% )
+	{
+		%_ExtArray%%_index% := var_ext
+	}	
+	return iconIndex
+}

@@ -1,0 +1,658 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 函数定义
+
+Init()
+{
+	GLOBAL
+
+	Loop %g_IniArray0%
+	{
+		g_IniArray%a_index% =
+	}
+	g_IniArray0 =
+
+	loop %g_iSecArray%
+	{
+		g_iSecArray%a_index% =
+	}
+	g_iSecArray0 =
+
+	g_secList =
+
+	;; 清空ini文件的缓存数组
+	LOOP parse, g_Sections, `,
+	{
+		if a_LOOPField =
+			CONTINUE
+		var_sec := a_LOOPField
+		var_LOOP := %var_sec%_keyArray0
+		LOOP %var_LOOP%
+		{
+			%var_sec%_keyArray%a_Index% =
+			%var_sec%_valueArray%a_Index% =
+		}
+		%var_sec%_keyArray0 =
+		%var_sec%_valueArray0 =
+		g_seckeys_%a_LOOPField% =
+	}
+	g_IsHelp := false                       ;; 是否显示帮忙信息？
+	g_bAutoSearch := true					;; 修改分类、KeyName编辑框时，是否自动实时自动搜索？
+	g_SearchHistory =                       ;; 历史搜索
+	g_CurSelectLine := 0                    ;; 当前双击ListView中的行
+	g_ShowDetail := false					;; 当前ListView是否显示展开的详细信息
+	g_Sections =                            ;; 当前ini文件中所有的section
+	cur_sec =
+
+	;; 如果 g_PreIniFile 存在， 则取消热键
+	/*
+		Gosub 【取消热键】
+	*/
+}
+
+;;---窗口激活与失去焦点------------------------------------------------------
+WM_ACTIVATE()
+{
+	GLOBAL
+	IfWinActive %g_WINTITLE%
+	{
+		;; 从其他窗口切换到我的小字典窗口
+		if g_EnterExit = -1
+		{
+			if _SetWinTrans
+				WinSet, Transparent, 200,  %g_WINTITLE%
+			g_EnterExit = 1
+		}
+		;; 在本窗口刷新
+		else
+		{
+			g_EnterExit = 0
+		}
+	}
+	else  ;; 从小字典窗口切换到其他窗口
+	{
+		g_EnterExit = -1
+		if _SetWinTrans
+			WinSet, Transparent, 100,  %g_WINTITLE%
+	}
+	;; 当用户设置了透明度, 那么在窗口被激活时减少透明度, 而失去焦点时增加透明度
+
+	RETURN
+}
+
+
+∑删除字符串中的回车符(byref varString)
+{
+	StringReplace, varString, varString, `r, , All
+	StringReplace, varString, varString, `n, , All
+}
+
+
+;【指定Section搜索key并显示到ListView】:
+∑在指定Section中搜索key并显示到ListView( _Section, _key, _bRegEx )
+{
+	Local keyName, keyValue, var_sec, keyCount, bVisible
+	if g_IsHelp
+		RETURN
+
+	;; 如果ListView隐藏，则显示之
+	if IsFormVisible( g_hRichEdit )
+	{
+		ShowText()
+	}
+	Else
+	{
+		;; 如果_keyValue显示多行，则切换至单行
+		GuiControlGet, EditPos, pos, _keyValue
+		if EditPosH > 25
+			ShowKeyValue( _keyValue, false, false )
+	}
+	GuiControl, +Grid, _KeyListView      ;; 展开单词项时, ListView要显示网格
+
+    g_ShowDetail := false               ;; 显示的是没有展开的信息
+    GuiControl,,_lbl_KeyValue, KeyValue: -收起-
+
+    StrTrim( _Section )                 ;; 裁剪掉字符串首末的空白字符
+
+	GuiControl, -Redraw, _KeyListView
+	LV_Delete()
+	if g_seckeys_%_Section% <>
+	{
+		var_sec := _Section
+		keyCount := %var_sec%_keyArray0
+		LOOP %keyCount%
+		{
+			keyName := %var_sec%_keyArray%a_Index%
+			keyValue := %var_sec%_valueArray%a_Index%
+			if keyName =
+				CONTINUE
+			if keyValue =
+				CONTINUE
+			; StrMatch( Haystack, Needle, bRegEx = false,  StartingPos = 1, CaseSensitive = false  )
+			If InStrMatch( keyName, _key, _bRegEx  ) > 0
+			{
+				LV_Add( "", var_sec, keyName, keyValue )
+			}
+			else if ( _SearchKeyValue && strlen( _key ) >= 2 )
+			{
+				If InStrMatch( keyValue, _key, _bRegEx  ) > 0
+				{
+					LV_Add( "", var_sec, keyName, keyValue )
+				}
+			}
+		}
+	}
+	;; 自动调整ListView列宽，且保证前两列的宽度要小于窗口宽度的1/5, 1/3
+	MAXWIDTH := g_WindowWidth / 6
+	g_bShortCol1 := false				;; 第一列宽度在自动调整后，再次缩小
+	g_bShortCol2 := false				;;
+	LV_ModifyCol(1)                     ;; 自动调整ListView中第1列的宽度
+	LV_ModifyCol(2)                     ;; 自动调整ListView中第2列的宽度
+	if ( GetLVColumnWidth( g_GuiID, g_LVName, 1 ) > MAXWIDTH )
+	{
+		g_bShortCol1 := true
+		LV_ModifyCol( 1, MAXWIDTH )
+	}
+	MAXWIDTH := g_WindowWidth / 4
+	if ( GetLVColumnWidth( g_GuiID, g_LVName, 2 ) > MAXWIDTH )
+	{
+		g_bShortCol2 := true
+		LV_ModifyCol( 2, MAXWIDTH )
+	}
+	var_Width := g_WindowWidth - 250
+	LV_ModifyCol(3, var_Width)
+	;; 刷新显示ListView
+    GuiControl, +Redraw, _KeyListView
+	RETURN
+}
+
+∑展开单词项( var_section, var_keyname, var_keyValue, var_sleep=100 )
+{
+	Local keyName,keyValue,keyCount,var_sec,bVisible,var_temp
+
+	if g_IsHelp
+		RETURN
+	;; 需要延时一点时间，否则∑展开单词项( var_sec, var_key )有时失效
+	if var_sleep > 0 
+		sleep %var_sleep%
+
+	;; 删除 /*{\rtf1\ansi*/ 字样
+	var_temp = `/`*%g_RICHTEXTHEAD%`*`/
+	StringReplace var_keyValue, var_keyValue, %var_temp%, , all
+
+	;; 如果ListView隐藏，则显示之
+	if IsFormVisible( g_hRichEdit )
+	{
+	 	ShowText()
+	}
+	Else
+	{
+		;; 如果_keyValue显示多行，则切换至单行
+		GuiControlGet, EditPos, pos, _keyValue
+		if EditPosH > 25
+			ShowKeyValue( _keyValue, false, false )
+	}
+
+	g_ShowDetail := true
+	Gosub  【清空KeyValue编辑框】
+	GuiControl, -Grid, _KeyListView      ;; 展开单词项时, ListView不显示网格
+	GuiControl, -Redraw, _KeyListView
+	GuiControl,,_lbl_KeyValue, KeyValue: +展开+
+	LV_Delete()
+	loop parse, var_keyValue, |
+	{
+		if A_LoopField <>
+		{
+			var_temp := DecodeToText( A_LoopField )
+			LV_Add( "", var_section, var_keyname, var_temp )
+		}
+	}
+    LV_ModifyCol(1, 0)                     ;; 自动调整ListView中第1列的宽度
+    LV_ModifyCol(2, 0)                     ;; 自动调整ListView中第2列的宽度
+    LV_ModifyCol(3)
+    GuiControl, +Redraw, _KeyListView
+}
+
+∑keyValue显示多行()
+{
+	global
+	GuiControlGet, EditPos, pos, _keyValue
+	if ( EditPosH > 25 ) 	;; 多行
+		return true
+	Return false
+}
+
+
+;; 在保存g_inifile数据的缓存中，根据var_sec, var_key查找value，若查找失败则返回空
+∑得到分类下的所有单词名称( section_ )
+{
+	local idx, i, var_line, var_sec, var_keyList
+	;; 首先查找Section分类
+	loop %g_iSecArray0%
+	{
+		idx := g_iSecArray%A_Index%
+		var_line := g_IniArray%idx%
+		;; var_line 的值如： [Section1]|keyanme1|keyname2|...
+		if ( StrSplit2Sub(var_line,"|", var_sec, var_keyList ) )
+		{
+			;; 去掉分节中的[]符号
+			var_sec := RegExReplace( var_sec, "[\[\]]", "" )
+			if ( var_sec == section_ )
+			{
+				return var_keyList
+			}
+		}
+	}
+}
+
+∑FindIniContent( section_, keyName_ )
+{
+	local idx, i, var_line, var_sec, var_keyList, key, value
+	;; 首先查找Section分类
+	loop %g_iSecArray0%
+	{
+		idx := g_iSecArray%A_Index%
+		var_line := g_IniArray%idx%
+
+		;; var_line 的值如： [Section1]|keyanme1|keyname2|...
+		if ( StrSplit2Sub(var_line,"|", var_sec, var_keyList ) )
+		{
+			;; 去掉分节中的[]符号
+			var_sec := RegExReplace( var_sec, "[\[\]]", "" )
+			if ( var_sec == section_ and InStrList( var_keyList, keyName_, "|" ) )
+			{
+				;; 准备好var_sec分节下词汇的条数loops
+				if ( A_Index == g_iSecArray0)
+					loops := g_IniArray0 - idx
+				else
+				{
+					nextIndex := A_Index + 1
+					loops := g_iSecArray%nextIndex% - idx
+				}
+				;; 搜索关键字
+				loop %loops%
+				{
+					i := idx + A_Index
+					var_line := g_IniArray%i%
+					;; var_line 的值如： key=value
+					if StrSplit2Sub(var_line, "=", key, value )
+					{
+						if key = %keyName_%
+						{
+							return value
+						}
+					}
+				}
+			}
+		}
+	}
+	Return
+}
+
+
+
+;; SetIniFile() 将g_inifile的值设置给g_PreInifile，同时为g_inifile设置新的值
+SetIniFile( _inifile )
+{
+	global g_PreIniFile , g_inifile
+	if _inifile <>
+	{
+		g_PreIniFile := g_inifile
+		g_inifile := _inifile
+	}
+}
+
+;; 将给定的文本转换成富文本，可以显示颜色
+ToRichText( text_ )
+{
+	global g_RICHEDITHEAD
+	var_temp =
+	if text_ =
+		return var_temp
+
+	;; 如果text_本身就是RichText格式，则不需要转换
+	var_temp = {%g_RICHEDITHEAD%
+	if ( instr( text_, var_temp ) == 1 )
+	{
+		return text_
+	}
+
+	;; 1.
+	StringReplace var_clip, text_, \, 　\\, all
+
+	;; 2.
+
+	;; 将var_clip中的引号内容缓存到数组中, 完成插入之后再替换回来, 即引号内的内容不作处理
+	StrArray0 := 0
+	quoNeedle = (?<!\\)".*?[^\\]"
+	loop 10000
+	{
+		if ( RegExMatch( var_clip, quoNeedle, var_match ) > 0 )
+		{
+		;	msgbox RegExMatch(_str_`, quoNeedle`, %var_match% ) `n`n%_str_%
+
+			StrArray0 ++
+			var_temp = \cf2 %var_match%\cf1%A_Space%
+			StrArray%StrArray0% := var_temp
+			Replacement = $quoStr%StrArray0%$
+			needle := StrToNeedleRegEx( var_match )
+			var_clip := RegExReplace( var_clip, needle, Replacement )
+		}
+		/*
+		else if ( RegExMatch( var_clip, "“.*?”", var_match ) > 0  )
+		{
+			StrArray0 ++
+			var_temp = \cf2 %var_match% \cf1%A_Space%
+			StrArray%StrArray0% := var_temp
+			Replacement = $quoStr%StrArray0%$
+			needle := StrToNeedleRegEx( var_match )
+			var_clip := RegExReplace( var_clip, needle, Replacement )
+		}
+		*/
+		else
+		{
+			break
+		}
+	}
+
+	;; 将var_clip中的注释内容缓存到数组中, 完成插入之后再替换回来, 即注释内的内容不作处理
+	CommentArray0 := 0
+	quoNeedle = /\*.*?\*/
+	loop 10000
+	{
+		if RegExMatch( var_clip, quoNeedle, var_match ) > 0
+		{
+		;	msgbox RegExMatch(_str_`, quoNeedle`, %var_match% ) `n`n%_str_%
+
+			CommentArray0 ++
+			var_temp = \cf3 %var_match% \cf1%A_Space%
+			CommentArray%CommentArray0% := var_temp
+			Replacement = $Comment%CommentArray0%$
+			needle := StrToNeedleRegEx( var_match )
+			var_clip := RegExReplace( var_clip, needle, Replacement )
+		}
+		else
+		{
+			break
+		}
+	}
+	;; 将 ----------- 显示成直线
+	var_clip := RegExReplace( var_clip, "(---+)", "\cf3\f1 $1\cf1\f0 " )
+
+	;; 紫色显示>>>及其后面同一行的内容
+	var_clip := RegExReplace( var_clip, "(>>>.*(\n|$))", "\cf7\f1 $1\cf1\f2 " )
+
+	;; 橙色显示1、2、...，橙色显示 ★...★之间的内容
+	var_clip := RegExReplace( var_clip, "(\d+(、|）)|★[^\|\n]*?★)", "\cf5\f1 $1\cf1\f0 " )
+
+	;; 橙色显示 1. 2) a) A.
+	var_clip := RegExReplace( var_clip, "((?<=^|\s)(\d{1,2}\)|\d+\.(?=\D)|\w(\)|\.)))", "\cf5\f0 $1\cf1\f0 " )
+
+	;; 绿色显示 “...” 之间的内容
+	var_clip := RegExReplace( var_clip, "(“.*?”)", "\cf2\f1 $1\cf1\f0 " )
+
+	var_clip := RegExReplace( var_clip, "(<<<.*?(\n|$))", "\highlight10 $1\highlight0 " )
+
+	var_clip := RegExReplace( var_clip, "(§[\d\s]+.*?(\n|$))", "\cf8\f1 $1\cf1\f0 " )
+
+	var_clip := RegExReplace( var_clip, "((十|廿){0,1}(一|二|三|四|五|六|七|八|九)、.*?(\n|$))", "\cf8\f1 $1\cf1\f0 " )
+
+	var_clip := RegExReplace( var_clip, "(※.*?(\n|$))", "\cf9\f1 $1\cf1\f0 " )
+
+
+	;; // 注释后面为绿色
+	var_clip := RegExReplace( var_clip, "(//.*?(\n|$))", "\cf3\f0 $1\cf1\f0 " )
+
+	var_clip := RegExReplace( var_clip, "(`;`;.*?(\n|$))", "\cf8\f0 $1\cf1\f0 " )
+
+
+	;; 蓝色显示 【...】 之间的内容
+	var_clip := RegExReplace( var_clip, "(【[^\|\n]*?】)", "\cf6\f1 $1\cf1\f0 " )
+
+
+	;; 处理回车符号
+	StringReplace var_clip, var_clip, `n, 　\par`n\cf1%a_space% , all
+
+	;; 转义{ 和 }
+	StringReplace var_clip, var_clip, {, 　\{ , all
+	StringReplace var_clip, var_clip, }, 　\} , all
+
+
+	;; 还原注释符号
+	loop %CommentArray0%
+	{
+		var_needle = $Comment%a_index%$
+		Replacement := CommentArray%a_index%
+		StringReplace var_clip, var_clip, %var_needle%, %Replacement%, all
+		CommentArray%a_index% =
+	}
+	CommentArray0 =
+
+	;; 还原引号
+	loop %StrArray0%
+	{
+		var_needle = $quoStr%a_index%$
+		Replacement := StrArray%a_index%
+		StringReplace var_clip, var_clip, %var_needle%, %Replacement%, all
+		StrArray%a_index% =
+	}
+	StrArray0 =
+
+	;; 画板颜色 1黑色 2绿色 3灰色 4红色 5橙色 6蓝色 7紫色 8天蓝色 9Pink 10淡黄色
+	var_temp =
+	(LTrim
+		{\rtf1\ansi\ansicpg936\deff0\deflang1033\deflangfe2052{\fonttbl{\f0\fnil\fcharset134 \'cb\'ce\'cc\'e5;}{\f1\fswiss\fprq2\fcharset134 System`;}{\f2\fnil\fcharset134 \'cb\'ce\'cc\'e5;}}
+		{\colortbl `;\red0\green0\blue0`;\red0\green128\blue0`;\red192\green192\blue192`;\red255\green0\blue0`;\red255\green128\blue0`;\red0\green0\blue250`;\red128\green0\blue255`;\red0\green128\blue255`;\red255\green0\blue255`;\red255\green255\blue221`;}
+		{\`*\generator Msftedit 5.41.15.1515`;}\viewkind4\uc1\pard\cf1\lang2052\f0\fs22 %var_clip%\cf0\b\f1\fs24\par
+		}
+	)
+	;MsgTipBox( "xxx", "yyy", var_temp )
+	Return var_temp
+}
+
+
+;; 通过RichEdit编辑框显示文本内容(若text_为空，则隐藏提示显示ListView)
+ShowText( text_="" )
+{
+	local var_temp
+
+	;; 如果_keyValue显示多行，则切换至单行
+	GuiControlGet, EditPos, pos, _keyValue
+	if EditPosH > 25
+		ShowKeyValue( _keyValue, false, false )
+
+	if text_  <>
+	{
+		text_ := DecodeToText( text_ )
+;		StringReplace text_, text_, `;, `n`;, all
+		StringReplace text_, text_, `/*, 　`t`/*, all
+		StringReplace text_, text_, &#124;, |, all
+		var_temp := ToRichText( text_ )
+		RichEdit_SetText( g_hRichEdit, var_temp )
+		Control , Show, , , ahk_id %g_hRichEdit%
+		GuiControl, Hide, _KeyListView
+		Sleep 50
+		ControlFocus , , ahk_id %g_hRichEdit%
+	}
+	Else
+	{
+		sleep 100  ;; 延时一会，否则从RichEdit返回的ListView有改变。
+		Control hide, , , ahk_id %g_hRichEdit%
+		GuiControl, Show, _KeyListView
+	}
+}
+
+
+;; 将文本显示到_keyValue框，bMulti_指定是否多行显示, bCode_定是否需要调用DecodeToText
+ShowKeyValue( text_, bMulti_=false, bCode_=true )
+{
+	global _KeyListView, _KeyValue, g_hRichEdit, _btnSingleValue
+
+	if bMulti_
+	{
+		if text_ =
+			bMulti_ := False
+	}
+
+	H := 25
+	if bMulti_
+	{
+		if bCode_
+		{
+			text_ := DecodeToText( text_ )
+		}
+
+		GuiControlGet, lvPos, Pos,  _KeyListView
+		H := 30 + lvPosH
+		StringReplace, text_, text_ , `r`n, `n, All
+		StringReplace, text_, text_ , `n, `r`n, All
+		GuiControl, Hide, _KeyListView
+		Control, Hide, , , ahk_id %g_hRichEdit%
+		GuiControl, Show, _btnSingleValue
+		;GuiControl, +Multi, _keyValue
+		;MsgBox 多行显示`n========================`n%text_%
+	}
+	Else
+	{
+		;MsgBox 单行显示`n---------------------------`n%text_%
+		if bCode_
+		{
+			text_ := EncodeToString(text_)
+		}
+		;MsgBox 单行显示`n---------------------------`n%text_%
+		GuiControl, Show, _KeyListView
+		Control, Hide, , , ahk_id %g_hRichEdit%
+		GuiControl, Hide, _btnSingleValue
+		;GuiControl, -Multi, _keyValue
+	}
+
+	GuiControl, MoveDraw, _KeyValue, h%H%
+	;GuiControl, Show, _KeyValue
+	GuiControl, Text, _KeyValue, %text_%
+
+}
+
+
+∑ListView有水平滚动条( )
+{
+	global _KeyListView
+	GuiControlGet, nHwnd, Hwnd, _KeyListView
+
+    VarSetCapacity(si, 28, 0) ; SCROLLINFO si
+    NumPut(28  , si, 0) ; si.cbSize := sizeof(SCROLLINFO)
+    NumPut(0x17, si, 4) ; si.fMask := SIF_ALL
+
+    if ! DllCall("GetScrollInfo", "uint", nHwnd, "int", fnBar, "uint", &si)
+        return false
+
+    nPos        := NumGet(si, 20)
+    nTrackPos   := NumGet(si, 24)
+    nMin        := NumGet(si,  8)
+    nMax        := NumGet(si, 12)
+    nPage       := NumGet(si, 16)
+
+	;; 如果滚动条的最大值大于ListView的宽度，则认为水平滚动条可见
+	GuiControlGet, lvPos, Pos,  _KeyListView
+	if ( nMax > lvPosW )
+		return true
+
+	return false
+}
+
+
+
+del_dict( Filename_, Section_, Key_, isAsk = false )
+{
+	if Key_ <>
+	{
+		if isAsk
+		{
+			var_read := read_ini( Filename_, Section_, Key_, "" )
+			prompt = 即将删除 { %Filename_% } 字典 [%Section_%] 节中单词<%Key_%>，`n`n<%Key_%>值如下，确定要删除它吗 ？
+			var_temp := DecodeToText(var_read)
+			if not MsgTipBox( "删除单词", prompt, var_temp, 600, 350 )
+			{
+				return false
+			}
+		}
+		IniDelete %Filename_%, %Section_%, %Key_%
+	}
+	else
+	{
+		if isAsk
+		{
+			var_prompt = 确定要删除整个分类 [%Section_%] 吗 ？
+			var_temp := ∑得到分类下的所有单词名称( Section_ )
+			StringReplace, var_temp, var_temp, |, `n, all
+			var_text =
+				(LTrim
+					准备删除 字典{ %Filename_% } 的 [%Section_%] 分类，
+					注意: 此操作将会删除 [%Section_%] 下的所有单词，具体如下:
+
+					%var_temp%
+				)
+			If not MsgTipBox( "删除字典分类", var_prompt, var_text )
+			{
+				return false
+			}
+		}
+		IniDelete %Filename_%, %Section_%
+	}
+	return true
+}
+
+
+∑设置keyName的值( var_clip )
+{
+	global
+	∑删除字符串中的回车符(var_clip)
+
+	;ControlSetText , Edit1, %var_clip%, ahk_id %g_GuiID%
+	GuiControl, Text, _KeyName,  %var_clip%
+	Gosub 【搜索keyName】
+}
+
+
+
+∑粘贴到飞扬小字典的keyValue框( var_clip )
+{
+	global
+	GuiControl, focus, _KeyValue
+	g_bAutoSearch := false
+	ShowKeyValue( Clipboard, true, false )
+	g_bAutoSearch := true
+	;; 需要让ListView失去焦点，否则从其他窗口切换回来的时候，_keyValue编辑框会自动给定ListView选中的值，这将影响Alt+3添加注释的功能
+	LV_Modify( 0, "-Select")
+	LV_Modify( 0, "-Focus")
+}
+
+
+∑粘贴为keyValue的注释( var_clip )
+{
+	global
+	∑删除字符串中的回车符(var_clip)
+	if var_clip <>
+	{
+		sleep 100
+		var_comment = `/*%var_clip%*`/
+		g_bAutoSearch := false
+		if _keyValue = _keyValue
+		{
+			GuiControl, Focus, _KeyValue
+			send {end}   ^v
+		}
+		else
+		{
+			Gui, Submit, NoHide
+			;; 在KeyValue与 /*注释*/ 之间插入不同个数的空格，可以使注释对齐，更加美观
+			nmod := 8 - mod( strlen(_keyValue), 8)      ;; 需要添加空格的个数
+			var_temp := _keyValue						;; 先添加KeyValue部分
+			loop %nmod%								    ;; 再添加若干个空格
+			{
+				var_temp := var_temp . " "
+			}
+			var_temp = %var_temp%%var_comment%			;; 最后添加注释部分
+			GuiControl, Text, _keyValue, %var_temp%
+		}
+		g_bAutoSearch := true
+	}
+}

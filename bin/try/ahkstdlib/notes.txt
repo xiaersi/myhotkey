@@ -1,0 +1,15 @@
+new button to compare source if it is installed, right of Analyze
+
+any need for this?:
+http://www.autohotkey.com/forum/viewtopic.php?t=21650 - long integer arithmetic library
+
+not easily usable or not stdlib conform:
+http://www.autohotkey.com/forum/viewtopic.php?t=33263 - WinTraymin to trayicon
+http://www.autohotkey.com/forum/viewtopic.php?t=8316 - Clock + cpu and memory usage
+
+is it stable?:
+http://www.autohotkey.com/forum/viewtopic.php?t=55909 - CSV Library [lib]
+
+work on this:
+http://www.autohotkey.com/forum/viewtopic.php?t=40008 - Wrapper to catch Power Management 
+    events (like standby), should call function instead msgbox showing

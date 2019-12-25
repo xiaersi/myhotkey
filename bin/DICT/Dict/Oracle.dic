@@ -1,0 +1,68 @@
+[术语]
+DB=Database /*数据库*/
+DBMS=Database Management System /*数据库管理系统*/
+DBA=Database Administrator /*数据库管理员*/
+DBS=Database System /*数据库系统*/
+Oracle特点=全球化、跨平台的数据库|支持多用户、高性能的事务处理|强大的安全性控制和完整性控制|支持分布式数据库和分布处理
+[常见操作]
+修改主键的SQL=1.如果表之前有主键则先删除：|alter table 表名 drop constraint 主键名|2.修改主键：|alter table 表名 add constraint 主键名 primary key (column1,column2,....,column)
+新增字段=alter table 表名 add 字段名 VARCHAR2(20);|Comment on column 表名.字段名 is '注释';
+创建临时表空间=create temporary tablespace test_temp   |tempfile 'E:\Oracle\product\10.2.0\oradata\testserver\test_temp01.dbf'   |size 32m   |autoextend on   |next 32m maxsize 2048m   |extent management local;
+创建数据表空间=create tablespace test_data   |logging   |datafile 'E:\Oracle\product\10.2.0\oradata\testserver\test_data01.dbf'   |size 32m   |autoextend on   |next 32m maxsize 2048m   |extent management local;
+Oracle创建用户并指定表空间=create user username identified by password   |default tablespace test_data   |temporary tablespace test_temp;
+给用户授予权限=grant connect,resource to username;
+创建临时表=http://database.51cto.com/art/201001/180851.htm /*摘自*/|会话级的临时表创建方法：|Create Global Temporary Table Table_Name  |(Col1 Type1,Col2 Type2...) On Commit Preserve Rows;|事务级临时表的创建方法：|Create Global Temporary Table Table_Name  |(Col1 Type1,Col2 Type2...) On Commit Delete Rows;
+Oracle 游标使用全解=这个文档几乎包含了oracle游标使用的方方面面，全部通过了测试。|http://www.cnblogs.com/sc-xx/archive/2011/12/03/2275084.html|http://www.2cto.com/database/201203/122387.html  /*游标概念*/
+[经验实例]
+检验同一表不同人输入的数据=下面是 对行情市盈率数据校验的SQL语句，以供参考
+获取指定日期当月的第一天=trunc(to_date('2012-6-15','yyyy-mm-dd'),'MONTH')   /*指定时期为2012-6-15*/||●取当前日期前一个月的第一天的日期|  SELECT last_day(add_months(SYSDATE, -2)) + 1  FROM dual;||●取当前日期前一个月的最后一天的日期|  SELECT last_day(add_months(SYSDATE, -1)) FROM dual;||○本月的第一天和最后一天|  select to_char(trunc(sysdate,'MONTH'),'yyyy-mm-dd') First_DayOfMonth|       ,to_char(last_day(trunc(sysdate,'MONTH')),'yyyy-mm-dd') Last_DayOfMonth |  from dual
+常用日期数据格式=假设当前日期为2012-6-19 16:09|Select to_char(sysdate,'Y') from dual;  /*'Y' = 2*/|Select to_char(sysdate,'YY') from dual;  /*YY = 12*/|Select to_char(sysdate,'YYY') from dual;  /*012*/|Select to_char(sysdate,'Q') from dual;  /*返回季度，1~3月为第一季度，返回值2表示第二季度*/|Select to_char(sysdate,'MM') from dual;  /*Q返回月份数06*/|Select to_char(sysdate,'RM') from dual;  /*RM 月份的罗马表示，VI  表示6月*/|Select to_char(sysdate,'Month') from dual;  /*用9个字符长度表示的月份名，6月 */|Select to_char(sysdate,'WW') from dual; /*WW 当年第几周，25*/|Select to_char(sysdate,'W') from dual; /*本月第几周 = 3*/|Select to_char(sysdate,'DDD') from dual; /*DDD 当年第几天171*/|Select to_char(sysdate,'DD') from dual; /*DD 当月第19天*/|Select to_char(sysdate,'D') from dual;  /*D 周内第3天*/|Select to_char(sysdate,'DY') from dual; /*DY 中文的星期几 星期二*/|Select to_char(sysdate,'HH') from dual; /*HH或HH12 12进制小时数，16：09分为用12小时制计时为4点 04*/|Select to_char(sysdate,'HH24') from dual;       /*HH24 24小时制，16*/
+常用时间函数=trunc(sysdate,'Q') 本季度第一天|trunc(sysdate,'D') 本周的第一天(周日)|last_day(sysdate) 本月最后一天|add_months(sysdate,2) 日期sysdate后推2个月|next_day(sysdate,2) 日期sysdate之后的第一周中,第2(指定星期的第几天)是什么日期|Months_between(f,s) 日期f和s间相差月数|    举例： select months_between(sysdate,to_date('2007-04-12','yyyy-mm-dd'))from dual;|得到SYSDATE+5所在的月份|   SELECT to_char(SYSDATE+5,'mon','nls_date_language=american') FROM dual;|current_date()返回当前会话时区中的当前日期|extract()找出日期或间隔值的字段值|    select extract(month from sysdate) "This Month" from dual;  /*6 表示6月*/|    select extract(year from sysdate) "This year" from dual;   /*2012*/|    select extract(month from add_months(sysdate,2)) " Month" from dual;  /*返回值为8，当前系统日期为2012-6-19*/
+上月末天=select to_char(add_months(last_day(sysdate),-1),'yyyy-MM-dd') LastDay from dual；
+上月今天=select to_char(add_months(sysdate,-1),'yyyy-MM-dd') PreToday from dual
+上月首天=select to_char(add_months(last_day(sysdate)+1,-2),'yyyy-MM-dd') firstDay from dual
+要找到某月中所有周五的具体日期=SELECT to_char(b.a,'YY-MM-DD') |FROM (  SELECT trunc(SYSDATE,'mm')+ROWNUM-1 a|             FROM dba_objects where rownum < 32 ) b|WHERE  to_char(b.a,'day')='星期五';
+分组后取第一条数据=||SELECT *  ||  FROM (SELECT ROW_NUMBER() OVER(PARTITION BY <PK_FINANCE_ACCOUNT_1> ORDER BY <amassdate> DESC) LEV,  ||               <hx_amass_liquid>.*  ||          FROM <hx_amass_liquid>)  || WHERE LEV = 1  || ORDER BY <PK_FINANCE_ACCOUNT_2> DESC||||http://www.2cto.com/database/201110/108459.html  /*摘自*/
+A表中的no字段不包含在B表中的no字段的所有A表记录的查询语句？=select   *   from   a   where   not   exists   (select   1   from   b   where   b.no   =   a.no)|http://topic.csdn.net/t/20060723/21/4899365.html /*摘自*/
+查看表的数据集是否UTF-8=select userenv('language') from dual
+让索引失效停用=在不删除索引的情况下，临时停用索引|1、alter session set skip_unusable_indexes=true;|2、alter index xxx unusable;||重启停用的索引方法：|1、alter session set skip_unusable_indexes=false;|2、alter index xxx rebuild;
+[函数]
+decode=DECODE函数相当于一条件语句(IF).它将输入数值与函数中的参数列表相比较，根据输入值返回一个对应值|DECODE(input_value,value,result[,value,result…][,default_result]);  /*语法*/|DECODE(blood_test_flag,’Y’,’Yes’,’N’,’No’,NULL,’None’,’Invalid’)  /*实例*/
+nvl 判断是否为空=nvl(a,b) 如果a不为null 则返回a,如果a为null则返回b;|nvl2(a,b,c) ,如果a不为null 则返回b,如果a为null则返回c;
+ASCII(x) =返回字符x的ASCII码。|SELECT ASCII('a') FROM DUAL  /*97*/
+CONCAT(x,y) =连接字符串x和y。|SELECT CONCAT('Hello', ' world') FROM DUAL /*Hello world*/
+INSTR(x, str [,start] [,n) = 在x中查找str，可以指定从start开始，也可以指定从第n次开始。|SELECT INSTR('Hello world'，'or') FROM DUAL	/*8*/
+LENGTH(x) = 返回x的长度。|SELECT LENGTH('Hello') FROM DUAL	/*5*/
+LOWER(x) = x转换为小写。
+UPPER(x) = x转换为大写。
+LTRIM(x[,trim_str]) = 把x的左边截去trim_str字符串，缺省截去空格。
+RTRIM(x[,trim_str]) = 把x的右边截去trim_str字符串，缺省截去空格。
+TRIM([trim_str FROM] x) = 把x的两边截去trim_str字符串，缺省截去空格。
+REPLACE(x,old,new) = 在x中查找old，并替换为new。|SELECT REPLACE('ABCDE','CD','AAA') FROM DUAL	/*ABAAAE*/
+SUBSTR(x,start[,length]) = 返回x的字串，从start处开始，截取length个字符，缺省length，默认到结尾。|SELECT SUBSTR('ABCDE',2,3) FROM DUAL	/*BCD*/
+ABS(x) = x绝对值 | ABS(-3)=3
+ACOS(x) = x的反余弦 | ACOS(1)=0
+COS(x) = 余弦 | COS(1)=1.57079633
+CEIL(x) = 大于或等于x的最小值 | CEIL(5.4)=6
+FLOOR(x) = 小于或等于x的最大值 | FLOOR(5.8)=5
+LOG(x,y) = x为底y的对数 | LOG(2,4)=2
+MOD(x,y) = x除以y的余数 | MOD(8,3)=2
+POWER(x,y) = x的y次幂 | POWER(2,3)=8
+ROUND(x[,y]) =x在第y位四舍五入| ROUND(3.456,2)=3.46|ROUND(X[,Y])，四舍五入。|在缺省y时，默认y=0；比如：ROUND(3.56)=4。|y是正整数，就是四舍五入到小数点后y位。ROUND(5.654,2)=5.65。|y是负整数，四舍五入到小数点左边&#124;y&#124;位。ROUND(351.654,-2)=400。
+SQRT(x) = x的平方根 | SQRT(4)=2
+TRUNC(x[,y]) =x在第y位截断 | TRUNC(3.456,2)=3.45|TRUNC(x[,y])，直接截取，不四舍五入。|在缺省y时，默认y=0；比如：TRUNC (3.56)=3。|y是正整数，就是四舍五入到小数点后y位。TRUNC (5.654,2)=5.65。|y是负整数，四舍五入到小数点左边&#124;y&#124;位。TRUNC (351.654,-2)=300。
+ADD_MONTHS(d,n)=在某一个日期d上，加上指定的月数n，返回计算后的新日期。d表示日期，n表示要加的月数。
+LAST_DAY(d)=返回指定日期当月的最后一天
+ROUND(d[,fmt])=返回一个以fmt为格式的四舍五入日期值，d是日期，fmt是格式模型。|默认fmt为DDD，即月中的某一天。|1）如果fmt为"YEAR"则舍入到某年的1月1日，即前半年舍去，后半年作为下一年。|2）如果fmt为"MONTH"则舍入到某月的1日，即前月舍去，后半月作为下一月。|3）默认为"DDD"，即月中的某一天，最靠近的天，前半天舍去，后半天作为第二天。|4）如果fmt为"DAY"则舍入到最近的周的周日，即上半周舍去，下半周作为下一周周日。||与ROUND对应的函数时TRUNC(d[,fmt])对日期的操作，|TRUNC与ROUND非常相似，只是不对日期进行舍入，|直接截取到对应格式的第一天
+EXTRACT(fmt FROM d)=提取日期中的特定部分|fmt为：YEAR、MONTH、DAY、HOUR、MINUTE、SECOND。|其中YEAR、MONTH、DAY可以为DATE类型匹配，也可以与TIMESTAMP类型匹配；|但是HOUR、MINUTE、SECOND必须与TIMESTAMP类型匹配|HOUR匹配的结果中没有加上时区，因此在中国运行的结果小8小时
+TO_CHAR(d|n[,fmt])=把日期和数字转换为制定格式的字符串。|fmt是格式化字符串，日期的格式化字符串前面已经学习过。|9 /* 999 指定位置处显示数字。 */|. /* 9.9 指定位置返回小数点 */|, /* 99,99 指定位置返回一个逗号 */|$ /* $999 数字开头返回一个美元符号 */|EEEE /* 9.99EEEE 科学计数法表示 */|L /* L999 数字前加一个本地货币符号 */|PR /* 999PR 如果数字式负数则用尖括号进行表示 */|例如： SELECT TO_CHAR(-123123.45,'L9.9EEEEPR') "date"  FROM DUAL
+TO_DATE(x [,fmt])=把一个字符串以fmt格式转换为一个日期类型，前面已经学习过
+TO_NUMBER(x[,fmt])=把一个字符串以fmt格式转换为一个数字。fmt格式字符参考表3|例如：SELECT TO_NUMBER('-$12,345.67','$99,999.99') "NUM"  FROM DUAL|
+NVL(x,value)=如果x为空，返回value，否则返回x
+NVL2(x,value1,value2)=如果x非空，返回value1，否则返回value2
+AVG = 平均值 | AVG(表达式)
+SUM = 求和 | SUM(表达式)
+MIN、MAX = 最小值、最大值 | MIN(表达式)、MAX(表达式)
+COUNT = 数据统计 | COUNT(表达式)
+
+在Java/JDBC中透明处理“ORA-04068”错误=http://database.ctocio.com.cn/tips/14/8106014.shtml

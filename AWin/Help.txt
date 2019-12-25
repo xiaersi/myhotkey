@@ -1,0 +1,9 @@
+ActiveWindow 目录的文件, 是针对不同窗口写的脚本, 
+*.ahk	文件可单独运行
+*.aik	文件可被其他ahk文件包含
+
+你可以根据需要, 选择性地 #include 需要的文件, 如此增加相关的功能
+比如: Explore.aik 中实现了 在资源管理器按F8后, 用Vim 来打开选定的文件
+
+在你的test.ahk 文件中 #include Explore.aik 
+运行之后, 即能够在资源管理器中按F8后, 用Vim打开选定文件

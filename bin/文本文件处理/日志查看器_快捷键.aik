@@ -1,0 +1,153 @@
+
+
+#ifwinactive 日志查看器 ahk_class AutoHotkeyGUI
+LWin::
+^+c::
+	clipboard =
+	ControlGetFocus, var_FocusControl, 日志查看器 ahk_class AutoHotkeyGUI
+	if not ErrorLevel
+	{
+		send ^c
+		;; 当前焦点在日志显示文本框  _MyEdit
+	    if var_FocusControl = Edit1
+		{
+			gui submit, nohide
+			Menu, MyContextMenu, Show, %A_GuiX%, %A_GuiY%
+		}
+	}
+	return
+	
+;; 将回车键全部用数字键的回车键代替，因为回车键在编辑框里不能换行 
+enter::
+	;; 如果当前控件是MyListView上的Edit LV_ED，回车将该LV_ED的值赋值到对应的单元格
+	GuiControlGet,fControl,Focus   ;get control with focus
+	If(fControl = DispControl)   ;if Edit, save any changes
+	{
+		gosub 【修改MyListView单元格并退出编辑状态】
+	}
+	;; 当前控件不是LV_ED时，将回车键变成数字键盘上的回车键，以便其他Edit能够回车换行。
+	else
+	{
+		send {NumpadEnter}
+	}
+	return
+
+PgUp::
+	gosub 【上一页】
+	return
+	
+PgDn::
+	gosub 【下一页】
+	return
+	
+	
++PgUp::
+	gosub 【上十页】
+	return
+	
++PgDn::
+	gosub 【下十页】
+	return
+			
+#ifwinactive
+
+
+【右键复制】:
+	GuiControl, +Redraw, _MyEdit        ;; 刷新日志显示窗口
+	return
+	
+【复制到过滤条件保留框】:
+	if clipboard <>
+	{
+		if _edtRe =
+			var_temp = %clipboard%
+		else
+			var_temp = %_edtRe%`r`n%clipboard%
+			
+		GuiControl, Text, _edtRe, %var_temp%
+		GuiControl, Choose, _MyTab, 2
+	}
+	GuiControl, +Redraw, _MyEdit        ;; 刷新日志显示窗口
+	return
+	
+【复制到过滤条件过滤框】:
+	if clipboard <>
+	{
+		var_temp = %_edtFi%`r`n%clipboard%
+		GuiControl, Text, _edtFi, %var_temp%	
+		GuiControl, Choose, _MyTab, 2
+	}
+	GuiControl, +Redraw, _MyEdit        ;; 刷新日志显示窗口
+	return
+	
+【复制到求最值变量左边】:
+	if clipboard <>
+	{
+		GuiControl, Text,_mmLeft, %clipboard%
+		GuiControl, Choose, _MyTab, 3
+	}
+	GuiControl, +Redraw, _MyEdit        ;; 刷新日志显示窗口
+	return
+	
+【复制到求最值变量右边】:	
+	if clipboard <>
+	{
+		GuiControl, Text,_mmRight, %clipboard%
+		GuiControl, Choose, _MyTab, 3
+	}
+	GuiControl, +Redraw, _MyEdit        ;; 刷新日志显示窗口
+	return
+	
+【复制到求最值包含条件】:
+	if clipboard <>
+	{
+		GuiControl, Text,_mmRe, %clipboard%
+		GuiControl, Choose, _MyTab, 3
+	}
+	GuiControl, +Redraw, _MyEdit        ;; 刷新日志显示窗口
+	return
+	
+【复制到求最值过滤条件】:
+	if clipboard <>
+	{
+		GuiControl, Text,_mmFi, %clipboard%
+		GuiControl, Choose, _MyTab, 3
+	}
+	GuiControl, +Redraw, _MyEdit        ;; 刷新日志显示窗口
+	return
+
+【循环开始条件】:
+	if clipboard <>
+	{
+		GuiControl, Text,_expStart, %clipboard%
+		GuiControl, Choose, _MyTab, 4
+	}
+	GuiControl, +Redraw, _MyEdit        ;; 刷新日志显示窗口
+	return
+	
+【添加变量的名称】:
+	if clipboard <>
+	{
+		GuiControl, Text,_expVar, %clipboard%
+		GuiControl, Choose, _MyTab, 4
+	}
+	GuiControl, +Redraw, _MyEdit        ;; 刷新日志显示窗口
+	return
+	
+【添加变量的左边字符】:
+	if clipboard <>
+	{
+		GuiControl, Text,_expL, %clipboard%
+		GuiControl, Choose, _MyTab, 4
+	}
+	GuiControl, +Redraw, _MyEdit        ;; 刷新日志显示窗口
+	return
+	
+【添加变量的右边字符】:
+	if clipboard <>
+	{
+		GuiControl, Text,_expR, %clipboard%
+		GuiControl, Choose, _MyTab, 4
+	}
+    GuiControl, +Redraw, _MyEdit        ;; 刷新日志显示窗口
+	return

@@ -1,0 +1,11 @@
+
+#IfWinActive ahk_class  Framework::CFrame
+:R:test;::	;/**/
+	tempclipboard:=clipboard
+	oldclipboard=%ClipboardAll%
+	clipboard=begin(MSG_BROADCAST,
+	sleep 200
+	sendevent,^v
+	Clipboard = %oldclipboard%
+	return ;}
+

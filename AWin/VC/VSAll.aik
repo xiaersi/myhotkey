@@ -1,0 +1,13 @@
+;; VC6.0 / VC2005 / VC2010 共用热键
+
+;SetTitleMatchMode RegEx ;; 为了利用热键代码，标题的匹配模式要采用正则表达式
+
+;#include .\inc\functions.aik
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 	VC++2005.net/VC2010/VC6.0
+#ifwinactive ahk_class Afx:[\-\w]*|wndclass_desked_gsk|HwndWrapper\[DefaultDomain;;[\-\w]*\]  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+#include .\AWin\VC\vcCommon.aik
+
+#ifwinactive

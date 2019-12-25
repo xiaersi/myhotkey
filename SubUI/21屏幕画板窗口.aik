@@ -1,0 +1,93 @@
+
+¡¾´´½¨Ä¬ÈÏÆÁÄ»»­°å¡¿:
+
+;tooltip7( "¡¾´´½¨Ä¬ÈÏÆÁÄ»»­°å¡¿" )
+	CoordMode, Mouse, Screen
+	MouseGetPos, mx, my	
+	$»­±ÊÉ«$=0x0000DA	;0xBBGGRR
+	$»­±Ê¿í$=4
+
+	;; ´´½¨Ä¬ÈÏÆÁÄ»»­°å´°¿Ú
+	Gui,21: -Caption +LastFound  +ToolWindow  +AlwaysOnTop
+	Gui,21: Show, x0 y-2000 w%A_ScreenWidth% h%A_ScreenHeight% NA, AHKÄ¬ÈÏÆÁÄ»»­°å
+	Gui,21: Color, EEAA99
+	WinSet, TransColor, EEAA99, AHKÄ¬ÈÏÆÁÄ»»­°å
+
+	;; hdc_canvas ÊÇ´°¿ÚÊµ¼ÊÏÔÊ¾µÄHDC
+	hdc_screen:=dllcall("GetDC", "uint", 0)
+	hdc_canvas:=DllCall("GetDC", "uint", WinExist())
+	DllCall("BitBlt", "uint", hdc_canvas, "int", 0, "int", 0, "int", A_ScreenWidth, "int", A_ScreenHeight, "uint", hdc_screen, "int", 0, "int", 0, "uint", 0x00CC0020)
+	Gui,21: Show, x0 y0 h%A_ScreenHeight% w%A_ScreenWidth% NA, AHKÄ¬ÈÏÆÁÄ»»­°å
+	Paint21(mx,my,$»­±ÊÉ«$, true )		
+
+	Return
+
+
+¡¾Ïú»ÙÄ¬ÈÏÆÁÄ»»­°å¡¿:
+	Gui, 21:Destroy
+	return
+
+
+
+;
+WM_MOUSEMOVE(wParam, lParam)
+{
+	Global
+	If (i || A_Gui=3)
+		Return
+		
+	;; Èç¹ûÊó±êÓÒ¼üÊÍ·Å£¬ÔòÊó±êÊÖÊÆ½áÊø£¬ÍË³ö³ÌÐò
+;	if GetKeyState("RButton","P") = 0  
+;		ExitApp
+		
+	x:=lParam & 0xFFFF
+	y:=lParam >> 16
+
+	DrawLine21(x_, y_, x, y, DllCall("shlwapi.dll\ColorHLSToRGB",Int,Mod(H++,240),Int,120,Int,240))
+
+	x_:=x, y_:=y
+	Paint21(x_,y_,$»­±ÊÉ«$)
+}
+
+Paint21(x,y,color, bRect=false)
+{
+	Global hdc_canvas
+	cBrush:=DllCall("gdi32.dll\CreateSolidBrush", "uint", color)
+	DrawCircle21(x,y, cBrush, hdc_canvas, bRect)
+	DllCall("gdi32.dll\DeleteObject", "uint", cBrush)
+}
+
+DrawLine21(x0, y0, x1, y1, color=0)
+{
+	Global hdc_canvas
+	;cBrush:=color="ERASE" ? "ERASE" : DllCall("gdi32.dll\CreateSolidBrush", "uint", color)
+	cBrush:=DllCall("gdi32.dll\CreateSolidBrush", "uint", color)
+	dx:=x1 - x0
+	dy:=y1 - y0
+	dxy:=(Abs(dx)> Abs(dy) ? Abs(dx) : Abs(dy))
+	dx:=dx / dxy
+	dy:=dy / dxy
+			
+	Loop %dxy%
+	{
+		x0 += dx
+		y0 += dy
+		DrawCircle21(x0,y0, cBrush, hdc_canvas)
+	}
+	DllCall("gdi32.dll\DeleteObject", "uint", cBrush)
+}
+
+DrawCircle21(x,y,cBrush,hdc, rect=0)
+{
+	Global  hdc_screen, $»­±Ê¿í$
+	if rect = 0
+		cRegion:=DllCall("gdi32.dll\CreateRoundRectRgn", "int", x-$»­±Ê¿í$, "int", y-$»­±Ê¿í$, "int", x+$»­±Ê¿í$, "int", y+$»­±Ê¿í$, "int", $»­±Ê¿í$*2, "int", $»­±Ê¿í$*2)
+	else 
+		cRegion:=DllCall("gdi32.dll\CreateRectRgn", "int", x-$»­±Ê¿í$, "int", y-$»­±Ê¿í$, "int", x+$»­±Ê¿í$, "int", y+$»­±Ê¿í$)
+
+	DllCall("gdi32.dll\FillRgn" , "uint", hdc , "uint", cRegion , "uint", cBrush)
+	DllCall("gdi32.dll\DeleteObject", "uint", cRegion)
+}
+
+
+

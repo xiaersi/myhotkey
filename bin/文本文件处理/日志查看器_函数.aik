@@ -1,0 +1,815 @@
+
+g_rawCurPage =							;; 最近显示的原始数据页数
+g_viewCurPage =							;; 最近显示的缓存数据页数
+g_rawArray  =                           ;; 原始数据数组
+g_viewArray =                           ;; 缓存数据数组
+g_tempArray = 							;; 临时缓存,用于表达式/求最值的结果显示等
+
+;;---数组操作的函数----------------------------------------------------------
+ClearRawArray()
+{
+	global
+	Loop %g_rawArray0%
+	{
+		g_rawArray%a_index% =
+	}
+	g_rawArray0 = 0
+	g_rawCurPage = 1
+}
+
+ClearViewArray()
+{
+	global
+	Loop %g_viewArray0%
+	{
+		g_viewArray%a_index% =
+	}
+	g_viewArray0 = 0
+	g_viewCurPage = 1
+}
+
+ClearTempArray()
+{
+	global
+	Loop %g_tempArray0%
+	{
+		g_tempArray%a_index% =
+	}
+	g_tempArray0 = 0
+}
+
+RawArrayPushBack( var_line )
+{
+	global
+	g_rawArray0++
+	g_rawArray%g_rawArray0% := var_line
+}
+
+ViewArrayPushBack( var_line )
+{
+	global
+	g_viewArray0++
+	g_viewArray%g_viewArray0% := var_line
+}
+
+TempArrayPushBack( var_line )
+{
+	global
+	g_tempArray0++
+	g_tempArray%g_tempArray0% := var_line
+}
+
+SetViewArray( byref var_Lines )
+{
+	global
+	g_viewArray0 = 0
+	loop parse, var_lines, `n
+	{
+		g_viewArray0++
+		g_viewArray%g_viewArray0% := a_loopfield
+	}
+}
+
+SaveArrayToFile( var_source, filename )
+{
+	global 
+	local var_buf, line
+	if var_source = raw
+	{
+		Loop %g_rawArray0%
+		{
+			line := g_rawArray%a_index%
+			var_buf = %var_buf%%line%`r`n
+		}
+	}
+	else if var_source = view
+	{
+		Loop %g_viewArray0%
+		{
+			line := g_viewArray%a_index%
+			var_buf = %var_buf%%line%`r`n
+		}
+	}
+	else if var_source = temp
+	{
+		Loop %g_tempArray0%
+		{
+			line := g_tempArray%a_index%
+			var_buf = %var_buf%%line%`r`n
+		}
+	}
+	else
+	{
+		return false
+	}
+	
+	var_re := false
+	if var_buf <>
+	{
+		FileAppend %var_buf%, %filename%
+		if not ErrorLevel 
+		{
+			var_re := true
+		}
+	}
+	
+	line =
+	var_buf =
+	return var_re
+}
+
+;;---打开文件的函数-----------------------------------------------------------
+OpenFile( fileName )
+{
+	global
+	local var_fileData
+	ifexist %fileName%
+	{
+		SB_SetText("正在打开文件...")
+		GuiControl, Disable, _btn_OpenFile
+		GuiControl, Disable, _btn_AddFile	
+		GuiControl, Disable, _btn_SaveFile
+		GuiControl, Disable, _btn_Clear	
+		                     
+		guicontrol, , _MyListBox, |
+		guicontrol, , _MyListBox, %fileName%
+		g_fileName := fileName
+		FileRead, var_fileData, %fileName%
+		
+		;; 将加载的文件内容按行分解为数组
+		StringReplace, var_fileData, var_fileData, `r`n, `n, All  
+		StringSplit, g_rawArray, var_fileData, `n
+        var_fileData =                  ;; 清空内存
+;   msgbox OpenFile() g_rawArray[%g_rawArray0%]
+
+		if ErrorLevel = 3
+		{
+			msgbox the system lacks sufficient memory to load the file
+		}
+		else if ErrorLevel = 2
+		{
+			msgbox file is locked or inaccessible
+		}
+		/* 实际运行中，发现虽然弹出这个错误，但文件正常加载，也能正常使用
+		else if ErrorLevel = 1
+		{
+			msgbox  file does not exist
+		}
+		*/
+		else
+		{
+			gosub 【查看原始内容】
+		}
+		GuiControl, Enable, _btn_OpenFile
+		GuiControl, Enable, _btn_AddFile	
+		GuiControl, Enable, _btn_SaveFile
+		GuiControl, Enable, _btn_Clear	
+		SB_SetText("")
+	}
+}
+
+AddFile( fileName )
+{
+	global
+	gui, submit, nohide
+	local var_buf 
+	ifnotexist %fileName%
+		return
+		
+	;; 检查文件是否已经打开过
+	ControlGet, FileList, List, , ListBox1	; 获得整个ListBox 
+	Loop, Parse, FileList, `n  
+	{
+		if A_LoopField =
+			continue
+			
+		var_file := A_LoopField
+		if ( fileName == var_file )
+		{
+			tooltip7( "追加的文件已经存在!" )
+			return
+		}
+	}	
+		
+	;; 添加文件头
+	RawArrayPushBack( "   " )
+	line = %ADD_FILE_PRE% %fileName% 
+	RawArrayPushBack( line )
+	line = %ADD_FILE_LINE%%ADD_FILE_LINE%
+	RawArrayPushBack( line )
+		
+	var_tip = 正在打开并追加文件 %fileName% ...
+	SB_SetText( var_tip )
+	GuiControl, Disable, _btn_OpenFile
+	GuiControl, Disable, _btn_AddFile	
+	GuiControl, Disable, _btn_SaveFile
+	GuiControl, Disable, _btn_Clear	
+			
+	guicontrol, , _MyListBox, %fileName%
+	g_fileName := fileName
+	
+	if _edtRe <>
+	{
+		;; 同时保留与过滤
+		if _edtFi <>				
+		{
+			Loop, read, %fileName%
+			{
+				line := A_LoopReadLine
+				if line =
+					continue
+				bFind := false			
+				loop parse, _edtRe, `r`n
+				{
+					if a_loopfield =
+						continue
+					ifinstring line, %a_loopfield%
+					{
+						RawArrayPushBack( line )
+						bFind := true
+						break
+					}
+				}
+				if not bFind
+				{
+					loop parse, _edtFi, `r`n
+					{
+						if a_loopfield =
+							continue
+						ifinstring line, %a_loopfield%
+						{
+							bFind := true
+							break
+						}
+					}
+					if not bFind
+					{
+						RawArrayPushBack( line )
+					}
+				}			    
+			}		
+		}
+		;; 仅保留
+        else                        
+		{
+			Loop, read, %fileName%
+			{
+				line := A_LoopReadLine
+				if line =
+					continue
+				
+				loop parse, _edtRe, `r`n
+				{
+					if a_loopfield =
+						continue
+					ifinstring line, %a_loopfield%
+					{
+						RawArrayPushBack( line )
+						break
+					}
+				}				
+			}
+		}
+	}
+	;; 仅过滤
+	else if _edtFi <>				
+	{
+		Loop, read, %fileName%
+		{	
+			line := A_LoopReadLine
+			if line =
+				continue
+			bFind := false
+			loop parse, _edtFi, `r`n
+			{
+				if a_loopfield =
+					continue
+				ifinstring line, %a_loopfield%
+				{
+					bFind := true
+					break
+				}
+			}
+			if not bFind
+			{
+				RawArrayPushBack( line )
+			}			
+		}
+	}
+	;; 没有过滤条件
+    else                            
+	{
+		FileRead, var_buf, %fileName%		
+		if ErrorLevel = 3
+		{
+			tooltip the system lacks sufficient memory to load the file
+			sleep 1000
+			tooltip
+		}
+		else if ErrorLevel = 2
+		{
+			tooltip file is locked or inaccessible
+			sleep 1000
+			tooltip
+		}
+		else if ErrorLevel = 1
+		{
+			tooltip  file does not exist
+			sleep 1000
+			tooltip
+		}
+		else if var_buf <>
+		{
+			StringReplace, var_buf, var_buf, `r`n, `n, All  
+			loop parse, var_buf, `n
+			{
+				if a_loopfield =
+					continue
+				line := a_loopfield
+				RawArrayPushBack( line )
+			}
+		}
+	}
+	gosub 【查看原始内容】
+	GuiControl, Enable, _btn_OpenFile
+	GuiControl, Enable, _btn_AddFile	
+	GuiControl, Enable, _btn_SaveFile
+	GuiControl, Enable, _btn_Clear		
+	SB_SetText("")
+}
+
+
+Init()
+{
+	global 
+	g_fileSize = 0
+	g_fileData =                            ;; 保存文件原始数据
+	g_view =                                ;; 保存显示的文件
+	g_statustip =							;; 状态栏临时显示内容
+	g_fileName =	
+	ClearRawArray()	
+	ClearViewArray()
+	ClearTempArray()
+	ShowRawPage( 1 )
+}
+
+;;---将当前配置生成一行字符串------------------------------------------------
+CreateCurCFG()
+{
+	global
+	gui, submit, nohide
+	var_cfg =
+	
+	;; 保留内容
+	var_buf := _edtRe
+	if var_buf <>
+	{
+		∑处理字符串中的转义字符( var_buf, true)
+	}
+	var_cfg = %var_buf%
+	
+	;; 过滤内容
+	var_buf := _edtFi
+	if var_buf <>
+	{
+		∑处理字符串中的转义字符( var_buf, true)
+	}
+	var_cfg = %var_cfg%|%var_buf%
+	
+	;; 最值左边字符
+	var_buf := _mmLeft
+	if var_buf <>
+	{
+		∑处理字符串中的转义字符( var_buf, true)
+	}
+	var_cfg = %var_cfg%|%var_buf%
+	
+	;; 最值右边字符
+	var_buf := _mmRight
+	if var_buf <>
+	{
+		∑处理字符串中的转义字符( var_buf, true)
+	}
+	var_cfg = %var_cfg%|%var_buf%
+	
+	;; 最值包含条件
+	var_buf := _mmRe
+	if var_buf <>
+	{
+		∑处理字符串中的转义字符( var_buf, true)
+	}
+	var_cfg = %var_cfg%|%var_buf%
+	
+	;; 最值过滤条件
+	var_buf := _mmFi
+	if var_buf <>
+	{
+		∑处理字符串中的转义字符( var_buf, true)
+	}
+	var_cfg = %var_cfg%|%var_buf%	
+	
+	;; 表达式开始条件
+	var_buf := _expStart
+	if var_buf <>
+	{
+		∑处理字符串中的转义字符( var_buf, true)
+	}
+	var_cfg = %var_cfg%|%var_buf%	
+	
+	;; 表达式
+	var_buf := _express
+	if var_buf <>
+	{
+		∑处理字符串中的转义字符( var_buf, true)
+	}
+	var_cfg = %var_cfg%|%var_buf%	
+	
+	;; 表达式的变量
+	var_buf =
+	Loop % LV_GetCount()
+	{
+		var_temp =
+	    LV_GetText( RetrievedText, A_Index, 1 )
+		var_temp := RetrievedText
+		LV_GetText( RetrievedText, A_Index, 2 )
+		var_temp = %var_temp%``%RetrievedText%
+		LV_GetText( RetrievedText, A_Index, 3 )
+		var_temp = %var_temp%``%RetrievedText%
+		LV_GetText( RetrievedText, A_Index, 4 )
+		var_temp = %var_temp%``%RetrievedText%
+		LV_GetText( RetrievedText, A_Index, 5 )
+		var_temp = %var_temp%``%RetrievedText%
+		var_buf = %var_buf%\n%var_temp%
+	}	
+	var_cfg = %var_cfg%|%var_buf%	
+	return var_cfg
+}
+
+;;---解析从配置文件中读取的配置字符串上，并将值设置到控件上------------------
+ParseCFGLine( line )
+{
+	ifnotinstring line, |
+		return false
+		
+	cfgCount = 0
+	loop parse, line, |
+	{
+		cfgCount := a_index
+		cfg%a_index% := a_loopfield
+	}
+	StringReplace var_temp, cfg1, ``r``n, `r`n, All
+	GuiControl, text, _edtRe, %var_temp%
+	
+	StringReplace var_temp, cfg2, ``r``n, `r`n, All
+	GuiControl, text, _edtFi, %var_temp%
+	
+	GuiControl, text, _mmLeft, %cfg3%
+	GuiControl, text, _mmRight, %cfg4%
+	GuiControl, text, _mmRe, %cfg5%
+	GuiControl, text, _mmFi, %cfg6%
+	GuiControl, text, _expStart, %cfg7%
+	GuiControl, text, _express, %cfg8%
+	
+	;; 解析表达式的变量到ListView中
+	lv_delete()
+	loop parse, cfg9, \n
+	{
+		if a_loopfield =
+			continue
+		var_line := a_loopfield
+		loop parse, var_line, ``
+		{
+			$var%a_index% := a_loopfield
+		}
+		lv_add( "", $var1, $var2, $var3, $var4, $var5 )
+	}
+	
+	;; 清空内存
+	loop 5
+	{
+		$var%a_index% =
+	}
+	
+	loop %cfgCount%
+	{
+		cfg%a_index% =
+	}	
+	cfgCount = 0
+	return true
+}
+
+
+;;---查找过滤----------------------------------------------------------------
+JustFind()
+{
+	global
+    ClearViewArray()                    ;; 先清空缓存内容
+	StringReplace, var_temp, _edtRe, `r`n, `n, all
+	StringSplit arrEdtRe, var_temp, `n
+	Loop %g_rawArray0%
+	{
+		line := g_rawArray%a_index%
+		loop %arrEdtRe0%
+		{
+			var_re := arrEdtRe%a_index%
+			if var_re = 
+				continue
+			ifinstring line, %var_re%
+			{
+				ViewArrayPushBack( line )
+				break
+			}		
+		}
+	}
+}
+
+
+JustFilt()
+{
+	global
+    ClearViewArray()                    ;; 先清空缓存内容
+	StringReplace, var_temp, _edtFi, `r`n, `n, all
+	StringSplit arrEdtFi, var_temp, `n
+	Loop %g_rawArray0%
+	{
+		line := g_rawArray%a_index%
+		bFind := false
+		loop %arrEdtFi0%
+		{
+			var_fi := arrEdtFi%a_index%
+			if var_fi = 
+				continue
+
+			ifinstring line, %var_fi%
+			{
+				;; 检查要过滤的是不是数字
+				if var_fi is number
+				{
+					bPartNumber := false
+					;; 要过滤的是数字, 且该数字是另一个数字的组成部分，则不认为
+					fi_len := strlen( var_fi )
+					loop 
+					{
+						StringGetPos, pos, line, %var_fi% , L%a_index%
+						if errorlevel
+						{
+							break
+						}
+						else
+						{
+							pos++
+							StringMid var_temp, line, pos, fi_len + 1
+							if var_temp is number
+							{
+								StringRight LastChar, var_temp, 1
+								if LastChar is number
+								{
+									bPartNumber := true
+								}
+								break
+							}
+							StringMid var_temp, line, pos-1, fi_len + 1
+							if var_temp is number
+							{
+								StringLeft FirstChar, var_temp, 1
+								if FirstChar is number
+								{							
+									bPartNumber := true
+								}
+								break
+							}
+						}
+					}
+					;; bPartNumber表示var_fi是数字，且是本行中另一个数字的组成部分，则不过滤此行
+					if bPartNumber
+					{
+						continue
+					}
+				}
+				bFind := true
+				break
+			}		
+		}
+		if not bFind
+		{
+			ViewArrayPushBack( line )
+		}			
+	}
+}
+
+
+;;---查找并过滤--------------------------------------------------------------
+FindFilt()
+{
+	global
+    ClearViewArray()                    ;; 先清空缓存内容
+	StringReplace, var_temp, _edtFi, `r`n, `n, all
+	StringSplit arrEdtFi, var_temp, `n
+	Loop %g_rawArray0%
+	{
+		line := g_rawArray%a_index%
+		bFind := false
+		;; 先查找
+		loop %arrEdtRe0%
+		{
+			var_re := arrEdtRe%a_index%
+			if var_re = 
+				continue
+			ifinstring line, %var_re%
+			{
+				ViewArrayPushBack( line )
+				bFind := true
+				break
+			}		
+		}
+		;; 如果已经满足了查找条件，则不再进行过滤
+		if bFind
+		{
+			continue
+		}
+		;; 后过滤
+		bFind := false		
+		loop %arrEdtFi0%
+		{
+			var_fi := arrEdtFi%a_index%
+			if var_fi = 
+				continue
+
+			ifinstring line, %var_fi%
+			{
+				;; 检查要过滤的是不是数字
+				if var_fi is number
+				{
+					bPartNumber := false
+					;; 要过滤的是数字, 且该数字是另一个数字的组成部分，则不认为
+					fi_len := strlen( var_fi )
+					loop 
+					{
+						StringGetPos, pos, line, %var_fi% , L%a_index%
+						if errorlevel
+						{
+							break
+						}
+						else
+						{
+							pos++
+							StringMid var_temp, line, pos, fi_len + 1
+							if var_temp is number
+							{
+								StringRight LastChar, var_temp, 1
+								if LastChar is number
+								{
+									bPartNumber := true
+								}
+								break
+							}
+							StringMid var_temp, line, pos-1, fi_len + 1
+							if var_temp is number
+							{
+								StringLeft FirstChar, var_temp, 1
+								if FirstChar is number
+								{							
+									bPartNumber := true
+								}
+								break
+							}
+						}
+					}
+					;; bPartNumber表示var_fi是数字，且是本行中另一个数字的组成部分，则不过滤此行
+					if bPartNumber
+					{
+						continue
+					}
+				}
+				bFind := true
+				break
+			} ;; ifinstring line, %var_fi%
+		} ;; loop %arrEdtFi0%
+		if not bFind
+		{
+			ViewArrayPushBack( line )
+		}			
+	}
+}
+
+;; 在给定的一行文字中，根据指定的得到查找变量的值，不带查找条件与过滤条件
+GetNumFromLine( sLine, sLeft, sRight )
+{
+	if sLine =
+		return
+		
+	if sLeft <>
+	{
+		IfNotInString sLine, %sLeft%
+			return
+	}
+	if sRight <>
+	{
+		IfNotInString sLine, %sRight%
+			return 
+	}
+	if sLeft =
+	{
+		if sRight =
+			return
+			
+		subLine := StrRight2Sub( sLine, sRight, "R1" )
+		if subLine is number
+		{
+            return subLine              ;; sLine 最右边的是变量
+		}
+		return
+	}
+	if sRight =
+	{
+		subLine := StrLeft2Sub( sLine, sLeft )
+		if subLine is number
+		{
+            return subLine              ;; sLine 最左边的是变量
+		}
+		return
+	}
+	;; 正常的情况下（sLeft与sRight都不为空），尝试寻找变量
+	subLine := sLine
+	lLen := strlen( sLeft )
+	rLen := strlen( sRight )
+	Loop
+	{
+		;; 查找左边匹配字符串
+		StringGetPos lpos, subLine, %sLeft%
+		if ErrorLevel
+			return
+		;; 保留左边匹配字符串右边的子串到subLine
+		StringMid subLine, subLine, lpos + 1 + lLen
+		if subLine =
+			return
+			
+		;; 查找右边匹配字符串
+		StringGetPos, rpos, subLine, %sRight%
+		if ErrorLevel
+		{
+            return                      ;; 查找变量左边匹配符，却没有找到右边的匹配字符串
+		}
+		;; 再次查找左边匹配字符串, 防止右边匹配字符串之前, 出现多个左边匹配字符的情况
+		;; 例如: L...L123R的情况,则应该取离R最近的那个L
+		StringGetPos, lpos, subLine, %sLeft%
+		if not ErrorLevel
+		{
+			if ( lpos < rpos )
+				continue
+		}
+		;; 已经找到了在L与R之间的内容,如果是数字,则查找变量成功,返回其值
+		StringLeft var_temp, subLine, rpos
+		if var_temp is number
+			return var_temp
+		
+		;; 查找到的内容不是数字, 则进入下一个循环, 寻找下一个匹配的内容
+		StringMid subLine, subLine, rpos + 1 + rLen
+		;; goto loop
+	} 
+	return
+}
+
+;; 在给定的一行文字中，根据指定的得到查找变量的值, 带有查找条件与过滤条件
+GetVarFromLine( sLine, sLeft, sRight, sInclude, sExclude )
+{
+	if sLine =
+		return
+
+	;; 检查是否应该被过滤掉
+	if sExclude <>
+	{
+		bExclude := false
+		StringSplit arrEx, sExclude, |
+		loop %arrEx0%
+		{
+			var_buf := arrEx%a_index%
+			ifinstring sLine, %var_buf%
+			{
+				bExclude := true
+				break
+			}
+		}
+		if bExclude
+			return
+	}
+	;; 检查是否满足查找条件
+	if sInclude <>
+	{
+		bExclude := false
+		StringSplit arrIn, sInclude, |
+		loop %arrIn0%
+		{
+			var_buf := arrIn%a_index%
+			ifnotinstring sLine, %var_buf%
+			{
+				bExclude := true
+				break
+			}
+		}
+		if bExclude
+			return
+	}
+	;; 运行到此，说明没有被过滤掉，调用GetNumFromLine()函数查找变量的值
+	return GetNumFromLine( sLine, sLeft, sRight )
+}

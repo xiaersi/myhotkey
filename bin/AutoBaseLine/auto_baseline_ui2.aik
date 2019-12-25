@@ -1,0 +1,21 @@
+
+
+【创建新项目文档路径】:
+	gosub 【创建新项目文档路径UI2】
+	return
+
+【创建新项目文档路径UI2】:
+
+Gui, Add, Text, x182 y72 w50 h20 , 产品路径
+Gui, Add, Edit, x232 y70 w%w% h20 v_productpath, ProductPath
+Gui, Add, Button, x%x% y70 w20 h20 g【SVN浏览产品基线路径】, 开
+
+Gui, Add, Text, x182 y102 w50 h20 , 开发路径
+Gui, Add, Edit, x232 y100 w%w% h20 v_devpath, DevPath
+Gui, Add, Button, x%x% y100 w20 h20 g【SVN浏览产品开发路径】, 开
+
+Gui, Add, Text, x182 y132 w50 h20 right, FROM:
+Gui, Add, Edit, x232 y130 w%w% h20 v_frompath, 
+Gui, Add, Button, x%x% y130 w20 h20 g【SVN浏览产品SIT路径】, 开
+Gui, Show, x171 y284 h320 w616, 创建新项目文档路径
+	return

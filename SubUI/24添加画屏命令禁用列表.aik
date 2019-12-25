@@ -1,0 +1,184 @@
+【添加画屏手势禁用窗口】:
+	∑添加画屏手势禁用窗口()
+	return
+
+
+∑添加画屏手势禁用窗口()
+{
+	global _DrawCMD_RadioTitle, _DrawCMD_RadioClass, _DrawCMD_edtTitle, _DrawCMD_edtClass, _DrawCMD_RadioAWin, _DrawCMD_RadioEWin, _DrawCMD_lbActive, _DrawCMD_lbExist
+	var_title = 添加画屏手势禁用窗口
+	wintitle = %var_title% ahk_class AutoHotkeyGUI	
+	
+	;; 判断配置文件是否存在，如果不存在则退出
+	var_inifile = AutoHotString.ini
+	ifNotExist %var_inifile%
+	{
+		MsgBox, 16, %var_title%,  配置文件 %var_inifile% 不存在！
+		exitapp
+	}
+
+
+	;; 读取配置文件
+	AWinList_keyname = Active禁用列表
+	EWinList_keyname = Exist禁用列表
+	MouseGesture_Section = 画屏手势
+	AWinList := read_ini( var_inifile, MouseGesture_Section, AWinList_keyname, "" )
+	EWinList := read_ini( var_inifile, MouseGesture_Section, EWinList_keyname, "" )
+
+
+	WinGetActiveTitle, var_ATitle
+	WinGetClass, var_AClass, A
+
+	var_newTitle = %var_ATitle% ahk_class %var_AClass%
+
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;; 显示窗口
+
+	Gui, 24:Add, GroupBox, x6 y17 w355 h80 , 窗口信息
+
+	Gui, 24:Add, Radio, x16 y35 w80 h20 checked v_DrawCMD_RadioTitle	g【画屏禁用_选择过滤当前窗口标题】, 窗口标题
+	Gui, 24:Add, Radio, x16 y65 w80 h20 v_DrawCMD_RadioClass			g【画屏禁用_选择过滤当前同类窗口】, 窗口类
+	Gui, 24:Add, Edit, x96 y35 w250 h18 v_DrawCMD_edtTitle				g【画屏禁用_修改当前窗口标题】, %var_ATitle%
+	Gui, 24:Add, Edit, x96 y65 w250 h18 v_DrawCMD_edtClass				g【画屏禁用_修改当前窗口类】, %var_AClass%
+
+	Gui, 24:Add, Button, x370 y25 w90 h30 g【画屏禁用_确定】, 确  定
+	Gui, 24:Add, Button, x370 y65 w90 h30 g【画屏禁用_取消】, 取  消
+
+	Gui, 24:Add, Radio, x16 y120 w380 h20 v_DrawCMD_RadioAWin checked	g【画屏禁用_选择添加到AWinList】, AddTo: 活动窗口过滤列表 （ IfWinActive ）
+	Gui, 24:Add, Radio, x16 y250 w390 h20 v_DrawCMD_RadioEWin			g【画屏禁用_选择添加到EWinList】, AddTo: 非活动窗口过滤列表（ IfWinExist ）
+
+	Gui, 24:Add, ListBox, x6 y140 w460 h100 v_DrawCMD_lbActive, %var_newTitle%|%AWinList%
+	Gui, 24:Add, ListBox, x6 y270 w460 h100 v_DrawCMD_lbExist,  %EWinList%
+	
+	Gui, 24:-sysmenu
+	; Generated using SmartGUI Creator 4.0
+	Gui, 24:Show, h377 w477, %var_title%
+
+
+	Hotkey, IfWinActive, %wintitle%
+	Hotkey, !F4, 	【画屏禁用_取消】
+
+	Return
+
+
+
+	【画屏禁用_取消】:
+	24:GuiClose:
+	Gui, 24:Destroy
+	return
+
+
+	【画屏禁用_确定】:
+		gui 24:submit, nohide
+		if _DrawCMD_edtClass <>
+			newtitle = ahk_class %_DrawCMD_edtClass%
+
+		if _DrawCMD_RadioTitle
+			newtitle = %_DrawCMD_edtTitle% %newtitle%
+			
+		if _DrawCMD_RadioAWin
+		{
+			if InStrList( AWinList, newtitle, "|" ) > 0
+			{
+
+				msgBox, 48, %var_title%,    活动窗口禁用列表中已经包含指定窗口: `n`"%newtitle%`"
+				return
+			}
+			AWinList = %newtitle%|%AWinList%
+			write_ini( var_inifile, MouseGesture_Section, AWinList_keyname, AWinList )
+			msgBox, 4, %var_title%,   `"%newtitle%`"`n`n成功添加至活动窗口禁用列表（IfWinActive）`n`n是否重启飞扬热键使之生效？
+			ifmsgbox yes
+				send ^!+{f5}
+			ExitApp
+		}
+		else if _DrawCMD_RadioEWin
+		{
+			if InStrList( EWinList, newtitle, "|"  ) > 0
+			{
+				msgBox, 48, %var_title%,    非活动窗口禁用列表中已经包含指定窗口: `n`"%newtitle%`"
+				return
+			}
+			EWinList = %newtitle%|%EWinList%
+			write_ini( var_inifile, MouseGesture_Section, EWinList_keyname, EWinList )
+			msgBox, 64, %var_title%,   `"%newtitle%`"`n`n成功添加至非活动窗口禁用列表（IfWinExist））`n`n是否重启飞扬热键使之生效？
+			ifmsgbox yes
+				send ^!+{f5}
+			ExitApp
+		}
+		return
+
+
+	【画屏禁用_选择过滤当前窗口标题】:
+	【画屏禁用_选择过滤当前同类窗口】:
+		gui 24:submit, nohide
+		gosub 【画屏命令_刷新禁用列表】
+		return
+
+	【画屏禁用_修改当前窗口标题】:
+		gui 24:submit, nohide
+		if _DrawCMD_RadioAWin
+			gosub 【画屏命令_刷新禁用列表】
+		return
+
+	【画屏禁用_修改当前窗口类】:
+		gui 24:submit, nohide
+		if _DrawCMD_RadioEWin
+			gosub 【画屏命令_刷新禁用列表】
+		return
+
+	【画屏禁用_选择添加到AWinList】:
+	【画屏禁用_选择添加到EWinList】:
+		gui 24:submit, nohide
+		gosub 【画屏命令_刷新所有禁用列表】
+		return
+
+
+	【画屏命令_刷新禁用列表】:
+		if _DrawCMD_edtClass <>
+			newtitle = ahk_class %_DrawCMD_edtClass%
+
+		if _DrawCMD_RadioTitle
+			newtitle = %_DrawCMD_edtTitle% %newtitle%
+			
+		if _DrawCMD_RadioAWin
+		{
+			guicontrol , , _DrawCMD_lbActive, |
+			guicontrol , , _DrawCMD_lbActive, %newtitle%|%AWinList%
+		}
+		if _DrawCMD_RadioEWin
+		{
+			guicontrol , , _DrawCMD_lbExist, |
+			guicontrol , , _DrawCMD_lbExist, %newtitle%|%EWinList%
+		}
+		return
+
+	【画屏命令_刷新所有禁用列表】:
+		if _DrawCMD_edtClass <>
+			newtitle = ahk_class %_DrawCMD_edtClass%
+
+		if _DrawCMD_RadioTitle
+			newtitle = %_DrawCMD_edtTitle% %newtitle%
+			
+		if _DrawCMD_RadioAWin
+		{
+			guicontrol , , _DrawCMD_lbActive, |
+			guicontrol , , _DrawCMD_lbActive, %newtitle%|%AWinList%
+		}
+		else 
+		{
+			guicontrol , , _DrawCMD_lbActive, |
+			guicontrol , , _DrawCMD_lbActive, %AWinList%
+		}
+
+		if _DrawCMD_RadioEWin
+		{
+			guicontrol , , _DrawCMD_lbExist, |
+			guicontrol , , _DrawCMD_lbExist, %newtitle%|%EWinList%
+		}
+		else 
+		{
+			guicontrol , , _DrawCMD_lbExist, |
+			guicontrol , , _DrawCMD_lbExist, %EWinList%
+		}
+		return
+}

@@ -1,0 +1,56 @@
+
+#include .\bin\Dict\dict_menu_add.aik
+hLVIL := IL_Create(2, 2, 0)             ;; 使用ImageList的目的，仅仅是为了使ListView的行高更高，更容易阅读而已。
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;------显示窗口------------------------------------------------------------
+;;
+
+Gui +resize
+
+Gui, Menu, MyMenuBar
+Gui,+LastFound
+g_GuiID := WinExist()
+;;Gui, Add, StatusBar,, 状态栏
+Gui, Add, Picture, x0 y0  , %g_background%
+gui, font, s10, Tahoma                 ;; 为编辑框和ListView加大一号字体，使得ListView行高更宽
+Gui, Add, ComboBox, 	x136 y20 w460 h25 R10 +Left 	v_KeyName 	g【KeyNameEdit】		; 搜索关键字
+Gui, Add, Edit, 		x136 y71 w495 h25 Multi			v_KeyValue 	g【KeyValueEdit】					; 当前keyvalue
+Gui, Add, Edit, 		x6 y71 w%g_SecEditWidth% h25 				v_Section 	g【SectionEdit】						; Section
+Gui, Add, ComboBox, 	x6 y20 w120 h28 R10 			v_INIFILE 	g【字典编辑框】, %g_DICTLIST% 	; 字典
+Gui, Add, ListBox, 		x6 y101 w%g_SecEditWidth% h270 %_hideSec%				v_SecListBox gSectionListBox
+gui, font, s10, MS Sans Serif				  ;; 为 ListView加大一号字体，使得ListView行高更宽
+Gui, Add, ListView, 	x136 y101 w550 h270  Grid 	v_KeyListView gKeyListView, %SectionFieldTitle%|%KeyNameFieldTitle%|%KeyValueFieldTitle%
+gui, font, s9, Arial                          ;; 对于提示性的文件及按钮文字，减小字体大小至9
+Gui, Add, Text, 		x6 y7 w835 h13 BackgroundTrans g【清空搜索编辑框】, 字典`t`t`t.`t`t`t`t`t`t`t`t`t`t`t.
+Gui, Add, Text, 		x6 y56 w35 h15 %_hideSec% v_lblSec g【清空分类编辑框】, 分类
+Gui, Add, Text, 		x136 y56 h15 w100 BackgroundTrans v_lbl_KeyValue g【清空KeyValue编辑框】, KeyValue
+Gui, Add, GroupBox, 	x137 y3 w455 h48 hide
+Gui, Add, Button, 		x605 y16 w80 h30 Default 					g【重新加载数据并搜索】, 刷新搜索
+
+Gui, Add, CheckBox, 	x8 y405 h18 	%_hideSec%				v_SetWinTop g【窗口置顶】, 置顶        	;; button10	窗口置顶
+Gui, Add, CheckBox, 	x70 y405  h18  	%_hideSec%				v_SetWinTrans g【设置半透明】, 半透明     ;; Button11 窗口半透明
+Gui, Add, CheckBox, 	x350 y52  h18 BackgroundTrans v_SearchKeyValue g【需要搜索KeyValue】, 同时搜索单词项
+Gui, Add, CheckBox, 	x490 y52  h18 BackgroundTrans v_UseRegEx g【需要搜索KeyValue】, 使用正则表达式
+
+LV_SetImageList(hLVIL, 1)               ;; 使用ImageList将使ListView的高度更高
+LV_ModifyCol(3, 400)					;; 设置ListView第三列的宽度为400
+
+Gui, Add, Button, 		x660 y71 w25 h25  				v_btnAdd2 g【增加按钮】, +
+
+Gui, Add, Button, x660 y382 w25 h25 	v_btnSingleValue	 g【keyValue显示单行】, ＾
+
+;; 增加调整左侧分类栏的宽度的按钮
+Gui, Add, Button, x6 y405 w25 h20  %_hideSec% v_btnHideSec  g【隐藏左侧栏】, <<
+Gui, Add, Button, x36 y405 w25 h20 %_hideSec% v_btnSecLeft  g【减小左侧栏宽度】, <-
+Gui, Add, Button, x66 y405 w25 h20 %_hideSec% v_btnSecRight g【增加左侧栏宽度】, +>
+Gui, Add, Button, x96 y405 w25 h20 %_hideSec% v_btnSecWidth g【设置左侧栏宽度】, 宽
+
+g_hRichEdit := RichEdit_Add( g_GuiID, 136, 101, 550, 270, "MULTILINE VSCROLL BORDER READONLY", "" )
+RichEdit_SetBgColor( g_hRichEdit, 0xECF5FB )
+RichEdit_AutoUrlDetect( g_hRichEdit, true )
+
+Gui, Show, %g_WINX% %g_WINY% h430 w700 , %g_TITLE%
+
+
+#Include .\ahklib\RichEdit\RichEdit.aik
+;#Include .\ahklib\RichEdit\ToDo.ahk

@@ -1,0 +1,19 @@
+
+#ifWinActive ahk_class #32770
+#F3::  ;; 显示部分窗口，并半透明，移动到右下角，适合聊天。
+	WinGetTitle var_title, A
+	if ( var_title != "词霸2011" && var_title != "词霸" )
+	{
+		WinSet, Region, 1-101 W395 H350 R30-30, A
+		WinSet, Transparent, 128, A
+		WinMove, A, , 1120, 470
+	}
+	return
+	
+#F4::  ;; 取消上面#F3的操作，还原窗口
+	WinSet, Region , , A
+	WinSet, Transparent, off, A
+	return
+	
+	
+#ifWinActive t

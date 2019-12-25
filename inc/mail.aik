@@ -1,0 +1,610 @@
+;; 目的：利用blat实现用命令发送邮件
+#include .\inc\common.aik
+#include .\inc\CSMenu.aik
+
+g_mail_smtp =				; 邮箱服务器
+g_mail_port = 				; 端口
+g_mail_repeat = 			; 发邮件重复次数
+g_mail_sender = 			; 邮箱账号
+g_mail_psw =				; 邮箱密码
+g_mail_blat = 				; blat 所在目录
+g_mail_log = _blat.log
+g_mail_inifile = mail.ini	; 配置文件名, 保存了一些默认设置
+g_mail_pop =				; pop3
+g_mail_installed := false
+
+g_inlfile = 
+g_attachfile = 
+
+GetBlatDir()
+{
+	global g_mail_blat
+	if g_mail_blat =
+	{
+		var_root := get_script_root()
+		if var_root <> 
+			g_mail_blat = %var_root%\bin\blat
+		else
+		{
+			tooltip7("无法获得根目录！GetBlatDir() fail!")
+			g_mail_blat =
+		}
+	}
+	return g_mail_blat
+}
+
+GetInlFile()
+{
+	global g_inlfile
+	if g_inlfile =
+	{
+		var_blatdir := GetBlatDir()
+		g_inlfile = %var_blatdir%\_inlfile.txt
+	}
+	return g_inlfile
+}
+
+
+GetAttachFile()
+{
+	global g_attachfile
+	if g_attachfile =
+	{
+		var_blatdir := GetBlatDir()
+		g_attachfile = %var_blatdir%\_attachList.txt
+	}
+	return g_attachfile
+}
+
+GetMailInifile()
+{
+	global g_mail_inifile
+	if g_mail_inifile =
+		g_mail_inifile = mail.ini
+	return g_mail_inifile
+}
+
+GetMailLogFile()
+{
+	global g_mail_log 
+	if g_mail_log =
+		g_mail_log = _blat.log
+	return g_mail_log
+}
+
+
+CheckMailGlobalVar()
+{
+	global g_mail_sender
+	global g_mail_psw
+
+	global g_mail_smtp
+	global g_mail_port
+	global g_mail_repeat
+	global g_mail_pop
+
+	var_logfile := GetMailLogFile()
+
+	;------检查blat.exe文件是否存在----------------------------------
+	var_blatdir := GetBlatDir()
+
+	ifnotexist %var_blatdir%\blat.exe
+	{
+		msgbox %var_blatdir%\blat.exe 不存在`n邮箱设置失败！
+		return false
+	}
+
+	;-------检查邮箱信息是否已经填写过，如果没有则从配置文件inifile中读取---------
+	var_inifile := GetMailInifile()
+	if g_mail_smtp =
+		g_mail_smtp := read_ini( var_inifile, "SERVER", "smtp", "" )
+	if g_mail_pop =
+		g_mail_pop 	:= read_ini( var_inifile, "SERVER", "pop", "" )
+	if g_mail_repeat =
+		g_mail_repeat  := read_ini( var_inifile, "SERVER", "repeat", "2" )
+	if g_mail_port =
+		g_mail_port := read_ini( var_inifile, "SERVER", "port", "25" )
+	if g_mail_sender =
+		g_mail_sender := read_ini( var_inifile, "SERVER", "sender", "" )
+
+
+	;-------如果账号或密码没有设置，那么弹出对话框进行设置---------
+	if ( g_mail_sender = "" || g_mail_psw = "" )
+	{
+		var_temp := ∑通过窗口设置发件箱服务器信息()
+	}
+
+;	if g_mail_psw =
+;		InputBox, g_mail_psw, 设置邮箱密码, 请输入你的邮箱密码！, HIDE, 260, 120, , , , , 
+
+	;-------设置日志路径-----------------------------------------
+
+	
+	var_logfile = %var_blatdir%\%var_logfile%
+	ifexist %var_logfile%
+		filedelete %var_logfile%
+
+	;;--------检查邮箱是否已设置好----------------------------
+
+	ifNotInstring g_mail_sender, @
+	{
+		msgbox 你没有正确设置账号，邮件发送失败！
+		return false
+	}
+	if g_mail_sender =
+	{
+		msgbox 你没有设置账号，邮件发送失败！
+		return false
+	}
+
+	if g_mail_psw =
+	{
+		msgbox 你没有正确设置邮箱密码，邮件发送失败！
+		return false
+	}
+
+	if g_mail_smtp =
+	{
+		msgbox 你没有设置邮箱服务器smtp，邮件发送失败！
+		return false
+	}
+	;-------设置邮箱服务器-----------------------------
+	tooltip %comspec% /c blat -install %g_mail_smtp% %g_mail_sender% %g_mail_repeat% %g_mail_port%, 0, 20
+	runwait,%comspec% /c blat -install %g_mail_smtp% %g_mail_sender% %g_mail_repeat% %g_mail_port%,  %var_blatdir%, Hide
+	sleep 200
+	tooltip 
+	return true
+}
+
+∑设置邮箱信息()
+{
+; -install[SMTP|NNTP|POP3|IMAP] <server addr> <sender email addr> [<try n times> [<port> [<profile> [<username> [<password>]]]]]
+	var_root := ∑获取根目录()
+	if var_root =
+	{
+		tooltip 找不到脚本根目录[%var_root%], 邮箱设置失败！
+		sleep 2000
+		tooltip
+		return 
+	}
+	var_blatdir = %var_root%/Apps/blat
+	run %var_blatdir%/设置邮箱信息.exe, %var_blatdir%
+}
+
+
+∑设置账号信息()
+{
+	global g_mail_sender
+	global g_mail_psw
+	InputBox, g_mail_sender, 设置发件邮箱, 请输入你的邮箱账号！, , 260, 120, , , , , cwin@foxmail.com
+	InputBox, g_mail_psw, 设置邮箱密码, 请输入你的邮箱密码！, HIDE, 260, 120, , , , , 
+}
+
+
+/*
+-attach <file>  : attach binary file(s) to message (filenames comma separated)
+-attacht <file> : attach text file(s) to message (filenames comma separated)
+-attachi <file> : attach text file(s) as INLINE (filenames comma separated)
+-embed <file>   : embed file(s) in HTML.  Object tag in HTML must specify
+                  content-id using cid: tag.  eg: <img src="cid:image.jpg">
+-af <file>      : file containing list of binary file(s) to attach (comma
+                  separated)
+-atf <file>     : file containing list of text file(s) to attach (comma
+                  separated)
+-aef <file>     : file containing list of embed file(s) to attach (comma
+                  separated)
+*/
+
+SendEmail( var_subject, var_body, var_sendto, var_attach="", var_attacht="", var_attachi="", var_embed="", var_af="", var_atf="", var_aef="" )
+{
+	global g_mail_sender
+	global g_mail_psw
+
+	var_blatdir := GetBlatDir()
+	var_logfile := GetMailLogfile()
+
+;	msgbox SendEmail( %var_subject%, %var_body%, %var_sendto%, %var_attach%, %var_attacht%, %var_attachi%, %var_embed%, %var_af%, %var_atf%, %var_aef% )
+
+	;---------检查收件人邮箱--------------------
+	IfNotInstring var_sendto, @ 
+	{
+		msgbox 收件人邮箱[%var_sendto%]出错，邮件发送失败！
+		return false 
+	}
+	if var_sendto =
+	{
+		msgbox 没有指定收件人，邮件发送失败！
+		return false
+	}
+
+	; --------检查发件人邮箱设置------------------
+	if not CheckMailGlobalVar()			
+	{
+		return
+	}
+
+	varAttach =
+	varAttacht =
+	varAttachi = 
+	varEmbed =
+	varAf = 
+	varAtf =
+	varAef =
+	varBody = 
+
+	ifexist %var_attach%
+		varAttach = -attach `"%var_attach%`"
+
+	ifexist %var_attacht%
+		varAttacht = -attacht `"%var_attacht%`"
+	
+	ifexist %var_attachi%
+		varAttachi = -attachi `"%var_attachi%`"
+
+	ifexist %var_embed%
+		varEmbed = -embed `"%var_embed%`"
+	
+	ifexist %var_af%
+		varAf = -af `"%var_af%`"
+
+	ifexist %var_atf%
+		varAtf = -atf `"%var_atf%`"
+
+	ifexist %var_aef%
+		varAef = -aef `"%var_aef%`"
+
+	; 将邮件正文进行替换
+	if var_subject =
+	{
+		InputBox, var_subject, 邮件主题, 请输入邮件主题！, , 260, 120, , , , , 无主题
+	}
+
+
+	if var_body <>
+	{
+		StringReplace, var_body, var_body, `r`n,$rn$, All
+		StringReplace, var_body, var_body, `r, $rn$, All
+		StringReplace, var_body, var_body, `n, $rn$, All
+		StringReplace, var_body, var_body, $rn$, \n, All
+
+		varBody = %var_body%
+
+	}
+	else
+	{
+		varBody = HI,
+	}
+
+	;-------生成blat的命令-----------------------------------
+	; 命令中的blat必须保持原样，不能用blat.exe的完整路径代替
+	; 但是%comspec%如何找到blat.exe文件呢？通过指定runwait的工作路径
+	var_blatCommand = /c blat -subject %var_subject%  -body %varBody%
+	var_blatCommand = %var_blatCommand% -to %var_sendto% -log %var_logfile% -timestamp
+	var_blatCommand = %var_blatCommand% %varAttach% %varAttacht% %varAttachi% %varEmbed% 
+	var_blatCommand = %var_blatCommand% %varAf% %varAtf% %varAef% -u %g_mail_sender% -pw %g_mail_psw%
+
+	tooltip 邮件发送命令: %var_blatCommand%, 0, 40
+
+	;-------开始执行blat命令发送邮件--------------------------
+	; 需要指定blat.exe所在的目录var_blatdir作为工作路径
+;	msgbox Runwait,%comspec% %var_blatCommand%, %var_blatdir% 
+	Runwait,%comspec% %var_blatCommand%, %var_blatdir% ; , hide
+	sleep 1000
+	tooltip 
+
+	∑显示邮件发送日志()
+}
+
+∑显示邮件发送日志()
+{
+	var_blatdir := GetBlatDir()
+	var_logfile := GetMailLogFile()
+
+	var_logfile = %var_blatdir%\%var_logfile%
+	ifexist %var_logfile%
+	{
+;		Loop, read, %var_logfile%
+;		{
+;			
+;		}	
+		fileread, var_text, %var_logfile%
+		tooltip ------------------@ 邮件发送日志 @------------------`n%var_text%, 0, 0, 14
+		SetTimer, 【邮件发送结果气泡显示】, 5000 
+		return
+
+	【邮件发送结果气泡显示】:
+		SetTimer, 【邮件发送结果气泡显示】, Off
+		tooltip , , , , 14
+		return
+	}
+	else
+	{
+		var_temp = %var_logfile% 不存在 
+		tooltip7( var_temp )
+	}
+}
+
+∑通过窗口设置发件箱服务器信息()
+{
+	global g_mail_sender
+	global g_mail_psw
+	global g_mail_smtp
+	global g_mail_port
+	global g_mail_repeat
+	global g_mail_pop
+
+	var_inifile := GetMailInifile()
+	
+	Gui, 5:Add, Edit, x86 y60 w280 h20 +Password vg_mail_psw, 
+	Gui, 5:Add, Edit, x86 y20 w280 h20 vg_mail_sender, %g_mail_sender%
+	Gui, 5:Add, Edit, x86 y100 w280 h20 vg_mail_smtp, %g_mail_smtp%
+	Gui, 5:Add, Edit, x86 y140 w280 h20 vg_mail_pop, %g_mail_pop%
+	Gui, 5:Add, Edit, x86 y180 w90 h20 vg_mail_port, %g_mail_port%
+	Gui, 5:Add, Edit, x276 y180 w90 h20 vg_mail_repeat, %g_mail_repeat%
+	Gui, 5:Add, Text, x-4 y20 w80 h20 +Right, 发件人
+	Gui, 5:Add, Text, x-4 y60 w80 h20 +Right, 密码
+	Gui, 5:Add, Text, x-4 y100 w80 h20 +Right, SMTP
+	Gui, 5:Add, Text, x-4 y140 w80 h20 +Right, POP3
+	Gui, 5:Add, Text, x-4 y180 w80 h20 +Right, 端口
+	Gui, 5:Add, Text, x186 y180 w80 h20 +Right, 重复次数
+	Gui, 5:Add, Button, x56 y220 w100 h30 default gOKbutton, 确定
+	Gui, 5:Add, Button, x236 y220 w100 h30 gCANCELbutton, 取消
+	
+	Gui, 5:Show, x363 y292 h283 w402, 设置发件箱服务器信息
+	SetTimer, 〖定时设置发件箱服务器〗, 100
+	
+	Loop
+	{
+		ifwinnotexist 设置发件箱服务器信息 ahk_class AutoHotkeyGUI
+		break
+		sleep 500
+		if var_isset <>
+		break
+	}
+	return 
+
+	OKbutton:
+		Gui, 5:submit, hide
+		write_ini( var_inifile, "SERVER", "smtp", g_mail_smtp )
+		write_ini( var_inifile, "SERVER", "pop",  g_mail_pop)
+		write_ini( var_inifile, "SERVER", "port",  g_mail_port)
+		write_ini( var_inifile, "SERVER", "sender", g_mail_sender )
+		write_ini( var_inifile, "SERVER", "repeat", g_mail_repeat )
+		; 将发件人的服务器名与SMTP关联起来，方便自动填写SMTP输入框
+		var_senderserver := strright2sub( g_mail_sender, "@") 
+		write_ini( var_inifile, "SMTP", var_senderserver, g_mail_smtp )
+		write_ini( var_inifile, "POP3", var_senderserver, g_mail_pop )
+	5:GuiClose:
+	CANCELbutton:
+	Gui, 5:Destroy
+	var_isset = OK
+	return 
+〖定时设置发件箱服务器〗:
+	ControlGetText, var_sender, Edit1, 设置发件箱服务器信息 ahk_class AutoHotkeyGUI
+	var_senderserver := strright2sub( var_sender, "@") 
+	if var_senderserver <>
+	{
+		if ( var_temp_smtp == "" || var_temp_server  != var_senderserver )
+		{
+			var_temp_smtp	 := read_ini( var_inifile, "SMTP",  var_senderserver, "" )
+			var_temp_pop	 := read_ini( var_inifile, "POP3",  var_senderserver, "" )
+			var_temp_server  := var_senderserver
+		}
+		if ( var_temp_smtp != "" && var_temp_server  == var_senderserver )
+		{
+			ControlSetText, Edit3, %var_temp_smtp%,  设置发件箱服务器信息 ahk_class AutoHotkeyGUI
+			ControlSetText, Edit4, %var_temp_pop%,  设置发件箱服务器信息 ahk_class AutoHotkeyGUI
+		}
+	}
+	return
+}
+
+
+;;/////////////////////////////////////////////////////////////////
+;;发送邮件
+;SendEmail( var_subject, var_body, var_sendto, var_attach="", var_attacht="", var_attachi="", var_embed="", var_af="", var_atf="", var_aef="" )
+∑发送文本邮件( var_subject, var_body, var_sendto )
+{
+	SendEmail( var_subject, var_body, var_sendto )
+}
+
+∑将文本文件作为邮件正文发送( var_subject, var_body, var_sendto, var_textfile )
+{
+	if var_textfile = _inlfile.txt
+	{
+		var_filepath := GetInlFile()
+	}
+	else
+	{
+		var_filepath := var_textfile
+	}
+	
+	ifexist %var_filepath%
+	{
+		msgbox ∑将文本文件作为邮件正文发送()::SendEmail( var_subject, var_body, var_sendto,  ,  , %var_filepath% )
+		SendEmail( var_subject, var_body, var_sendto, "", "", var_filepath )
+	}
+	else 
+		msgbox 作为邮件正文的文本文件不正在：`n%var_textfile%`n`n邮件发送失败!
+}
+
+∑将文本文件作为附件发送( var_subject, var_body, var_sendto, var_attachtext )
+{
+	ifexist %var_attachtext%
+		SendEmail( var_subject, var_body, var_sendto, "", var_attachtext )
+	else 
+		msgbox 作为邮件附件的文本文件不正在：`n%var_attachtext%`n`n邮件发送失败!
+}
+
+∑将二进制文件作为附件发送( var_subject, var_body, var_sendto, var_file )
+{
+	ifexist %var_file%
+		SendEmail( var_subject, var_body, var_sendto, var_file )
+	else 
+		msgbox 作为邮件附件的二进制文件不正在：`n%var_file%`n`n邮件发送失败!
+}
+
+;;/////////////////////////////////////////////////////////////////
+;;弹出CS菜单选择发送邮件的方式
+∑弹出CS菜单选择发送邮件的方式()
+{
+	var_inlfile := GetInlFile()
+	var_attachfile := GetAttachFile()
+	var_inifile := GetMailInifile()
+
+
+	ifexist %var_inlfile%
+		filedelete %var_inlfile%
+	ifexist %var_attachfile%
+		filedelete %var_attachfile%
+
+	;; 复制所选的内容到剪贴板
+	send ^c
+	sleep 200
+	var_clipboard := clipboard
+	var_menubody = 
+	(
+  @ 请为剪贴板内容选择邮件的发送方式 @
+-----------------------------------------
+1、快捷发送所选文本
+2、快速将文本文件作为邮件正文发送
+3、将所选的文本作为邮件正文发送
+4、将所选的文件作为附件列表发送
+
+0、通过窗口设置发件箱服务器信息
+
+	)
+	
+	var_select := CSMenu( var_menubody )
+	if var_select = 1
+	{
+		var_receiver := ∑快速选择快捷收件人()
+		if var_receiver = -1
+			return
+		if var_receiver =
+		{
+			msgbox 没有选择的有效的收件人[%var_receiver%]，邮件发送失败！
+			return
+		}
+		var_addrList := read_ini( var_inifile, "快捷收件人", var_receiver, "" )
+		if var_addrList =
+		{
+			msgbox 收件人地址为空，邮件发送失败!
+			return
+		}
+
+		∑将剪贴板的内容保存为邮件正文文件()
+		var_Prompt = 发送邮件到[%var_addrList%]
+		var_subject := MyInput("指定邮件主题", var_Prompt, "无主题", 360 )
+		if var_subject = 
+		{
+			tooltip7( "你已经取消了邮件发送!" )
+			return 
+		}
+
+		Loop parse, var_addrList, `;
+		{
+			if a_loopField <>
+			{
+				∑将文本文件作为邮件正文发送( var_subject, "", a_loopField, "_inlfile.txt" )
+			}
+		}
+;		∑发送文本邮件( "复制的内容", var_clipboard, "chen.jianping@qq.com" )
+	}
+	else if var_select = 2
+	{
+		∑将文本文件作为邮件正文发送( "将文本文件作为邮件正文发送", "",  "chen.jianping@qq.com" , var_clipboard )
+	}
+	else if var_select = 3
+	{
+		∑将剪贴板的内容保存为邮件正文文件()
+		var_root := ∑获取根目录()
+		var_sendmail = %var_root%\bin\blat\发送邮件.ahk
+		run_ahk(var_sendmail)
+	}
+	else if var_select = 4
+	{
+		∑将复制的文件保存为附件列表文件()
+		var_root := ∑获取根目录()
+		var_sendmail = %var_root%\bin\blat\发送邮件.ahk
+		run_ahk(var_sendmail)
+	}
+	else if var_select = 0
+	{
+		global g_mail_sender
+		global g_mail_psw
+		g_mail_sender =
+		g_mail_psw = 
+		CheckMailGlobalVar()
+	}
+}
+
+∑将剪贴板的内容保存为邮件正文文件()
+{
+	var_inlfile := GetInlFile()
+
+	ifexist %var_inlfile%
+		filedelete %var_inlfile%
+	
+	StringReplace, clipboard, clipboard, `r`n,$rn$, All
+	StringReplace, clipboard, clipboard, `r, $rn$, All
+	StringReplace, clipboard, clipboard, `n, $rn$, All
+	StringReplace, clipboard, clipboard, $rn$, `r`n, All
+	fileappend %clipboard%, %var_inlfile%
+}
+
+∑将复制的文件保存为附件列表文件()
+{
+	var_attachfile := GetAttachFile()
+
+	ifexist %var_attachfile%
+		filedelete %var_attachfile%	
+
+	var_temp =
+	Loop parse, clipboard, `r`n
+	{
+		if ( StrLastWord( a_LoopField , 1 ) == "\" )
+		{
+			continue	; 防止发送文件夹
+		}
+		else if IsPath( a_LoopField )
+		{
+			var_temp = %var_temp%%a_LoopField%`r`n
+		}
+	}
+	fileappend %var_temp%, %var_attachfile%
+}
+
+∑快速选择快捷收件人()
+{
+	var_inifile := GetMailInifile()
+
+	var_menubody =
+	(
+  @ 快速选择快捷收件人 @
+ -----------------------------------------
+
+	)
+	var_read := read_ini( var_inifile, "快捷收件人", "@收件人列表@", "" )
+	if var_read =
+	{
+		ar_menubody = %var_menubody%`n  当前没有快捷收件人 `n 
+		tooltip7( var_menubody )
+		return  -1
+	}
+
+	var_index := 0
+	var_menukeys = 
+	Loop parse, var_read, `,
+	{
+		if a_LoopField <>
+		{
+			var_index ++
+			var_menukeys = %var_menukeys%%a_loopField%`n
+			var_menubody = %var_menubody%%var_index%. %a_loopfield%`n
+		}
+	}
+	var_result := CSmenu( var_menubody )
+	var_temp := ∑GetAt字符串队列( var_menukeys, var_result, "`n" )
+	return var_temp
+}

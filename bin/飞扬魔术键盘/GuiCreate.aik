@@ -1,0 +1,195 @@
+g_title = 飞扬魔术键盘
+
+
+;---- Alter the tray icon menu:
+; Names for the tray menu items:
+k_MenuItemHide = 隐藏键盘 &H
+k_MenuItemShow = 显示键盘 &S
+
+Menu, Tray, Add, %k_MenuItemHide%, 【显示或隐藏屏幕键盘】
+Menu, Tray, Add, &Reload, 【重新加载】
+Menu, Tray, Add, &Exit, 【退出菜单项】
+Menu, Tray, Default, %k_MenuItemHide%
+Menu, Tray, NoStandard
+
+;---- Calculate object dimensions based on chosen font size:
+k_KeyWidth = %k_FontSize%
+k_KeyWidth *= 3
+k_KeyHeight = %k_FontSize%
+k_KeyHeight *= 3
+k_KeyMargin = %k_FontSize%
+k_KeyMargin /= 6
+k_SpacebarWidth = %k_FontSize%
+k_SpacebarWidth *= 25
+k_KeyWidthHalf = %k_KeyWidth%
+k_KeyWidthHalf /= 2
+
+g_KeySize = w%k_KeyWidth% h%k_KeyHeight%
+g_Position = x+%k_KeyMargin% %g_KeySize% g【按键单击响应】
+
+g_keyBoard_ColorName := ∑获取当前键盘颜色()
+g_keyBoard_icon = %A_ScriptDir%/%g_keyBoard_ColorName%.ico
+g_keyBoard_sidepic = %A_ScriptDir%/%g_keyBoard_ColorName%.jpg
+g_keyBoard_setpic = %A_ScriptDir%/设置.jpg
+g_keyBoard_name := ∑获取当前键盘名称()
+g_keyBoard_color :=GetKeyboardColor()
+
+
+;---- Create a GUI window for the on-screen keyboard:
+Gui, Font, s%k_FontSize% %k_FontStyle%, %k_FontName%
+Gui, -Caption +ToolWindow   ;; +E0x200 /*E0x200显示边框*/
+TransColor = F1ECED
+Gui, Color, %TransColor% ; This color will be made transparent later below.
+
+;---- Add a button for each key. Position the first button with absolute
+; coordinates so that all other buttons can be positioned relative to it:
+Gui, Add, Button, section w%k_KeyWidth% xm+%k_KeyWidth% y20 v_key_1 g【按键单击响应】, 1
+Gui, Add, Button, %g_Position% v_key_2, 2
+Gui, Add, Button, %g_Position% v_key_3, 3
+Gui, Add, Button, %g_Position% v_key_4, 4
+Gui, Add, Button, %g_Position% v_key_5, 5
+Gui, Add, Button, %g_Position% v_key_6, 6
+Gui, Add, Button, %g_Position% v_key_7, 7
+Gui, Add, Button, %g_Position% v_key_8, 8
+Gui, Add, Button, %g_Position% v_key_9, 9
+Gui, Add, Button, %g_Position% v_key_0, 0
+Gui, Add, Button, %g_Position% v_key_sub, -
+Gui, Add, Button, %g_Position% v_key_equal, =
+width := k_KeyWidth + 11
+Gui, Add, Button, x+%k_KeyMargin%  w%width% h%k_KeyHeight%  v_key_bk g【按键单击响应】, Bk
+
+Gui, Add, Button, xm y+%k_KeyMargin% h%k_KeyHeight% v_key_tab g【按键单击响应】, Tab
+Gui, Add, Button, %g_Position% v_key_q, Q
+Gui, Add, Button, %g_Position% v_key_w, W
+Gui, Add, Button, %g_Position% v_key_e, E
+Gui, Add, Button, %g_Position% v_key_r, R
+Gui, Add, Button, %g_Position% v_key_t, T
+Gui, Add, Button, %g_Position% v_key_y, Y
+Gui, Add, Button, %g_Position% v_key_u, U
+Gui, Add, Button, %g_Position% v_key_i, I
+Gui, Add, Button, %g_Position% v_key_o, O
+Gui, Add, Button, %g_Position% v_key_p, P
+Gui, Add, Button, %g_Position% v_key_lf, [
+Gui, Add, Button, %g_Position% v_key_rf, ]
+Gui, Add, Button, %g_Position% v_key_fxg, \
+
+;Gui, Add, Button, xm y+%k_KeyMargin% h%k_KeyHeight%, Tab ; Auto-width.
+Gui, Add, Picture, xm y+%k_KeyMargin% h%k_KeyHeight% v_keyico w48 g【弹出右键菜单】, %g_keyBoard_icon%
+
+Gui, Add, Button, %g_Position% v_key_a, A
+;Gui, Add, Button, xs+%k_KeyWidthHalf% y+%k_KeyMargin% %g_KeySize%, A
+Gui, Add, Button, %g_Position% v_key_s, S
+Gui, Add, Button, %g_Position% v_key_d, D
+Gui, Add, Button, %g_Position% v_key_f, F
+Gui, Add, Button, %g_Position% v_key_g, G
+Gui, Add, Button, %g_Position% v_key_h, H
+Gui, Add, Button, %g_Position% v_key_j, J
+Gui, Add, Button, %g_Position% v_key_k, K
+Gui, Add, Button, %g_Position% v_key_l, L
+Gui, Add, Button, %g_Position% v_key_mh, `;
+Gui, Add, Button, %g_Position% v_key_dyh, '
+Gui, Add, Button, x+%k_KeyMargin% h%k_KeyHeight% v_key_enter g【按键单击响应】, Enter ; Auto-width.
+
+; The first button below adds %A_Space% at the end to widen it a little,
+; making the layout of keys next to it more accurately reflect a real keyboard:
+Gui, Add, Button, xm y+%k_KeyMargin% h%k_KeyHeight% v_key_shift g【Shift按钮响应】, Shift%A_Space%%A_Space%
+Gui, Add, Button, %g_Position% v_key_z, Z
+Gui, Add, Button, %g_Position% v_key_x, X
+Gui, Add, Button, %g_Position% v_key_c, C
+Gui, Add, Button, %g_Position% v_key_v, V
+Gui, Add, Button, %g_Position% v_key_b, B
+Gui, Add, Button, %g_Position% v_key_n, N
+Gui, Add, Button, %g_Position% v_key_m, M
+Gui, Add, Button, %g_Position% v_key_dh, `,
+Gui, Add, Button, %g_Position% v_key_jh, .
+Gui, Add, Button, %g_Position% v_key_xg, /
+Gui, Font, s9  norm
+Gui, Add, Button, h%k_KeyHeight% x+%k_KeyMargin% g【显示或隐藏屏幕键盘】, 隐藏
+Gui, Add, Button, h%k_KeyHeight% x+%k_KeyMargin% g【退出】, 退出
+
+
+Gui, Font, s9  bold
+Gui, Add, Button, xm y+%k_KeyMargin% h%k_KeyHeight%, Ctrl ; Auto-width.
+Gui, Add, Button, h%k_KeyHeight% x+%k_KeyMargin%, Win      ; Auto-width.
+Gui, Add, Button, h%k_KeyHeight% x+%k_KeyMargin%, Alt      ; Auto-width.
+
+Gui, Font, s9  norm
+Gui, Add, Button, h%k_KeyHeight% x+%k_KeyMargin% w%k_SpacebarWidth%  v_key_Space  g【按键单击响应】, Space
+Gui, Add, Button, h%k_KeyHeight% x+%k_KeyMargin%  v_btn_setting g【勾选SettingCheckBox】, 设置
+
+Gui, Font, s10  bold
+var_temp := 6 * k_KeyMargin
+Gui, Add, Checkbox, x+%var_temp% h%k_KeyHeight% c%g_keyBoard_color% v_key_Setting g【点击SettingCheckBox】, ■
+
+Gui, Font, s9  norm
+width := k_KeyWidth - 1
+height := k_KeyHeight -2
+Gui, Add, Button, xm y20 w%width% h%height% v_btnMoveWin g【移动窗口】, ☆
+
+
+Gui, Add, Picture, x0 y60 AltSubmit  v_SidePic g【移动窗口】, %g_keyBoard_sidepic%
+
+
+
+;; 切换键盘按钮名称
+∑刷新界面按钮显示( g_keyBoard_name )
+
+;; 将打开发键盘名称（非默认键盘）保存到临时配置文件temp.ini
+if g_keyBoard_name <> 默认键盘
+{
+	WriteTempIni( "飞扬魔术键盘", "最近键盘", g_keyBoard_name )
+}
+
+
+;;---先将窗口显示到屏幕之外，以便继续处理------------------------------------
+Gui, Show, y-2000, %g_title%
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 继续处理窗口，添加GroupBox控件
+g_IsVisible = y
+
+WinGet, k_ID, ID, A   ; Get its window ID.
+WinGetPos,,, k_WindowWidth, k_WindowHeight, A
+
+g_GroupHeight := k_WindowHeight - 2
+Gui, Font, s9    norm ;cSilver ;; 使用颜色会使GroupBox的边框从圆角矩形变成直角矩形
+
+var_temp := k_WindowWidth - 20
+
+Gui, Add, Text, x10 y6 w%var_temp% Right c%g_keyBoard_color% v_toptext g【移动窗口】, 【 %g_keyBoard_name% 】
+
+Gui, Add, GroupBox, x0 y0 w%k_WindowWidth% h%g_GroupHeight% v_GroupBox,  ;%g_keyBoard_name%
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 设置窗口的属性
+WinSet, AlwaysOnTop, On, ahk_id %k_ID%  	;; 窗口保持最前面
+WinSet, ExStyle, 0x8000000, ahk_id %k_ID% 	;; 窗口始终不能获取焦点，如同输入法的候选窗口
+WinSet, TransColor, %TransColor% 200, ahk_id %k_ID%
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 移动窗口位置（到上次关闭时的位置或默认位置）
+SysGet, k_WorkArea, MonitorWorkArea, %g_Monitor%
+k_WindowX := readTempIni("飞扬魔术键盘", g_keyBoard_name . "_winx", "")
+k_WindowY := readTempIni("飞扬魔术键盘", g_keyBoard_name . "_winy", "")
+if k_WindowX =
+{
+	k_WindowX = %k_WorkAreaRight%
+	k_WindowX -= %k_WorkAreaLeft% ; Now k_WindowX contains the width of this monitor.
+	k_WindowX -= %k_WindowWidth%
+	k_WindowX /= 2 ; Calculate position to center it horizontally.
+
+	; The following is done in case the window will be on a non-primary monitor
+	; or if the taskbar is anchored on the left side of the screen:
+	k_WindowX += %k_WorkAreaLeft%
+}
+if k_WindowY =
+{
+	; Calculate window's Y-position:
+	k_WindowY = %k_WorkAreaBottom%
+	k_WindowY -= %k_WindowHeight%
+}
+WinMove, A,, %k_WindowX%, %k_WindowY%

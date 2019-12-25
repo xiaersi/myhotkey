@@ -1,0 +1,13 @@
+/**
+ *@file    xword.aik
+ *@author  teshorse
+ *@date    2012.03.19
+ *@brief   用于管理word对应的xml文档
+ */
+
+
+#Include ./inc/xml/xpath.aik
+
+
+
+

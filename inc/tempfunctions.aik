@@ -1,0 +1,5 @@
+;; 这里包含所有允许Run直接调用的函数
+#include .\inc\common.aik
+#include .\inc\string.aik
+#include .\inc\tip.aik
+#include .\inc\inifile.aik

@@ -1,0 +1,8 @@
+
+;;---Word2010´°¿Ú------------------------------------------------------------
+#IfWinActive ahk_class OpusApp, Microsoft Word ÎÄµµ
+!m:: 
+	click
+	exitapp
+	return
+#IfWinActive 

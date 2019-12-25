@@ -1,0 +1,90 @@
+;; 顺丰报表
+
+#ifwinactive ahk_class TPLSQLDevForm
+
+;; 生成汇总报表的存储过程
+::newSumRpt::
+	var_fields := clipboard
+	if var_fields=
+	{
+		msgbox 请先将汇总报表的字段名称复制到剪贴板！
+		return
+	}
+
+	ifinstring var_fields, %a_space%
+	{
+		msgbox 报表字段名称不能包含空格。
+		return
+	}
+
+	FileRead, var_clip, sfreport.pck
+	if var_clip =
+	{
+		msgbox 模板文件为空！
+		return
+	}
+
+	var_date = %a_yyyy%-%a_mm%-%a_dd%
+	StringReplace var_clip, var_clip, $sysdate$, %var_date%, all
+
+
+	var_table := MyInput("表名", "请输入要汇总的表名，如capital_day")
+	if var_table=
+		return
+
+	ifinstring var_table, %a_space%
+	{
+		msgbox 表名不能包含空格。
+		return
+	}
+
+	StringUpper, var_table, var_table 	
+
+	var_title := MyInput("报表名", "请输入报表的中文名称")
+	if var_title=
+		var_title = 【报表名称】 
+
+	clipboard =
+
+
+	;; 处理报表字段名称
+	StringReplace, var_fields, var_fields, `,, , all	
+	StringReplace, var_fields, var_fields, `r`n, `n, all
+	StringReplace, var_fields, var_fields, `r, `n, all
+	StringReplace, FieldList, var_fields, `n, `,`r`n, all
+	FieldList := RegExReplace(FieldList, ",\s*$" )	;; 删除最后的逗号
+
+
+	loop parse, var_fields, `n
+	{
+		if a_loopfield =
+			continue
+
+		var_line := RegExReplace(a_loopfield, "(\S+)", "sum($1)  $1," )
+		FieldSumList = %FieldSumList%%var_line%`n
+
+		var_line := RegExReplace(a_loopfield, "(\S+)", "nvl($1, 0)  $1," )
+		FieldListNvl = %FieldListNvl%%var_line%`n
+	}
+	;; 删除最后的逗号
+	FieldSumList := RegExReplace(FieldSumList, ",\s*$" )
+	FieldListNvl := RegExReplace(FieldListNvl, ",\s*$" )
+
+
+	;; 得到存储过程的模板
+	StringReplace  var_clip, var_clip, $TableName$, %var_table%, all
+	StringReplace, var_clip, var_clip, $fieldlist$, %FieldList%, all
+	StringReplace, var_clip, var_clip, $fieldsumlist$, %FieldSumList%, all
+	StringReplace, var_clip, var_clip, $fieldlistnvl$, %FieldListNvl%, all
+	StringReplace, var_clip, var_clip, $Title$, %var_title%, all
+	sleep 100
+	clipboard := var_clip
+	sleep 100
+	send ^v
+
+	return
+
+
+
+
+#ifwinactive 

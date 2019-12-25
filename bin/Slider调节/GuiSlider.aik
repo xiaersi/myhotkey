@@ -1,0 +1,99 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 本脚本用于生成类似调节音量Slider窗口的代码，供其他脚本调用
+;; 需要在外部定义Lable：【我的功能处理】
+
+#SingleInstance ignore
+
+;;---以下变量需要在调用的脚本中定义-----------------------------------------
+/*
+g_title = 测试窗口
+g_min := 0
+g_max := 50
+g_text = 标题
+g_checkbox = 关闭
+g_default := g_min
+g_bChecked := false
+*/
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+g_wintitle = %g_title% ahk_class AutoHotkeyGUI
+if g_bChecked
+	var_checked = Checked
+else
+	var_checked =
+
+CoordMode, Mouse, Screen
+MouseGetPos, g_winX, g_winy
+g_winX -= 40
+g_winy -= 100
+
+if g_winX < 0
+	g_winX := 0
+else if ( g_winX + 70 > a_screenwidth )
+	g_winX := a_screenwidth - 70
+
+if g_winY < 0
+	g_winY := 0
+else if ( g_winY + 200 > a_screenheight )
+	g_winY := a_screenheight - 200
+
+
+
+Gui +ToolWindow  +AlwaysOnTop
+gui -Caption
+Gui +LastFound
+gui, add, text, 		x2 	y10 w65 Center , %g_text%
+Gui, Add, Slider, 	x23 y30 Vertical left Invert h150  NoTicks  Range%g_min%-%g_max% v_MySlider g【MySlider】, %g_default%
+gui, add, Checkbox , 	x5	y185 %var_checked%  v_checkbox g【处理CheckBox】, %g_checkbox%
+
+;Gui, Color, EEAA99
+;WinSet, TransColor, EEAA99
+
+gui show, x%g_winX% y%g_winy% w70, %g_title%
+
+OnMessage( 0x06, "WM_ACTIVATE" )
+
+SetTimer 【不断检查Slider的值】, 100
+
+Hotkey, IfWinActive, %g_wintitle%
+return
+
+
+GuiClose:
+ExitApp
+
+
+
+WM_ACTIVATE()
+{
+	global
+
+	IfWinNotActive %g_wintitle%
+	{
+		ExitApp
+	}
+	return
+}
+
+【MySlider】:
+	Gui submit, nohide
+	ToolTip %_MySlider%
+	Gosub 【我的功能处理】
+	Return
+
+【不断检查Slider的值】:
+	Gui submit, nohide
+	if ( _MySlider <> g_LastSliderVal )
+	{
+		g_LastSliderVal := _MySlider
+		Gosub 【MySlider】
+	}
+	Return
+
+【处理CheckBox】:
+	Gui submit, nohide
+	Gosub 【我的CheckBox处理】
+	GuiControl, Focus, _MySlider
+	Return
+
+

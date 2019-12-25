@@ -1,0 +1,155 @@
+[说明]
+说明=本文是C++ Builder相关的一些知识
+
+[类型转换]
+StrToIntDef=int __fastcall StrToIntDef(const AnsiString S; const int Default);|从S中获取存在的整型数据，如果失败则返回指定的默认值|StrToIntDef( str, 0 );
+TDateTime 初始化=TDateTime dt(2005, 10, 10);|TDateTime dt("2005-10-10", Date);
+TDateTime 运算=SecondsBetween(const System::TDateTime ANow, const System::TDateTime AThen);  /*两个时间相关多少秒*/|DecodeTime(const System::TDateTime DateTime, Word &Hour, Word &Min, Word &Sec, Word &MSec); /*将时间分解为时、分、秒*/|DecodeDate(const System::TDateTime DateTime, Word &Year, Word &Month, Word &Day);  /*将时间分解为年月日*/
+[DataSet]
+[MsgBoxReturn]
+mrNone=0x0 /*Shortint*/
+mrOk=0x1 /*Shortint*/
+mrCancel=0x2 /*Shortint*/
+mrAbort=0x3
+mrRetry=0x4
+mrIgnore=0x5
+mrYes=0x6
+mrNo=0x7
+mrAll=0x8
+mrNoToAll=0x9
+mrYesToAll=0xa
+[VirtualKeyCodes]
+VK_LBUTTON=1 /* Left mouse button */
+VK_RBUTTON=2 /* Right mouse button */
+VK_CANCEL=3 /* Control-break processing */
+VK_MBUTTON=4 /* Middle mouse button (three-button mouse) */
+VK_BACK=8 /* BACKSPACE key */
+VK_TAB=9 /* TAB key */
+VK_CLEAR=0C /* CLEAR key */
+VK_RETURN=0D /* ENTER key */
+VK_SHIFT=10 /* SHIFT key */
+VK_CONTROL=11 /* CTRL key */
+VK_MENU=12 /* ALT key */
+VK_PAUSE=13 /* PAUSE key */
+VK_CAPITAL=14 /* CAPS LOCK key */
+VK_ESCAPE=1B /* ESC key */
+VK_SPACE=20 /* SPACEBAR */
+VK_PRIOR=21 /* PAGE UP key */
+VK_NEXT=22 /* PAGE DOWN key */
+VK_END=23 /* END key */
+VK_HOME=24 /* HOME key */
+VK_LEFT=25 /* LEFT ARROW key */
+VK_UP=26 /* UP ARROW key */
+VK_RIGHT=27 /* RIGHT ARROW key */
+VK_DOWN=28 /* DOWN ARROW key */
+VK_SELECT=29 /* SELECT key */
+VK_PRINT=2A /* PRINT key */
+VK_EXECUTE=2B /* EXECUTE key */
+VK_SNAPSHOT=2C /* PRINT SCREEN key */
+VK_INSERT=2D /* INS key */
+VK_DELETE=2E /* DEL key */
+VK_HELP=2F /* HELP key */
+VK_NUMPAD0=60 /* Numeric keypad 0 key */
+VK_NUMPAD1=61 /* Numeric keypad 1 key */
+VK_NUMPAD2=62 /* Numeric keypad 2 key */
+VK_NUMPAD3=63 /* Numeric keypad 3 key */
+VK_NUMPAD4=64 /* Numeric keypad 4 key */
+VK_NUMPAD5=65 /* Numeric keypad 5 key */
+VK_NUMPAD6=66 /* Numeric keypad 6 key */
+VK_NUMPAD7=67 /* Numeric keypad 7 key */
+VK_NUMPAD8=68 /* Numeric keypad 8 key */
+VK_NUMPAD9=69 /* Numeric keypad 9 key */
+VK_SEPARATOR=6C /* Separator key */
+VK_SUBTRACT=6D /* Subtract key */
+VK_DECIMAL=6E /* Decimal key */
+VK_DIVIDE=6F /* Divide key */
+VK_F1=70 /* F1 key */
+VK_F2=71 /* F2 key */
+VK_F3=72 /* F3 key */
+VK_F4=73 /* F4 key */
+VK_F5=74 /* F5 key */
+VK_F6=75 /* F6 key */
+VK_F7=76 /* F7 key */
+VK_F8=77 /* F8 key */
+VK_F9=78 /* F9 key */
+VK_F10=79 /* F10 key */
+VK_F11=7A /* F11 key */
+VK_F12=7B /* F12 key */
+VK_F13=7C /* F13 key */
+VK_F14=7D /* F14 key */
+VK_F15=7E /* F15 key */
+VK_F16=7F /* F16 key */
+VK_F17=80H /* F17 key */
+VK_F18=81H /* F18 key */
+VK_F19=82H /* F19 key */
+VK_F20=83H /* F20 key */
+VK_F21=84H /* F21 key */
+VK_F22=85H /* F22 key */
+VK_F23=86H /* F23 key */
+VK_F24=87H /* F24 key */
+VK_NUMLOCK=90 /* NUM LOCK key */
+VK_SCROLL=91 /* SCROLL LOCK key */
+VK_LSHIFT=A0 /* Left SHIFT key */
+VK_RSHIFT=A1 /* Right SHIFT key */
+VK_LCONTROL=A2 /* Left CONTROL key */
+VK_RCONTROL=A3 /* Right CONTROL key */
+VK_LMENU=A4 /* Left MENU key */
+VK_RMENU=A5 /* Right MENU key */
+VK_PLAY=FA /* Play key */
+VK_ZOOM=FB /* Zoom key */
+[枚举类型]
+TFieldType ft=enum TFieldType { |ftUnknown|ftString|ftSmallint|ftInteger|ftWord|ftBoolean|ftFloat|ftCurrency|ftBCD|ftDate|ftTime|ftDateTime|ftBytes|ftVarBytes|ftAutoInc|ftBlob|ftMemo|ftGraphic|ftFmtMemo|ftParadoxOle|ftDBaseOle|ftTypedBinary|ftCursor|ftFixedChar|ftWideString|ftLargeint|ftADT|ftArray|ftReference|ftDataSet|ftOraBlob|ftOraClob|ftVariant|ftInterface|ftIDispatch|ftGuid|ftTimeStamp|ftFMTBcd }
+TDataEvent de=enum TDataEvent { |deFieldChange|deRecordChange|deDataSetChange|deDataSetScroll|deLayoutChange|deUpdateRecord|deUpdateState|deCheckBrowseMode|dePropertyChange|deFieldListChange|deFocusControl|deParentScroll|deConnectChange };
+TUpdateStatus us=enum TUpdateStatus { |usUnmodified|usModified|usInserted|usDeleted };
+TUpdateAction ua=enum TUpdateAction { |uaFail|uaAbort|uaSkip|uaRetry|uaApplied };
+DB__3 rt=enum DB__3 { |rtModified|rtInserted|rtDeleted|rtUnmodified };
+TUpdateMode up=enum TUpdateMode { |upWhereAll|upWhereChanged|upWhereKeyOnly };
+TUpdateKind uk=enum TUpdateKind { |ukModify|ukInsert|ukDelete };
+SysUtils__54 rf=enum SysUtils__54 { |rfReplaceAll| rfIgnoreCase };
+[经验教训]
+StrToInt( str )等函数不会自动去掉str前后的空格=StrToInt( “2  ” ) 将会出错！
+获取程序当前路径的两种方法=ExtractFilePath(Application->ExeName);  /*最后带\*/|GetCurrentDir();        /*最后不带\*/
+StringReplace 字符串替换=StringReplace(Text,",","",TReplaceFlags()<<rfReplaceAll);
+切换光标 cursor=TCursor Save_Cursor = Screen->Cursor;|    Screen->Cursor = crHourGlass;    // Show hourglass cursor |    try|    {|    	// do something|    }|    __finally|    {|        Screen->Cursor = Save_Cursor; // always restore the cursor|    }
+枚举元素直接当整型用，可能会出错=BCB 中，枚举元素直接当整型用，可能会出错！|在我们的认识中，枚举可以与整型互相转换，枚举元素可以直接当整型使用！然而，最近才发现在BCB中，这个常识未必成立！且听我道来。||在IOS框架的基础上，开发了一个新的子系统，然而比较郁闷的是，该子系统向服务端发送的消息，偶尔会接收不到！使用以前的经验，均未能解决问题！仔细检查代码，没有发现端倪，只好下定决心，跟踪IOS框架代码，希望能够找到原因。||经过艰苦的调试之后，终于定位到了问题所在，然而这个问题十分诡异，令人匪夷所思。是这样的，我们打包发送时，设定发消息的类型为MT_REQUEST（5）：|    TMux mux;		//鼠标等待提示|    CUMX2 *umxMake = new CUMX2();|    CMsg *msg = NULL;|umxMake->SetMsgType(MT_REQUEST);|||CUMX2包含了两个成员变量，PktHead 和 CMsg 对象，|在调用CUMX2-> SetMsgType(MT_REQUEST)时|
+[错误警告]
+E2238   Multiple   declaration   for   FOLDERSETTINGS 、FVSHOWINFO、DESKBANDINFO 、SHELLFLAGSTATE=在BCB中#include   <shlobj.h> 之后，就会出现这四个重复声明的错误|这都是VCL惹的祸！解决办法是在#include   <vcl.h>     之前|加上#define     NO_WIN32_LEAN_AND_MEAN
+[OLE操作Excel]
+用OLE操作Excel--ccrun=http://wenku.baidu.com/view/06eadf630b1c59eef8c7b4c2.html  /*作者：ccrun*/
+准备=1、#include "Comobj.hpp"|2、在程序中可以用宏定义来节省时间：|#define    PG    OlePropertyGet   /*获得对象属性*/|#define    PS    OlePropertySet   /*设置对象属性*/|#define    FN    OleFunction        /*调用对象方法*/|#define    PR    OleProcedure      /*调用对象方法*/
+
+创建Excel中常用的对象=创建Excel中常用的对象是:Application,Workbooks,Worksheets等|        ExcelApp = Variant::CreateObject ("Excel.Application");  /*创建应用对象*/|        ExcelApp = CreateOleObject ("Excel.Application");  /*创建应用对象*/|        Variant  WorkBook1 = ExcelApp.PG("ActiveWorkBook");  /*创建工作簿对象*/|        Variant  Sheet1 = WorkBook1.PG("ActiveSheet");  /*创建工作表对象*/|        Variant  Range = Sheet1.PG("Range","A1:A10");  /*创建区域对象*/|        Excel.Exec(PropertyGet("Range")<<"A1:C1").Exec(Procedure("Select")) /*创建区域对象*/;
+新建工作簿=        ExcelApp.PG("workbooks").FN("Add")       /*新建默认工作簿*/|        ExcelApp.PG("workbooks").FN("Add", 1)    /*新建单工作表*/|        ExcelApp.PG("workbooks").FN("Add", 2)    /*新建图表 */ |        ExcelApp.PG("workbooks").FN("Add", 3)    /*新建宏表 */|        ExcelApp.PG("workbooks").FN("Add", 4)    /*新建国际通用宏表*/|        ExcelApp.PG("workbooks").FN("Add", 5)    /*新建与默认的相同*/|        ExcelApp.PG("workbooks").FN("Add", 6)    /*新建工作簿且只有一个表*/|        ExcelApp.PG("workbooks").FN("Add", "C:\\Temp\\result.xlt"); /*新建自己创建的模板的工作簿*/
+打开保存工作簿=        ExcelApp.PG("workbooks").FN("open", "路径名.xls")    /*打开工作簿*/|        WorkBook1.FN("Save");             /*保存工作簿*/|        WorkBook1.FN("SaveAs", "文件名"); /*工作簿保存为,路径注意用"\\"*/
+隐藏退出工作簿=        ExcelApp.PS("Visible", (Variant)false);     /*使Excel程序不可见*/|        ExcelApp.FN ("Quit");    /*退出EXCEL*/|        ExcelApp = Unassigned;   /*退出EXCEL*/|        ExcelApp.Exec(Procedure("Quit"));   /*退出EXCEL*/
+操作工作表=1、选择选择工作表中第一个工作表|        Workbook1.PG("Sheets", 1).PR("Select");|        Sheet1 = Workbook1.PG("ActiveSheet");|2、重命名工作表|        Sheet1.PS("Name", "Sheet的新名字");|3、当前工作簿中的工作表总数|        int nSheetCount=Workbook1.PG("Sheets").PG("Count");     |
+操作行和列=1、获取当前工作表中有多少行和多少列：|        Sheet1.PG("UsedRange").PG("Columns").PG("Count"); //列数|        Sheet1.PG("UsedRange").PG("Rows").PG("Count");     //行数|2、设置列宽|        ExcelApp.PG("Columns", 1).PS("ColumnWidth", 22);|        或者|        Range = ExcelApp.PG("Cells", 1, 3);|        Range.PS("ColumnWidth", 22);      |3、设置行高|        ExcelApp.PG("Rows", 2).PS("RowHeight", 25);|        或者|        Range = ExcelApp.PG("Cells", 2, 1);        |        Range.PS("RowHeight", 25);     |4、 在工作表最前面插入一行|        Sheet1.PG("Rows", 1).PR("Insert");        |5、删除一行|        ExcelApp.PG("Rows", 2).PR("Delete"); //将第2行删除|
+操作单元格=1、设置单元格字体|         Sheet1.PG("Cells", 1, 1).PG("Font").PS("Name", "隶书"); //字体|         Sheet1.PG("Cells", 2, 3).PG("Font").PS("size", 28);      //大小|2、设置所选区域字体|        Range.PG("Cells").PG("Font").PS("Size", 28);|        Range.PG("Cells").PG("Font").PS("Color", RGB(0, 0, 255));|        其中参数的设置:|        Font    Name : "隶书"                //字体名称|        Size : 12                                   //字体大小|        Color : RGB(*,*,*)                     //颜色|        Underline : true/false                  //下划线|        Italic: true/false                          //斜体|3、设置单元格格式为小数百分比|        Sheet1.PG("Cells", 1, 1).PS("NumberFormatLocal", "0.00%25");|4、设定单元格的垂直对齐方式|        Range = ExcelApp.PG("Cells", 3, 4);|        // 1=靠上 2=居中 3=靠下对齐 4=两端对齐 5=分散对齐|        Range.PS("VerticalAlignment", 2);       |5、设定单元格的文本为自动换行|        Range = ExcelApp.PG("Cells", 3, 4);|        Range.PS("WrapText", true);|
+单元格的合并=Range = Sheet1.PG("Range", "A1:A2");           /*A1和A2单元格合并*/|        String strRange = "A" + IntToStr(j) + ":" + "C" + IntToStr(j);  /*比如：A1:C5*/|        Range1=Sheet1.PG("Range", strRange.c_str());  /*可以用变量控制单元格合并*/|        Range1.FN("Merge", false);|
+读写单元格=1、指定单元格赋值|        String strValue = "abcdefg";|        Sheet1.PG("Cells", 3, 6).PS("Value", strValue.c_str()); |        Sheet1.PG("Cells", j, 1).PS("Value", "总记录:" + String(j-6));|        或者使用|        Excel.Exec(PropertyGet("Cells")<<1<<3).Exec(PropertySet("Value")<<15);|2、所选区域单元格赋值|        Range.PG("Cells").PS("Value", 10);     |3、所选区域行赋值|        Range.PG("Rows",1).PS("Value", 1234);  |4、工作表列赋值|        Sheet1.PG("Columns",1).PS("Value", 1234); |5、 读取取值语句:|        String strValue = Sheet1.PG("Cells", 3, 5).PG("Value");|
+窗口属性=1、显示属性|        ExcelApp.PS("Windowstate", 3);        //最大化显示|               1---------xlNormal             //正常显示|               2---------xlMinimized          //最小化显示|               3---------xlMaximized          //最大化显示|2、 状态栏属性|        ExcelApp.PS("StatusBar", "您好,请您稍等。正在查询！");|        ExcelApp.PS("StatusBar", false);      //还原成默认值|3、标题属性:|        ExcelApp.PS("Caption", "查询系统");|
+操作图表=★添加图表|      Variant Chart;  |      Chart = ExcelApp.Exec(PropertyGet("Charts")).Exec(Function("Add"));|      ExcelApp.Exec(PropertySet("Visible") << true);|      Chart.Exec(PropertySet("Type") << -4100);|  |   ★滚动图表|  |      for(int nRotate=5; nRotate <= 180; nRotate += 5)|      {|           Chart.Exec(PropertySet("Rotation") << nRotate);|      }|      for (int nRotate = 175; nRotate >= 0; nRotate -= 5)|      {|           Chart.Exec(PropertySet("Rotation") << nRotate);|      }|
+判断是否安装了Office=☆为保证程序能正常运行，需要在程序中判断目标机器是否安装了Office|try|{|     ExcelApp = Variant::CreateObject ("Excel.Application");|}|catch(...)|{|     ShowMessage("运行Excel出错,请确认安装了Office");|     return;|} |
+注意=1、关于屏蔽警告对话框：vExcelApp.OlePropertySet("DisplayAlerts", false); |     在安装了Office2007的计算机中，用OLE保存Office2003兼容格式的文件时，默认会弹出一个兼容格式的警告对话框，询问是否继续。问题在于，此对话框往往难以置顶，从而无法按确定按钮，导致保存进程停止在些对话框。
+[Variant相关函数]
+VarArrayCreate()=以给定的界限和维数建立变体数组
+VarArrayOf()=返回指定变体的数组元素
+VarArrayRedim()=修改variant数组的最高限
+VarArrayDimCount()=返回Variant数组的维数
+VarArrayLowBound()=返回Variant数组的下边界
+VarArrayHighBound()=返回Variant数组的上边界
+VarArrayLock()和VarArrayUnlock()=用于初始化一个大数组。|例如：创建一个有10000字节的Variant数组。|假定有另一个相同长度的非Variant类型的数组，|并且想把非variant类型的数组复制到variant类型的数组中去。|通常这都是通过用循环语句对variant数组的单元进行赋值实现的。|示例如下：|begin|v:=VarArrayCreate([1,10000],varBate);|fori:=1to10000do|v[i]:=a[i];|end;||    上面这段代码的主要问题在于，大量的时间花费在对Variant数组的初始化上，因为在对每一个元素进行赋值时，都要通过运行时逻辑来检查并判断数据类型的兼容性、每个元素的位置等等。|    为了避免运行时检查，要用VarArrayLock()函数和VarArrayUnlock()过程。VarArrayLock()函数在内存中锁定数组，使数组不再移动和改变大小，并能返回一个指向数组数据的指针。而VarArrayUnlock()过程用来对VarArrayLock()函数锁定的数组进行解锁，使数组能重新移动或改变大小。在锁定数组后，能用更有效的方法对数组进行初始化，例如用指向数组数据的指针调用Move()过程，下面的代码也对Variant数组进行初始化，但它更有效：|begin|v:=VarArrayCreate([1,10000],varBate);|p:=VarArrayLock(v)|try|move(A,P^,10000);|finally|VarArrayUnlock(v);|end;|end;
+VarArrayRef()=获得variant指向的数据
+VarIsArray()=是一个简单的布尔检查函数，如果传递给它的参数是一个Variant数组则返回True，否则返回False.
+VarClear()=VarClear()过程清除Variant变量并将VType域的值设为varEmpty.
+VarCopy()=VarCopy()将Source复制到Dest
+VarCast()=将一个Variant转换成指定的类型并存储在另一个Variant变量中
+VarType()=返回指定Variant的varXXX类型代码。
+VarAsType()=VarAsType()跟VarCast()的功能一样。
+VarIsEmpty()=如果一个Variant变量的类型代码是varEmpty则返回True。
+VarIsNull()=VarIsNull()判断Variant变量是否包含null值
+VarToStr()=将一个Variant变量转换成字符串表达式(如果Variant为varEmpty或varNUll则为空字符|串)。
+VarFromDateTime()=返回一个Variant变量，它存放着指定的TDateTime类型的值。
+VarToDateTime()=返回在Variant中的TDateTime类型的值。
+[代码片段]
+TStringList操作=pStringList->DelimitedText = "red,green,blue";  /*将字符串以逗号分隔成多项，分别添加到TStringList*/|pStringList->CommaText;  /*将TStringList各项以逗号作为分隔符，合并成一个字符串*/
