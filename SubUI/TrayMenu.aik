@@ -366,6 +366,7 @@ return
 
 ;; 开启飞扬个性输入
 【SettingEnable_xHotString】:
+	/*
 	write_ini( "AutoHotString.ini", g_GlobalSwitch_Section, "启动飞扬个性输入", !g_GlobalSwitch_xHotString )	
 	if ∑飞扬个性输入已经打开()
 	{
@@ -377,6 +378,7 @@ return
 		menu , SettingEnable, check, 开启飞扬个性输入 (&i)
 		∑打开飞扬个性输入( )
 	}
+	*/
 	return
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

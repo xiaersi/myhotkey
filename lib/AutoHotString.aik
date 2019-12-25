@@ -53,16 +53,18 @@ LoadAutoHotString()
 		cmdStringSplit( var_temp, opt )
 		if InStrList( opt, "1", "|" )
 		{
-			Hotkey,  RButton, 【右键鼠标手势】, on
-			Hotkey, ^RButton, 【右键鼠标手势】, on
-			Hotkey, !RButton, 【右键鼠标手势】, on
-			Hotkey, +RButton, 【右键鼠标手势】, on
-			Hotkey, ^+RButton, 【右键鼠标手势】, on
-			Hotkey, !+RButton, 【右键鼠标手势】, on
-			Hotkey, ^!+RButton, 【右键鼠标手势】, on
-			Hotkey, ^!RButton, 【右键鼠标手势】, on
+/*
+			Hotkey,  RButton, RIGHTCLICK_FOR_GESTURE, on
+			Hotkey, ^RButton, RIGHTCLICK_FOR_GESTURE, on
+			Hotkey, !RButton, RIGHTCLICK_FOR_GESTURE, on
+			Hotkey, +RButton, RIGHTCLICK_FOR_GESTURE, on
+			Hotkey, ^+RButton, RIGHTCLICK_FOR_GESTURE, on
+			Hotkey, !+RButton, RIGHTCLICK_FOR_GESTURE, on
+			Hotkey, ^!+RButton, RIGHTCLICK_FOR_GESTURE, on
+			Hotkey, ^!RButton, RIGHTCLICK_FOR_GESTURE, on
 			g_bUseMouseGesture := True
 
+*/
 			;; 获取鼠标手势命令
 			SecArrayFromIniMem( g_AutoHotString, g_MouseGesture_Section, "g_MouseGestureArray" )
 		}
