@@ -1,0 +1,132 @@
+; include .\inc\common.aik
+#include .\inc\hotstring_add.aik
+
+insert & h::
+	clip2hotstring()
+	return
+
+insert & j::
+	clipwhat2hotstring()
+	return
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 以下用于添加新的HotString
+insert & 0::		; 添加通用HotString
+	add_general_word()		
+	return
+	
+insert & 1::		; 为当前活动窗口添加HotString
+	add_word_for_active_window()
+	return
+	
+insert & 2::		;为当前活动窗口的类添加HotString
+	add_word_for_active_class()
+	return
+	
+insert & 3::		; 为某个存在的窗口添加HotString
+	add_word_for_exist_window()
+	return
+	
+insert & 4::			; 为某个存在的窗口的类添加Hotstring
+	add_word_for_exist_class()
+	return
+	
+	
+insert & =::
+	var_menu = 
+(
+你要添加HotString到那里?
+------------------------------
+0. 添加通用HotString
+1. 为Active Window添加HotString
+2. 为Active Class添加HotString
+3. 为Exist Windows添加HotString
+4. 为Exist Class添加HotString
+
+Space/BackSpace`t退出
+
+)
+	var_result := CSMenu(var_menu, 80)
+	if var_result = 0
+		add_general_word()
+	else if var_result = 1
+		add_word_for_active_window()
+	else if var_result = 2
+		add_word_for_active_class()
+	else if var_result = 3
+		add_word_for_exist_window()
+	else if var_result = 4
+		add_word_for_exist_class()
+	return
+	
+insert & -::		; 删除HotString
+	var_menu = 
+	(
+你要添加HotString到那里?
+------------------------------
+0. 删除通用HotString
+1. 删除Active Window的HotString
+2. 删除Active Class的HotString
+3. 删除Exist Windows的HotString
+4. 删除Exist Class的HotString
+
+Space/BackSpace`t退出
+
+	)
+
+	WinGetActiveTitle, Title
+	WinGetClass, Class, A
+	FileName := filename_by_class(Class)
+	if (FileName = "") 
+		return   
+		
+
+	IniRead FullFileName, var.ini, Path, word, .\word
+	if ( StrFirstWord(FullFileName, 1) <> "\")
+	{
+		FullFileName = %FullFileName%\
+	}
+
+	FullFileName = %FullFileName%%FileName_%
+
+	var_result := CSMenu(var_menu, 80)
+	if var_result = 0
+	{
+		Title_ = #ifwinactive
+	}
+	else if var_result = 1
+	{
+		Title_ := get_active_title(Title, Class)
+	}
+	else if var_result = 2
+	{
+		Title_ := get_active_classtitle(Class)
+	}
+	else if var_result = 3
+	{
+		Title_ := get_exist_title(Title, Class)
+	}
+	else if var_result = 4
+	{
+		Title_ := get_exist_classtitle(Class)
+	}
+	else 
+	{
+		ToolTip7("你没有选择有效菜单选项！")
+		return
+	}
+	
+	var_Prompt = 请输入要删除的HotString的关键字!
+	addstring(var_Prompt, "`n文件:", true)
+	addstring(var_Prompt, FileName, false)
+	addstring(var_prompt, "Title:", true)
+	addstring(var_prompt, Title_, false)
+	var_input := MyInputBox("删除HotString", var_Prompt, "", 0, 0, 0, 0)
+	if var_input
+	{
+		delete_hkstring(FullFileName, Title_, var_input)
+	}
+	return
+;;
+

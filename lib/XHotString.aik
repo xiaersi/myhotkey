@@ -1,0 +1,280 @@
+/**
+ *@file    XHotString.aik
+ *@author  teshorse
+ *@date    2012.03.13
+ *@brief   实现飞扬个性输入
+ *
+ *- 触发飞扬个性输入
+ *- 自定义短语
+ */
+
+; #include ./inc/xml/hotxstring.aik
+; #include ./SubUI/26为飞扬个性输入添加短语.aik
+ #include ./SubUI/20MuiltiBox.aik
+
+
+【启动飞扬个性输入】:
+	if ∑飞扬个性输入已经打开()
+	{
+		hotkey =
+		Input,var_input,V L99,{SC77}
+
+
+		if ( IsXHotkeyCancel( hotkey ) ||  ! IsXWordExist( var_input ) )
+		{
+			Send,%hotkey%
+			Goto,【启动飞扬个性输入】
+		}
+
+		;; 如果输入的单词有效，则将单词内容sendby clipboard
+		;; if hotkey in `{Space`},`{Enter`},`{Tab`},`{`;`}
+		if IsXHotkeyIgnore(hotkey) 
+		{
+			if GetRunXWord( var_input, hotkey )
+			{
+				Goto,【启动飞扬个性输入】
+			}
+		}
+		;; 如果没有对应的单词，则
+		Send,%hotkey%
+		Goto,【启动飞扬个性输入】
+	}
+	return
+
+
+∑执行飞扬个性输入( word_, type_, value_ )
+{
+	bRet := false
+	if value_=
+		return false
+
+	;; 删除刚才输入的东西
+	SoundPlay, %A_ScriptDir%\resources\replace.wav
+	oldClip = %Clipboard%
+	clipboard=
+	ReturnTo := 0
+	StringLen,BSlength,word_
+	Send {BS %BSlength%}
+
+	;; 查找执行的内容
+	if type_=2		;; cmdstr
+	{
+		bRet := run_cmd( value_ )
+	}
+	else if type_=3 ;; cmdXML
+	{
+
+	}
+	else ;; type_=Txt
+	{
+		clipboard := value_
+		sleep 100
+		;; clipwait 800毫秒
+		loop %8%
+		{
+			if clipboard <>
+			{
+				if ( clipboard != value_ )
+					break
+			}
+			sleep 100
+		}
+		send ^v
+		sleep 200                           ;; 等待粘贴
+		clipboard := oldclip	
+		bRet := true
+	}
+	return bRet
+}
+
+【飞扬个性输入之完成热键响应】: 
+	StringTrimLeft,hotkey,A_ThisHotkey,1 
+	StringLen,hotkeyl,hotkey 
+	If hotkeyl>1 
+	  hotkey=`{%hotkey%`} 
+	Send,{SC77}
+	Return 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 相关函数
+
+∑加载飞扬个性输入数据()
+{
+	global 
+	g_HotXString_isLoad := LoadXString(	g_HotXString_XMLObject, "hotxstring.xml" )
+	return g_HotXString_isLoad
+}
+
+∑打开飞扬个性输入( )
+{
+	Local key
+
+	;; 如果尚未加载数据，则加载之。如果加载失败，则退出
+	if not g_HotXString_isLoad
+	{
+		if not ∑加载飞扬个性输入数据()
+		{
+			∑关闭飞扬个性输入( )
+			msgbox 飞扬个性输入启动时加载数据失败！
+			return false
+		}
+	}
+
+	;; 启动飞扬个性输入功能
+	g_GlobalSwitch_xHotString := true
+	SetKeyDelay,0
+	SetWinDelay,0
+
+
+
+	;; 设置热键
+	Loop,Parse, g_XString_autocomplete,`, 
+	{ 
+	  StringTrimLeft,key,A_LoopField,1 
+	  StringTrimRight,key,key,1 
+	  StringLen,length,key 
+	  If length=0 
+		Hotkey,$`,,【飞扬个性输入之完成热键响应】, On
+	  Else 
+		Hotkey,$%key%,【飞扬个性输入之完成热键响应】, On
+	} 	
+
+	Gosub,【启动飞扬个性输入】
+
+	return g_GlobalSwitch_xHotString
+}
+
+∑关闭飞扬个性输入( )
+{
+	Local key
+	g_GlobalSwitch_xHotString := false
+
+	;; 关闭热键
+	Loop,Parse, g_XString_autocomplete,`, 
+	{ 
+	  StringTrimLeft,key,A_LoopField,1 
+	  StringTrimRight,key,key,1 
+	  StringLen,length,key 
+	  If length=0 
+		Hotkey,$`,,【飞扬个性输入之完成热键响应】, Off
+	  Else 
+		Hotkey,$%key%,【飞扬个性输入之完成热键响应】, Off
+	} 	
+}
+
+∑飞扬个性输入已经打开()
+{
+	global
+	Return g_GlobalSwitch_xHotString
+}
+
+
+IsXWordExist( xword_ )
+{
+	global g_XString_wordlist
+	if InStrList( g_XString_wordlist, xword_, "," ) > 0
+		return true
+	return false
+}              
+
+GetRunXWord( xword_, endchar_ )
+{
+	local var_ret, case, var_index, var_temp, var_opt, var_pos 
+	LOCAL var_width, var_height, var_len
+
+	if endchar_ = `{Space`}
+		case = EndChar:1
+	else if  endchar_ = `{Enter`}
+		case = EndChar:2
+	else if endchar_ = `{Tab`}
+		case = EndChar:4
+	else 
+		case = 
+
+	if GetXString( g_HotXString_XMLObject, "XHSArray", xword_, "", case )
+	{
+		Gui, 20:Default
+		if XHSArray0 = 1
+		{
+			var_index := 1
+		}
+		else if XHSArray0 > 1
+		{
+			ClearArray( "SelectArray" )
+			;; 将XHSArray数组转化成SelectArray数组，用作ArraySelectBox的参数，便于选择
+			loop %XHSArray0%
+			{
+				var_temp := XHSArray%a_index%
+				var_pos := InStr(var_temp, "`n")
+				var_temp := SubStr( var_temp, 1, var_pos - 1 )
+				var_opt = 0
+				loop parse, var_temp, |
+				{
+					if Instr( a_loopfield, "ItemType:" )
+					{
+						var_opt := SubStr( a_loopfield, 10 )
+						break
+					}
+				}
+				var_temp := SubStr( XHSArray%a_index%, var_pos + 1 )
+				var_temp = %var_opt%)%var_temp%
+				AppendArray( "SelectArray", var_temp )
+
+				var_len := StrLen( var_temp ) * 8 
+				if ( var_len > var_width )
+					var_width := var_len
+			}
+			;; 弹出ArraySelectBox供用户选择
+			if var_width < 300
+				var_width := 300
+			else if var_width > 1000
+				var_width := 1000
+
+			var_height := ( XHSArray0 + 2 ) * 16
+			if var_height < 50
+				var_height := 50
+			else if var_height > 600
+				var_height := 600
+
+			var_index := ArraySelectBox( "选择短语--飞扬个性输入", "从列表中选择一条输出短语：", "SelectArray", "选项", var_width, var_height ) ;; 20MuiltiBox.aik
+		}
+
+		if var_index > 0
+		{
+			var_temp := XHSArray%var_index%
+			var_pos := InStr( var_temp, "`n")
+			var_temp := SubStr( var_temp, 1, var_pos - 1 )
+			var_opt = 0
+			loop parse, var_temp, |
+			{
+				if Instr( a_loopfield, "ItemType:" )
+				{
+					var_opt := SubStr( a_loopfield, 10 )
+					break
+				}
+			}
+			var_temp := SubStr( XHSArray%var_index%, var_pos + 1 )
+
+			return ∑执行飞扬个性输入( xword_, var_opt, var_temp )
+		}
+	}
+	return false
+}
+
+
+IsXHotkeyCancel( xhotkey_ )
+{
+	global g_XString_cancellist
+	if InStrList( g_XString_cancellist, xhotkey_, "," ) > 0
+		return true
+	return false
+}
+
+
+IsXHotkeyIgnore( xhotkey_ )
+{
+	global g_XString_ignorelist
+	if InStrList( g_XString_ignorelist, xHotkey_, "," ) > 0
+		return true
+	return false
+}

@@ -1,0 +1,206 @@
+#include .\inc\csmenu.aik
+#include .\inc\string.aik
+#include .\inc\path.aik
+
+AppsKey::
+	If is_same_key()
+	{
+        send +{F10}                     ;; 通过shift+F10达到按AppsKey的效果
+	}
+	return
+
+AppsKey & F5::
+	gosub 【显示托盘菜单】
+	return
+
+;; 映射媒体控制按钮 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+Appskey & rbutton:: send {mbutton}
+
+APPSKEY & F9::
+	send {Media_Play_Pause}
+	return
+
+APPSKEY & F10::
+	send {Media_Stop}
+	return
+
+APPSKEY & F11::
+	send {Media_Prev}
+	return
+
+APPSKEY & F12::
+	send {Media_Next}
+	return
+
+APPSKEY & F1:: ;用Google搜索选中内容
+	send ^c
+	sleep 100
+	varurl = http://www.google.cn/search?hl=zh-CN&q=%Clipboard%&meta=&aq=f&oq=
+;	run C:\Program Files\Internet Explorer\IEXPLORE.EXE %varurl%
+	run  %varurl%
+	return
+	
+sc07b::
+APPSKEY & up::		;;滚轮向上滚动
+	Loop
+	{
+		MouseClick, WheelUp, , , 1
+		Sleep 100
+		
+		if not is_key_down("UP")
+		{
+			return
+		}
+		
+		if is_key_down("DOWN")
+		{
+			return
+		}		
+	}
+	return
+
+sc079::	;;滚轮向下滚动
+APPSKEY & DOWN::
+	Loop
+	{
+		MouseClick, WheelDown, , , 1
+		sleep 100
+
+		if not is_key_down("DOWN")
+		{
+			return
+		}
+		if is_key_down("UP")
+		{
+			return
+		}
+	}
+	return
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 在选中文本前后添加符号, 将其括起来来
+APPSKEY & "::  ; 用双引号将选中的文本引起来"
+	var_temp = `"
+	block_selected_text(var_temp, var_temp)
+	Return
+		
+APPSKEY & (::	; (选中文本)
+	block_selected_text("(", ")")
+	return 
+	
+APPSKEY & [::	; [选中文本]
+	block_selected_text("[", "]")
+	return 
+	
+APPSKEY & $::	; $选中文本$
+	block_selected_text("$", "$")
+	return 
+	
+APPSKEY & %::	; %选中文本%
+	block_selected_text("%", "%")
+	return 
+	
+APPSKEY & ]::	; {选中文本}
+	block_selected_text("{", "}")
+	return 
+	
+APPSKEY & /::	; /*选中文本*/
+	run_cmd( "1|menu|tip:菜单：编辑选中代码)编辑选中代码菜单" )
+	return 
+	
+;; 以下动态指定block_selected_text的第一个参数与第二个参数
+APPSKEY & 1::
+	g_bst_firtstr := MyInput("指定第1个参数", "指定block_selected_text的第1个参数", clipboard)
+	return
+	
+APPSKEY & 2::
+	g_bst_secondstr := MyInput("指定第2个参数", "指定block_selected_text的第2个参数", clipboard)
+	return
+	
+APPSKEY & 3::
+APPSKEY & L::
+	if g_bst_firtstr =
+	{
+		g_bst_firtstr := MyInput("指定第1个参数", "指定block_selected_text的第1个参数", clipboard)
+	}
+	
+	if g_bst_secondstr =
+	{
+		g_bst_secondstr := MyInput("指定第2个参数", "指定block_selected_text的第2个参数", clipboard)
+	}
+	
+	block_selected_text(g_bst_firtstr, g_bst_secondstr)
+	return
+
+APPSKEY & p::
+	if g_bst_firtstr =
+	{
+		g_bst_firtstr := MyInput("指定第1个参数", "指定block_selected_text的第1个参数", clipboard)
+	}
+	
+	if g_bst_secondstr =
+	{
+		g_bst_secondstr := MyInput("指定第2个参数", "指定block_selected_text的第2个参数", clipboard)
+	}
+	block_clipboard_text(g_bst_firtstr, g_bst_secondstr)
+	return
+	
+	
+APPSKEY & c::	; /*拾色器*/
+	MouseGetPos, MouseX, MouseY
+	PixelGetColor, Clipboard, %MouseX%, %MouseY%, RGB
+	var_temp = 颜色[%Clipboard%]`n已复制到剪贴板!
+	SplitRGB(clipboard, red, green, blue)
+	var_temp = %var_temp%`nRGB(%red%, %green%, %blue%)
+	ToolTip5(var_temp)
+	return
+
+
+
+
+APPSKEY & o::	;; 模拟VIM的Shift+o, 从上面新插入一行空白行
+	send {up}{end}{enter}
+	return
+
+
+
+
+∑插入注释菜单()
+{
+var_menubody =
+(
+  @ 插入注释 @
+---------------------------------------------------
+1. 生成[ CPP ] 行注释
+2. 生成[ AHK ] 行注释
+3. //-----------------------------------
+4. ;;-----------------------------------
+
+)
+	var_return := csmenu( var_menubody )
+	if var_return = 1
+	{
+		write_ini("noteline.ini", "head", "type", "cpp" )
+		var_root := ∑获取根目录()
+		var_file = %var_root%\bin\Doxgen\添加行注释.ahk
+		run_ahk(var_file, "", A_WorkingDir )
+	}
+	else if var_return = 2
+	{
+		write_ini("noteline.ini", "head", "type", "ahk" )
+		var_root := ∑获取根目录()
+		var_file = %var_root%\bin\Doxgen\添加行注释.ahk
+		run_ahk(var_file, "", A_WorkingDir )
+	}
+	else if var_return = 3
+	{
+		sendinput //--------------------------------------------------------------------------
+	}
+	else if var_return = 4
+	{
+		sendinput `;`;--------------------------------------------------------------------------
+	}
+}
+
+

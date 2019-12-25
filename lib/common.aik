@@ -1,0 +1,489 @@
+#include .\inc\common.aik
+#include .\inc\functions.inc
+#include .\inc/Array.aik
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;			HotString设计原则
+;;
+;;  在设置HotString时,短词以分号结束,长词不用分号
+;;  ct代表Ctrl键, st代表shift键, at代表alt键, sp代表space键
+;;  如果HotString是网址,则以/开头,不用分号结尾
+;;  如果HotString用来可执行的程序、文件、网址,则以;开头
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; 连接按两次LWin键，显示开始菜单，屏蔽按一下LWIN就弹出开始菜单
+∑屏蔽单击LWin键( bYes )
+{
+	if bYes =
+		flag = Off
+	else if bYes = 0
+		flag = Off
+	else 
+		flag = On
+
+	Hotkey , LWin, 【屏蔽单击LWin键】, %flag%
+}
+
+
+【屏蔽单击LWin键】:
+	If is_same_key()
+	{
+		send ^{esc}
+	}
+	return
+
+;; 连续双击CapsLock键，才切换大小写状态
+
+∑屏蔽单击CapsLock键( bYes )
+{
+	if bYes =
+		flag = Off
+	else if bYes = 0
+		flag = Off
+	else 
+		flag = On
+
+	Hotkey , CapsLock, 【屏蔽单击CapsLock键】, %flag%
+	Hotkey , +CapsLock, 【切换键盘大小写状态】, %flag%
+}
+
+
+【屏蔽单击CapsLock键】:
+	if is_same_key()
+	{
+		IF ( GetKeyState("CapsLock", "T") )
+			SetCapsLockState AlwaysOff
+		ELSE
+			SetCapsLockState AlwaysOn
+	}
+	return
+
+;; shift+CapsLock切换大小写状态
+【切换键盘大小写状态】:
+	IF ( GetKeyState("CapsLock", "T") )
+		SetCapsLockState AlwaysOff
+	ELSE
+		SetCapsLockState AlwaysOn
+	return
+
+/*
+<^Lwin::
+	ifwinexist 我的运行窗口 ahk_class AutoHotkeyGUI
+	{
+		winclose
+	}
+	else
+	{
+		WriteTempIni("run", "googleType", "1")
+		var_run := ∑获取根目录()
+		var_run = %var_run%\bin\run\run3.ahk	; 我的运行窗口.ahk
+		run_ahk( var_run )
+		var_run =
+	}
+	return
+*/
+
+;; 连接按两次Ctrl启动“我的运行窗口”
+/*
+;; 因连续按两个Ctrl键与Google桌面冲突，现在改成 LCtrl+LWin
+Ctrl::
+	If is_same_key()
+	{
+		ifwinexist 我的运行窗口 ahk_class AutoHotkeyGUI
+		{
+			winclose
+		}
+		else
+		{
+			WriteTempIni("run", "googleType", "1")
+			var_run := ∑获取根目录()
+			var_run = %var_run%\bin\run\run3.ahk	; 我的运行窗口.ahk
+			run_ahk( var_run )
+			var_run =
+		}
+	}
+	return
+*/
+
+;; 连续按右Alt键，选择飞扬魔术键盘
+RAlt::
+	if is_same_key()
+	{
+		;; 飞扬魔术键盘选择菜单在TrayMenu.aik的【添加工具子菜单】中定义
+		menu, PhiyonKeyboardMenu, show  		
+	}
+	return
+
+
+; ------ vim 风格 ------------------------------------------
+∑Alt加HJKL快捷键模拟VIM风格( bYes )
+{
+	if bYes =
+		flag = Off
+	else if bYes = 0
+		flag = Off
+	else 
+		flag = On
+
+	Hotkey , <!h, 【方向键向左】, %flag%
+	Hotkey , <!j, 【方向键向下】, %flag%
+	Hotkey , <!k, 【方向键向上】, %flag%
+	Hotkey , <!l, 【方向键向右】, %flag%
+	Hotkey , <!o, 【定位行末并回车】, %flag%
+	Hotkey , <!0, 【定位行首】, %flag%
+	Hotkey , <!4, 【定位行末】, %flag%
+	Hotkey , <!d, 【模拟Delete】, %flag%
+	Hotkey , <!+h, 【AltShift快捷键处理】, %flag%
+	Hotkey , <+!h, 【AltShift快捷键处理】, %flag%
+	Hotkey , <!+j, 【AltShift快捷键处理】, %flag%
+	Hotkey , <+!j, 【AltShift快捷键处理】, %flag%
+	Hotkey , <!+k, 【AltShift快捷键处理】, %flag%
+	Hotkey , <+!k, 【AltShift快捷键处理】, %flag%
+	Hotkey , <!+l, 【AltShift快捷键处理】, %flag%
+	Hotkey , <+!l, 【AltShift快捷键处理】, %flag%
+	Hotkey , <!+4, 【AltShift快捷键处理】, %flag%
+	Hotkey , <+!4, 【AltShift快捷键处理】, %flag%
+	Hotkey , <!+0, 【AltShift快捷键处理】, %flag%
+	Hotkey , <+!0, 【AltShift快捷键处理】, %flag%
+}
+
+∑Alt加符号键模拟方向键( bYes )
+{
+	if bYes =
+		flag = Off
+	else if bYes = 0
+		flag = Off
+	else 
+		flag = On
+
+	Hotkey , <![, 【方向键向上】, %flag%
+	Hotkey , <!], 【方向键向下】, %flag%
+	Hotkey , <!`,, 【方向键向左】, %flag%
+	Hotkey , <!., 【方向键向右】, %flag%
+}
+
+
+∑WinAlt加方向键移动窗口至屏幕边框( bYes )
+{
+	if bYes =
+		flag = Off
+	else if bYes = 0
+		flag = Off
+	else 
+		flag = On
+
+	Hotkey , #!up,    【WinAlt加方向键移动窗口至屏幕边框】, %flag%
+	Hotkey , #!down,  【WinAlt加方向键移动窗口至屏幕边框】, %flag%
+	Hotkey , #!left,  【WinAlt加方向键移动窗口至屏幕边框】, %flag%
+	Hotkey , #!right, 【WinAlt加方向键移动窗口至屏幕边框】, %flag%
+}
+
+
+∑WinShift加方向键移动当前窗口( bYes )
+{
+	if bYes =
+		flag = Off
+	else if bYes = 0
+		flag = Off
+	else 
+		flag = On
+
+	Hotkey , #+up,    【WinShift加方向键移动当前窗口】, %flag%
+	Hotkey , #+down,  【WinShift加方向键移动当前窗口】, %flag%
+	Hotkey , #+left,  【WinShift加方向键移动当前窗口】, %flag%
+	Hotkey , #+right, 【WinShift加方向键移动当前窗口】, %flag%
+
+	Hotkey , #+k,    【WinShift加方向键移动当前窗口】, %flag%
+	Hotkey , #+j,  	 【WinShift加方向键移动当前窗口】, %flag%
+	Hotkey , #+h,  	 【WinShift加方向键移动当前窗口】, %flag%
+	Hotkey , #+l, 	 【WinShift加方向键移动当前窗口】, %flag%
+}
+
+
+【方向键向左】: 
+	GetKeyState, state, Shift
+	if state = D
+		send {shift down}{left}{shift up}
+	else
+		send {left}
+	return
+
+【方向键向下】: 
+	GetKeyState, state, Shift
+	if state = D
+		send {shift down}{down}{shift up}
+	else
+		send {down}
+	;send {down}
+	return
+
+【方向键向上】: 
+	GetKeyState, state, Shift
+	if state = D
+		send {shift down}{up}{shift up}
+	else
+		send {up}
+;	send {up}
+	return
+
+【方向键向右】: 
+	GetKeyState, state, Shift
+	if state = D
+		send {shift down}{right}{shift up}
+	else
+		send {right}
+;	send {right}
+	return
+
+【定位行末并回车】: 
+	send {end}{enter}
+	return
+
+【定位行首】: 
+	send {home}
+	return
+
+【定位行末】: 
+	send {end}
+	return
+	
+【模拟Delete】:
+	send {delete}
+	return
+
+
+【WinAlt加方向键移动窗口至屏幕边框】:
+	WinGetPos , var_X, var_Y, var_Width, var_Height, A
+	ifinstring a_ThisHotkey, left
+	{
+		var_x := 0
+	}
+	else ifinstring a_ThisHotkey , right
+	{
+		var_X := a_ScreenWidth - var_Width - 5
+	}
+	else ifinstring a_ThisHotkey , up
+	{
+		var_y := 0
+	}
+	else ifinstring a_ThisHotkey , down
+	{
+		var_y := GetDeskHeight() - var_Height - 5
+	}
+	WinMove, A,, %var_X%, %var_Y%
+	return
+
+【WinShift加方向键移动当前窗口】:
+	WinGetPos , var_X, var_Y, var_Width, var_Height, A
+	ifinstring a_ThisHotkey, left
+		var_x := var_x - 10
+	else ifinstring a_ThisHotkey , right
+		var_X := var_x + 10
+	else ifinstring a_ThisHotkey , up
+		var_y := var_y - 5
+	else ifinstring a_ThisHotkey , down
+		var_y := var_y + 5
+	else if a_ThisHotkey = #+h
+		var_x := var_x - 10
+	else if a_ThisHotkey = #+j
+		var_y := var_y + 5
+	else if a_ThisHotkey = #+k
+		var_y := var_y - 5
+	else if a_ThisHotkey = #+l
+		var_X := var_x + 10
+	WinMove, A,, %var_X%, %var_Y%
+	return
+
+
+∑Win加方向键模拟画屏手势( bYes )
+{
+	if bYes =
+		flag = Off
+	else if bYes = 0
+		flag = Off
+	else 
+		flag = On
+
+	Hotkey , #Left, 	【Win加方向键模拟画屏手势】, %flag%
+	Hotkey , #Right,	【Win加方向键模拟画屏手势】, %flag%
+	Hotkey , #Up, 	    【Win加方向键模拟画屏手势】, %flag%
+	Hotkey , #Down, 	【Win加方向键模拟画屏手势】, %flag%
+}
+
+;; 编程时，输入{};回车，自动产生如下的代码块效果
+;; {
+;; 		|
+;; }
+::{};::
+	send {{}{}}{left}{enter}{up}{end}{enter}
+	Return
+
+;;------ 替代功能键的热键 ----------------------------------
+::;read::  ;; 进入阅读模块
+	run 阅读模式.ahk
+	return
+
+:?:;sw::		;; 切换到搜狗五笔
+	SwitchIME("搜狗五笔")
+	return
+
+:?:;qw::		;; 切换到QQ五笔
+	switchime("QQ五笔")
+	return
+;;------ 运行程序的HotString ----------------------------------
+
+:?://file::
+	var_root := ∑获取根目录()
+	var_file = %var_root%\bin\Doxgen\新增文件注释.ahk
+	run_ahk(var_file,"", A_WorkingDir )
+	return
+
+:?://brief::
+	sendinput /** @brief  */{left 2}
+	return
+
+:?://w::             ;; 添加一行注释
+	SelectLine()
+:?://line::
+	WriteTempIni( "添加行注释", "type", "cpp" )
+	var_root := ∑获取根目录()
+	var_file = %var_root%\bin\Doxgen\添加行注释.ahk
+	run_ahk(var_file )
+	return
+
+:?:;;w::
+	SelectLine()
+:?:;;line::
+	WriteTempIni( "添加行注释", "type", "ahk" )
+	var_root := ∑获取根目录()
+	var_file = %var_root%\bin\Doxgen\添加行注释.ahk
+	run_ahk(var_file )
+	return
+
+:?://e::         	;; 弹出窗口调整行末的注释符号位置
+	write_ini( "temp.ini", "复制并在每行末尾整齐地添加行尾注释符", "lastComment", "//" )
+	var_root := ∑获取根目录()
+	send {shift down}
+	send {home}{shift up}
+	var_file = %var_root%\bin\Doxgen\复制并在每行末尾整齐地添加行尾注释号.ahk
+	run_ahk( var_file )
+	return
+
+:?://.::         	;; 弹出窗口调整行末的注释符号位置
+	write_ini( "temp.ini", "复制并在每行末尾整齐地添加行尾注释符", "lastComment", "///<" )
+	var_root := ∑获取根目录()
+	send {shift down}{home}{shift up}
+	var_file = %var_root%\bin\Doxgen\复制并在每行末尾整齐地添加行尾注释号.ahk
+	run_ahk( var_file )
+	return
+
+:?:;;e::         	;; 弹出窗口调整行末的注释符号位置
+	write_ini( "temp.ini", "复制并在每行末尾整齐地添加行尾注释符", "lastComment", ";;" )
+	var_root := ∑获取根目录()
+	send {shift down}{home}{shift up}
+	var_file = %var_root%\bin\Doxgen\复制并在每行末尾整齐地添加行尾注释号.ahk
+	run_ahk( var_file )
+	return
+
+:?:`/`/*;::
+	write_ini( "temp.ini", "复制并在每行末尾整齐地添加行尾注释符", "lastComment", "/**<  */" )
+	var_root := ∑获取根目录()
+	send {shift down}{home}{shift up}
+	var_file = %var_root%\bin\Doxgen\复制并在每行末尾整齐地添加行尾注释号.ahk
+	run_ahk( var_file )
+	return
+
+:?:;;``::
+	write_ini( "temp.ini", "复制并在每行末尾整齐地添加行尾注释符", "lastComment", "``" )
+	var_root := ∑获取根目录()
+	send {shift down}{home}{shift up}
+	var_file = %var_root%\bin\Doxgen\复制并在每行末尾整齐地添加行尾注释号.ahk
+	run_ahk( var_file )
+	return
+
+:?:;;n::
+	var_root := ∑获取根目录()
+	send {shift down}{home}{shift up}
+	var_file = %var_root%\bin\Doxgen\复制并在每行末尾整齐地添加行尾注释号.ahk
+	run_ahk( var_file )
+	return
+
+
+:?:;--::
+	SelectLeftSpaceChar()
+	SendbyClip("——")
+	return
+
+:?:;...::
+	SelectLeftSpaceChar()
+	SendbyClip("……")
+	return
+
+/*
+<+RSHIFT::		; right 向右
+	send {right}
+	if (is_key_down("SHIFT"))
+	{
+		Send {SHIFT UP}
+	}
+	return
+
+>+LSHIFT::		; left 向左
+	send {left}
+	if (is_key_down("SHIFT"))
+	{
+		Send {SHIFT UP}
+	}
+	return
+*/
+
+;-----------通过shift+滚动键或右键+滚动键 拉动水平滚动条-----------------------
+
++WheelUp::  ; Scroll left.
+	ControlGetFocus, fcontrol, A
+	Loop 2  ; <-- Increase this value to scroll faster.
+		SendMessage, 0x114, 0, 0, %fcontrol%, A
+	return
+^+wheelup::
+	ControlGetFocus, fcontrol, A
+	Loop 15  ; <-- Increase this value to scroll faster.
+		SendMessage, 0x114, 0, 0, %fcontrol%, A
+	return
+
++WheelDown::  ; Scroll right.
+	ControlGetFocus, fcontrol, A
+	Loop 2  ; <-- Increase this value to scroll faster.
+		SendMessage, 0x114, 1, 0, %fcontrol%, A  ; 0x114 is WM_HSCROLL and the 1 after it is SB_LINELEFT.
+	return
+
+^+WheelDown::  ; Scroll right.
+	ControlGetFocus, fcontrol, A
+	Loop 15  ; <-- Increase this value to scroll faster.
+		SendMessage, 0x114, 1, 0, %fcontrol%, A  ; 0x114 is WM_HSCROLL and the 1 after it is SB_LINELEFT.
+	return
+
+
+^+!wheelup::send {home}
+^+!wheeldown::send {end}
+
+
+【AltShift快捷键处理】:
+	ifinstring a_ThisHotkey, h
+		send {shift down}{left}{shift up}
+	else ifinstring a_ThisHotkey, j
+		send {shift down}{down}{shift up}	
+	else ifinstring a_ThisHotkey, k
+		send {shift down}{up}{shift up}
+	else ifinstring a_ThisHotkey, l
+		send {shift down}{right}{shift up}
+	else ifinstring a_ThisHotkey, 0
+		send {shift down}{home}{shift up}
+	else ifinstring a_ThisHotkey, 4
+		send {shift down}{end}{shift up}
+	
+	return
+
+

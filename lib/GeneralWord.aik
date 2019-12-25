@@ -1,0 +1,27 @@
+#include .\inc\word.aik
+
+::;reloadword::
+	reload
+	return
+::uk;::
+::;exitword::
+	exitapp
+	return
+
+insert & g::
+sc070 & g::
+	AddGeneralWord()
+	return
+insert & m::
+sc070 & m::
+	AddMyWord()
+	return
+
+;;..帮助提示....................................
+::wordhelp::
+	var_help =
+	var_help = %var_help%`nInsert + g`t添加公共词库
+	var_help = %var_help%`nInsert + m`t添加各窗口单词
+	talkshow(var_help,"AHK - Word.ahk")
+	return
+

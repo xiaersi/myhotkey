@@ -1,0 +1,61 @@
+;settimer 禁止写脚本 ,6000
+var_shutdown = 600
+iniread var_shutdown,log.ini,time,shutdown
+iniread var_maxtime,log.ini,time,MaxTime
+iniread var_mintime,log.ini,time,MinTime
+
+settimer 每分钟检查,60000  ;1800000
+每分钟检查:
+	if (a_hour=23 or a_hour<5)
+	{
+		if (var_shutdown>30)
+		{
+		var_shutdown := 30
+		iniwrite %var_shutdown%,log.ini,time,shutdown
+		}
+		
+;		msgbox 4,睡觉时间到, 再过一分钟关机`n晚安!, 30
+;		sleep 6000
+;		Shutdown, 9	
+;		return
+	}
+	if (var_shutdown<=0 or var_shutdown>var_maxtime)
+	{
+		iniread var_shutdown,log.ini,time,shutdown
+		if(var_shutdown<=0)
+			var_shutdown := var_mintime
+		else if (var_shutdown>var_maxtime)
+			var_shutdown := var_maxtime
+	}
+	if (var_shutdown<=1)
+	{
+		BlockInput,MouseMove
+		msgbox 4,限定时间到, 本次开机时间还有一分钟结束`n准备关机!, 30
+		sleep 6000
+		Shutdown, 9	
+		return
+
+	}
+	var_shutdown--
+	iniwrite %var_shutdown%,log.ini,time,shutdown
+return
+
+::;timeleft::
+	msgbox %var_shutdown%
+	return
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+:禁止写脚本:
+	ifwinexist	ahk_class EmEditorMainFrame3
+	{
+		msgbox 4,关闭EmEdit,要毕业就不要再写脚本了,5
+		ifmsgbox no
+		sleep 再等你10秒
+		ifwinexist	ahk_class EmEditorMainFrame3
+			winclose
+	}
+	
+	ifwinexist	MyHotKey ahk_class CabinetWClass
+			winclose
+
+return
+

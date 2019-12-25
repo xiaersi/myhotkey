@@ -1,0 +1,939 @@
+;运行ini文件中指定的程序
+;#SingleInstance ignore	;只运行一次，禁止多次运行
+;
+;#include ..\..\
+;#include .\inc\common.aik
+;#include .\inc\inifile.aik
+;#include .\inc\string.aik
+;#include .\lib\run.aik
+
+CoordMode, ToolTip, Screen  
+;;========================================================================
+;;  全局变量声明及赋值
+;;=========================================================================
+g_AutoTop := true	; 是否自动置顶“运行”窗口， 并且自动调整透明度
+g_pageitems := 10   ; 菜单每页包含的最大菜单项数目
+g_MaxPage := 5		; 允许菜单最大页数
+
+g_menubody = 		; 当前显示的菜单
+g_menukeys = 		; 当前命令菜单
+g_curpage  = 1		; 当前页数
+g_curinput = 		; 当前输入字符
+g_preinput = 未输入
+g_curiterm = 1		; 当前菜单选项
+
+;; 以下全局变量从ini文件中读取
+g_file_keys =
+g_send_keys =
+g_xx_keys =
+
+g_file_count := read_seckeys( g_file_keys, "launchy.ini", "file", false )
+g_send_count := read_seckeys( g_send_keys, "launchy.ini", "send", false )
+g_xx_count := read_seckeys( g_xx_keys, "launchy.ini", "variable", false )
+
+
+g_menu_type = recent	; 当前菜单是属于以下哪些类型的菜单
+g_recent := read_ini( "temp.ini", "run", "recent", "" )
+g_recent_calc := read_ini( "temp.ini", "run", "calc", "" )
+g_recent_web := read_ini( "temp.ini", "run", "web", "" )
+g_recent_script := read_ini( "temp.ini", "run", "script", "" )
+g_recent_xx := read_ini( "temp.ini", "run", "xx", "" )
+g_recent_rundirect := read_ini( "temp.ini", "run", "rundirect", "" )
+g_last := read_ini( "temp.ini", "run", "last", "" )
+
+
+;;========================================================================
+;;  程序主体, 弹出窗口, 执行运行窗口命令
+;;=========================================================================
+
+g_wintitle = 运行
+g_winPrompt = 请输入你要启动的程序名
+var_user := ""
+
+SetTimer, 『设置运行窗口』,100
+SetTimer, 『全选内容』, 10
+
+inputbox,var_user,%g_wintitle%,%g_winPrompt%,,320,120,,a_screenheight // 3,,60,%g_last%
+if ErrorLevel 	
+{
+	return 
+}
+
+SetTimer, 『设置运行窗口』, off
+SetTimer, 『全选内容』, off
+∑显示运行菜单( "", 0, 0 )
+
+;; 检查输入值是否网址或路径, 以及是否包含"::" vim 等字样
+if ( ∑检查用户输入判断命令类型( var_user ) )
+{
+	exitapp
+	return
+}
+
+iniread,var_temp,launchy.ini,file,%var_user%
+if( var_temp="" or var_temp="ERROR" )
+{
+	
+	; 检查[send]节中, 如果没有对应关键字, 则用户输入的命令不存在
+	iniread,var_send,launchy.ini,send,%var_user%
+	if (var_send="" or var_send="ERROR") 
+	{
+		tooltip 刚才输入的命令不存在
+		sleep 1000
+		tooltip
+	}
+	else ; [send]节中有用户输入的关键字, 则直接输出关键值, 可以是 "#+n"(打开OneNote) ,
+	{
+		send %var_send%
+	}
+}
+else		; 在配置文件中找到关键字, 正常执行
+{
+	runini(var_user)		; 运行ini文件中指定的程序
+	iniwrite, %var_user%, temp.ini, run, last
+	∑排序最近运行的命令( var_user, "recent" )
+}
+exitapp
+
+
+;;========================================================================
+;;  针对弹出的运行窗口，定时做一些处理
+;;=========================================================================
+『设置运行窗口』:
+	ifwinexist %g_winTitle%, %g_winPrompt%
+	{
+		WinGetPos , X, Y, Width, Height, %g_winTitle%, %g_winPrompt%
+		var_tipx := X
+		var_tipy := Y + Height
+
+		;; ------窗口置顶并且自动透明--------------------------------
+		if g_AutoTop
+		{
+			winset,AlwaysOnTop, ON
+			ifwinactive %g_winTitle%,%g_winPrompt%
+				WinSet, Transparent,off
+			else
+				WinSet, Transparent,100
+		}
+		;; ------自动弹出菜单----------------------------------------
+		ControlGetText, g_curinput, Edit1, %g_winTitle%, %g_winPrompt%
+
+		IfWinNotActive %g_winTitle%,%g_winPrompt%
+		{
+			∑显示运行菜单( "", var_tipx, var_tipy )
+			return
+		}
+
+		if ( g_preinput != g_curinput || g_menubody == "" || g_menukeys == "" || var_preX != X || var_preY != Y )
+		{
+			g_preinput := g_curinput
+			var_preX := X
+			var_preY := Y
+
+			get_first_char( g_curinput, var_firstchar )
+			if var_firstchar = <
+			{
+				∑将最近命令生成菜单( g_recent_script, "脚本运行" )
+				g_menu_type = script
+			}
+			else if ( var_firstchar == "=" )
+			{
+				∑将最近命令生成菜单( g_recent_calc, "计算器" )
+				g_menu_type = calc
+			}
+			else if ( var_firstchar == ";" )
+			{
+				∑将最近命令生成菜单( g_recent_rundirect, "直接运行" )
+				g_menu_type = rundirect
+			}
+			else ifinstring g_curinput, http:
+			{
+				∑将最近命令生成菜单( g_recent_web, "web" )
+				g_menu_type = web
+			}
+			else ifinstring g_curinput, www.
+			{
+				∑将最近命令生成菜单( g_recent_web, "web" )
+				g_menu_type = web
+			}
+			else ifinstring g_curinput, ::
+			{
+				∑将最近命令生成菜单( g_recent_xx, "variable" )
+				g_menu_type = variable
+			}
+			else if ( g_curinput == g_last || g_curinput == "" )
+			{
+			;		msgbox %g_curinput%	
+				∑将最近命令生成菜单( g_recent )
+				g_menu_type = recent
+			}
+			else
+			{
+				var_allkeys =
+				g_menu_type =
+
+				var_isAuto := true
+				
+			;	g_curpage = 1
+				if ( StrLastWord( g_curinput, 1) == "=" )
+				{
+					var_count := strlen( g_curinput ) - 1
+					StringLeft, var_search, g_curinput, %var_count%
+					var_isAuto := false
+				}
+				else 
+					var_search := g_curinput
+
+				var_allcount := ∑从所有命令中搜索包含指定字符串的命令( var_allkeys, var_search, var_isAuto )
+				∑从所有菜单项生成指定页数的菜单( var_allkeys, var_allcount )
+			}
+			∑显示运行菜单( g_menubody, var_tipx, var_tipy )
+		}
+
+		return
+	}
+
+	
+	SetTimer, 『设置运行窗口』, Off
+	ExitAPP
+
+	return
+
+;;========================================================================
+『全选内容』:
+	send {end}{shift down}{home}{shift up}
+	SetTimer, 『全选内容』, Off
+	WinGetPos , X, Y, Width, Height, %g_winTitle%,%g_winPrompt%
+	var_tipx := X
+	var_tipy := Y + Height
+	return 
+
+;; 停止置顶及自动透明
+;~Pause::
+;	ifwinactive %g_winTitle%,%g_winPrompt%
+;	{
+;		winset,AlwaysOnTop, off
+;		WinSet, Transparent,off
+;	}
+;	return
+
+;=================================================================
+; 以下为快捷键
+;=================================================================
+#ifwinactive 运行, 请输入你要启动的程序名
+f1::
+	∑选择了一个菜单项( 1 )
+	return
+!1::
+	∑选择了一个菜单项( 1 )
+	send {enter}
+	return
+
+f2::
+	∑选择了一个菜单项( 2 )
+	return
+!2::
+	∑选择了一个菜单项( 2 )
+	send {enter}
+	return
+
+f3::
+	∑选择了一个菜单项( 3 )
+	return
+!3::
+	∑选择了一个菜单项( 3 )
+	send {enter}
+	return
+
+f4::
+	∑选择了一个菜单项( 4 )
+	return
+!4::
+	∑选择了一个菜单项( 4 )
+	send {enter}
+	return
+
+f5::
+	∑选择了一个菜单项( 5 )
+	return
+!5::
+	∑选择了一个菜单项( 5 )
+	send {enter}
+	return
+
+f6::
+	∑选择了一个菜单项( 6 )
+	return
+!6::
+	∑选择了一个菜单项( 6 )
+	send {enter}
+	return
+
+f7::
+	∑选择了一个菜单项( 7 )
+	return
+!7::
+	∑选择了一个菜单项( 7 )
+	send {enter}
+	return
+
+f8::
+	∑选择了一个菜单项( 8 )
+	return
+!8::
+	∑选择了一个菜单项( 8 )
+	send {enter}
+	return
+
+f9::
+	∑选择了一个菜单项( 9 )
+	return
+!9::
+	∑选择了一个菜单项( 9 )
+	send {enter}
+	return
+
+f10::
+	∑选择了一个菜单项( 10 )
+	return
+!0::
+	∑选择了一个菜单项( 10 )
+	send {enter}
+	return
+;f11::
+;	∑选择了一个菜单项( 11 )
+;	return
+
+!h::
+pgup::
+!a::
+	g_curpage--
+	∑从所有菜单项生成指定页数的菜单( var_allkeys, var_allcount )
+	∑显示运行菜单( g_menubody, var_tipx, var_tipy )
+	return
+tab::
+pgdn::
+!l::
+!d::
+	g_curpage++
+	∑从所有菜单项生成指定页数的菜单( var_allkeys, var_allcount )
+	∑显示运行菜单( g_menubody, var_tipx, var_tipy )
+	return
+
+!K::	; 上一选项
+up::
+!w::
+	g_curiterm--
+	∑显示运行菜单( g_menubody, var_tipx, var_tipy )
+	return
+
+!j::	; 下一菜单项
+down::
+!s::
+	g_curiterm++
+	∑显示运行菜单( g_menubody, var_tipx, var_tipy )
+	return
+
+^enter::
+!enter::
+!i::
+!f::
+	∑选择了一个菜单项( g_curiterm )
+	return
+
+Rbutton::
+	MouseGetPos, OutputVarX, OutputVarY, OutputVarWin, OutputVarControl
+	if ( OutputVarControl == "Button1" )
+	{
+		SetTimer, 『设置运行窗口』, off
+		SetTimer, 『全选内容』, off
+		∑显示运行菜单( "", 0, 0 )
+		sleep 300
+		ControlClick button1          
+		return	
+	}
+	click
+	return
+!space::
+enter::
+	SetTimer, 『设置运行窗口』, off
+	SetTimer, 『全选内容』, off
+	∑显示运行菜单( "", 0, 0 )
+	sleep 300
+	ControlClick button1          
+	return
+
+!b::
+	send {backspace}
+	return
+
+!e::
+	send {home}{shift down}{end}{shift up}
+	return
+
+!r::
+	send {home}{shift down}{end}{shift up}{backspace}
+	return
+
+!x::
+	exitapp
+
+^del::		; 删除所选择的选项
+	if g_menukeys =
+		return
+	if g_menu_type = recent 
+		∑删除最近命令的菜单选项( g_recent, g_menu_type )
+	else if g_menu_type = script
+		∑删除最近命令的菜单选项( g_recent_script, g_menu_type )
+	else if g_menu_type = web
+		∑删除最近命令的菜单选项( g_recent_web, g_menu_type )
+	else if g_menu_type = calc
+		∑删除最近命令的菜单选项( g_recent_calc, g_menu_type )
+	else if g_menu_type = variable
+		∑删除最近命令的菜单选项( g_recent_xx, g_menu_type )
+	else 
+	{
+		msgbox 当前菜单类型为[%g_menu_type%]， 不允许删除菜单项！
+		g_preinput = 不允许删除菜单项
+	}
+	return
+
+
+^BS::
+【将焦点定位到输入框】:
+	ifWinExist %g_winTitle%, %g_winPrompt%
+	{
+		winactivate
+		ControlFocus Edit1
+		send {end}
+		send {shift down}{home}{shift up}
+	}
+	settimer 【将焦点定位到输入框】, off
+	return
+
+~bs::
+	if var_allcount = 1
+	{
+		controlsettext edit1, ,  %g_winTitle%, %g_winPrompt%
+		ControlFocus Edit1,  %g_winTitle%, %g_winPrompt%
+	}
+	return
+	
+#ifwinactive
+
+;;========================================================================
+;;///////////////////////////////////////////////////////////////////////////
+;; 检查用户的输入，是否包含特殊字符，如网址，计算=，vim等
+∑检查用户输入判断命令类型(var_user)
+{
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;; 检查用户输入的命令的首字母, 如果为";"直接run分号后面的命令
+	StringLeft  vartemp, var_user, 1
+	if (vartemp = ";")
+	{
+		StringMid vartemp, var_user, 2
+		run %vartemp%
+		iniwrite, %var_user%, temp.ini, run, last
+		∑排序最近运行的命令( var_user, "rundirect" )
+		return true
+	}
+	else if (vartemp = "=") ;; 用户输入的内容直接作为代码进行运行, 用于计算
+	{
+		vartemp := SubStr(var_user, 2)
+		vartemp = cout(%vartemp%)
+		run_with_temp_file(vartemp)
+		∑排序最近运行的命令( var_user, "calc" )
+		return true
+	}
+	else if (vartemp = "<") ;; 用户输入的内容直接作为代码进行运行
+	{
+		vartemp := SubStr(var_user, 2)
+		run_with_temp_file(vartemp)
+		∑排序最近运行的命令( var_user, "script" )
+		return true
+	}
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	; 是网址或文件路径, 则直接运行
+	StringMid, vartemp, var_user, 2, 2
+	StringLeft varhttp, var_user, 7
+	if (vartemp = ":\" or varhttp = "http://") 
+	{
+		run %var_user%
+		∑排序最近运行的命令( var_user, "web" )
+		return true
+	}
+	stringLeft varwww, var_user, 4
+	if (varwww = "www.")
+	{
+		run http://%var_user%
+		∑排序最近运行的命令( var_user, "web" )
+		return true
+	}
+	else if ( varwww = "vim " )  ;; 用户输入"vim myhotkey.ahk", 将用vim 编辑器打开myhotkey.ahk文件
+	{
+		StringMid, var_user, var_user, 5
+		iniread,var_vim,launchy.ini,file, vim
+		if var_vim <>
+		{
+			iniread,var_keyValue,launchy.ini,file,%var_user%
+			StringLeft var_firstchar, var_keyValue, 1
+			var_list = +-`;
+			IfInstring var_list, %var_firstchar% 
+			{
+				StringMid var_keyValue, var_keyValue, 2	;; 去掉行首的+-以及分号
+			}
+			IfNotExist %var_keyValue%
+			{
+				tooltip 想用VIM打开的文件不存在 `n %var_keyValue%
+				sleep 2000
+				tooltip
+				return true
+			}
+			StringLeft var_firstchar, var_vim, 1
+			IfInstring var_list, %var_firstchar%	
+			{
+				StringMid var_vim, var_vim, 2	;; 去掉行首的+-以及分号
+			}
+			IfNotExist %var_vim%
+			{
+				tooltip 没有正确指定 VIM 编辑器的路径`n请将其路径绑定为vim关键字
+				sleep 2000
+				tooltip
+				return true
+			}
+			run %var_vim% `"%var_keyValue%`"
+		}
+		else
+		{
+			tooltip7("你还没有指定vim文本编辑器的位置, 找到vim的运行文件, `n按Ctrl+Alt+Insert键将其添加为关键字Vim")
+		}
+		return true
+	}
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;; 检查是网址，则直接运行
+	if ( instr(var_user, ".com") or instr(var_user, ".net") or instr(var_user, ".cn") or instr(var_user, ".org") )
+	{	
+		var_temp = http://%var_user% 
+		run %var_temp%
+		∑排序最近运行的命令( var_temp, "web" )
+		return true
+	}
+	
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	; 如果最后字符为=号, 则直接输出关键字的值
+	if ( StrLastWord(var_user, 1) = "=" )
+	{
+		varleft := StrLeft2Sub(var_user, "=")
+		var_temp := read_ini("launchy.ini","file",varleft,"ERROR")
+		if (var_temp="" or var_temp="ERROR") {
+			return false
+		} else {
+			clipboard := var_temp
+			tooltip 已经复制：%var_temp%
+			sleep 800
+			tooltip
+			return true
+		}
+	}
+
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	; 如果输入中包含"::"字符, 
+	; 该符号前是配置文件中[::]节的关键字, 
+	; 该符号后是替换关键值中的$var$的变量
+	varpos := instr(var_user, "::")
+	if (varpos)
+	{
+		varPos -= 1
+
+		stringleft varleft, var_user, %varPos%
+		varPos += 3
+		stringmid  varright, var_user, %varPos%
+
+		var_temp := read_ini("launchy.ini","variable",varleft,"ERROR")
+
+		if ( var_temp=="" || var_temp=="ERROR" )
+		{
+			return false
+		}
+		else 
+		{
+			; 对输入进行变换
+			if (instr(var_temp, "google"))
+			{	; 如果是搜索引擎, 则替换一些字符,如将"+"号替换成"%2B"
+				StringReplace, varright, varright, +, `%2B
+			}
+			else if (instr(var_temp, "baidu"))
+			{	; 如果是搜索引擎, 则替换一些字符,如将"+"号替换成"%2B"
+				StringReplace, varright, varright, +, `%2B
+			}
+
+			; 将变换后的输入值, 替换掉$var$, 然后运行
+			StringReplace, var_temp, var_temp, $var$, %varright%
+			run %var_temp%
+			∑排序最近运行的命令( var_user, "xx" )
+			return true
+		}
+	}
+	return false
+}
+
+;;///////////////////////////////////////////////////////////////////////////
+;; 保存指定的关键字到temp.ini，并且将最近的关键字进行排序
+∑排序最近运行的命令( var_lastkey, var_recent_keyname )
+{
+	global g_PageItems
+
+	var_recent := read_ini("temp.ini", "run", var_recent_keyname, "")
+	var_first := StrLeft2Sub( var_recent, "," )
+	if ( var_first != var_lastkey)
+	{
+		var_temp = %var_lastkey%`,
+		; var_recent := 
+		StringReplaceAll(var_recent, var_temp, "")
+		var_count := 1
+		Loop, parse, var_recent, `,
+		{
+			if a_LoopField <>
+			{
+				var_temp = %var_temp%%a_LoopField%`,
+				var_count++
+				if ( var_count >= g_PageItems )
+					break
+			}
+		}
+		write_ini( "temp.ini", "run", var_recent_keyname, var_temp )
+	}
+}
+
+
+∑删除最近命令的菜单选项( byref var_recent, var_recent_keyname )
+{
+	if ( var_recent == "" && var_recent_keyname == "" )
+		return
+
+	global g_curiterm
+	global g_menukeys
+	global g_preinput
+	var_select_iterm = 
+
+	; 菜单有效, 且选择的菜单项合法, 才可以删除菜单项
+	If g_menukeys <> and var_iterm > 0 and var_iterm <= g_PageItems
+	{
+		; 寻找当前所选择的菜单项, 保存到 var_select_iterm
+		Loop parse, g_menukeys, `n
+		{
+			if ( a_index == g_curiterm )
+			{
+				var_select_iterm := A_LoopField
+				break
+			}
+		}
+		; 如果当前所选的菜单项不为空，则从recent中删除之
+		if var_select_iterm <>
+		{
+			var_recent_temp = 
+			Loop parse, var_recent, `,
+			{
+				if ( A_LoopField != var_select_iterm )
+				{
+					var_recent_temp = %var_recent_temp%%A_LoopField%`,
+				}
+				else 
+				{
+					msgbox 4, 确定删除菜单项,  删除当前 [%var_recent_keyname%] 的 [%var_select_iterm%] 项？
+					IfMsgBox No
+						return
+				}
+			}
+			var_recent := var_recent_temp
+			write_ini( "temp.ini", "run", var_recent_keyname, var_recent )
+			g_preinput = 再次初始化全局变量目的让程序重新生成菜单
+		}
+		else
+		{
+			tooltip  没有找到菜单项[%var_select_iterm%] [%g_curiterm%]`n%g_menukeys%, 0, 0
+			sleep 2000
+			tooltip
+		}
+	}
+
+}
+
+;////////////////////////////////////////////////////////////////////////
+∑将最近命令生成菜单( var_recent, g_winTitle="")
+{
+
+;	var_recent := read_ini("temp.ini", "run", "recent", "")
+	global g_menubody
+	g_menubody =  
+(
+ 【最近使用的%g_winTitle%命令】 
+ ---------------------------------------------------
+
+)
+
+	if ( var_recent == "" || var_recent == "ERROR" )
+	{
+		g_menubody = %g_menubody%`n  最近没有任何命令！`n
+		return
+	}
+
+	global g_PageItems
+	global g_menukeys =
+	var_count = 0
+
+
+	Loop, parse, var_recent, `,
+	{
+		if var_count >= g_PageItems
+		{
+			break
+		}
+		if ( A_loopfield == "ERROR" )
+		{
+			continue
+		}
+		if  A_LoopField<>
+		{
+			var_count++
+			g_menubody = %g_menubody%F%var_count%: %A_LoopField%`n
+			g_menukeys = %g_menukeys%%A_LoopField%`n
+		}
+	}
+}
+
+;////////////////////////////////////////////////////////////////////////
+∑从所有命令中搜索包含指定字符串的命令( byref var_allkeys, var_search, var_isAuto = 0 )
+{
+	var_count = 0
+	var_allkeys = 
+	var_lastkey = 
+
+	global g_file_keys 
+	global g_send_keys 
+	global g_xx_keys 
+
+	global g_file_count 
+	global g_send_count 
+	global g_xx_count 
+	global g_PageItems
+	global g_MaxPage 
+	global g_winTitle
+	global g_winPrompt
+
+	if ( g_file_count > 0 &&  g_file_keys != "" )
+	{
+		Loop parse, g_file_keys, `n
+		{
+			IfInString A_LoopField, %var_search%
+			{
+				var_lastkey := a_loopfield
+				var_allkeys = %var_allkeys%%A_LoopField%`,
+				var_count++
+			}
+		}
+	}
+
+	if ( var_count < ( g_MaxPage * g_PageItems ) && g_send_count > 0 && g_send_keys != "" )
+	{
+		Loop parse, g_send_keys, `n
+		{
+			IfInString A_LoopField, %var_search%
+			{
+				var_lastkey := a_loopfield
+				var_allkeys = %var_allkeys%%A_LoopField%`,
+				var_count++
+			}
+		}
+	}
+
+	if ( var_count < ( g_MaxPage * g_PageItems ) && g_xx_count > 0 && g_xx_keys != "" )
+	{
+		Loop parse, g_xx_keys, `n
+		{
+			IfInString A_LoopField, %var_search%
+			{
+				var_lastkey := a_loopfield
+				var_allkeys = %var_allkeys%%A_LoopField%`,
+				var_count++
+				var_isAuto := false
+			}
+		}
+	}
+
+	if ( var_count == 1 && var_isAuto )
+	{
+		ControlFocus Static1, %g_winTitle%, %g_winPrompt%
+		ControlSetText, Edit1, %var_lastkey%, %g_winTitle%, %g_winPrompt%
+;		settimer 【将焦点定位到输入框】, 600
+	}
+	return var_count
+}
+
+;////////////////////////////////////////////////////////////////////////
+; 在所有的菜单项中寻找指定页的项并生成菜单。var_allkeys以逗号分隔的所有菜单项，
+; var_count命令总数，
+∑从所有菜单项生成指定页数的菜单( var_allkeys, var_count )
+{
+	global g_menukeys =
+	global g_menubody =
+	global g_PageItems
+	global g_curpage
+	global g_curinput
+	
+	global g_file_keys 
+	global g_send_keys 
+	global g_xx_keys 
+
+	var_search := g_curinput
+	bLastEqual := false
+	if ( StrLastWord( g_curinput, 1 ) == "=" )
+	{
+		var_count := strlen( g_curinput ) - 1
+		StringLeft, var_search, g_curinput, %var_count%
+		bLastEqual := true
+	}
+
+	var_pagenum := 1 + var_count // g_PageItems
+
+	if ( g_curpage <= 0 || g_curpage > var_pagenum )
+	{
+		g_curpage = 1
+	}
+
+	
+	g_menubody = 
+(
+ 【搜索%var_search%的命令菜单】               [ %g_curpage% / %var_pagenum% ]
+ ---------------------------------------------------
+
+)
+
+
+	var_index = 0
+	var_firstItem := ( g_curpage - 1 ) * g_PageItems 
+	Loop, parse, var_allkeys, `,
+	{
+		if ( A_Index > var_firstItem && A_LoopField != "")
+		{
+			var_index := A_Index - var_firstItem
+			g_menubody = %g_menubody%F%var_index%: %A_LoopField%
+			g_menukeys = %g_menukeys%%A_LoopField%`n
+
+			;; 比较用户输入是否与某个菜单项相同（不区分大小写），相同则显示该项详细信息。
+			StringLower var_lower1, a_loopField
+			StringLower var_lower2, var_search
+			if ( var_lower1 == var_lower2 )
+			{
+				ifinstring g_file_keys,  %A_LoopField%
+				{
+					var_temp := read_ini( "launchy.ini", "file", A_LoopField, "" )
+					g_menubody = %g_menubody% → [file] `n └→%var_temp%
+				}
+				else ifinstring g_xx_keys,  %A_LoopField%
+				{
+					var_temp := read_ini( "launchy.ini", "variable", A_LoopField, "" )
+					g_menubody = %g_menubody% → [variable] `n └→%var_temp%
+				}
+				else ifinstring g_send_keys,  %A_LoopField%
+				{
+					var_temp := read_ini( "launchy.ini", "send", A_LoopField, "" )
+					g_menubody = %g_menubody% → [send] `n └→%var_temp%
+				}
+			}
+			if bLastEqual
+			{
+				g_menubody = %g_menubody% 【复制】
+			}
+			g_menubody = %g_menubody%`n
+			if ( var_index >= g_PageItems )
+			{
+				break 	; 所有的菜单项已经完成
+			}
+		}
+	}
+
+	if var_pagenum > 1
+	{
+		if ( g_curpage == 1 )
+		{
+			g_menubody = %g_menubody%`nPageDown: 下一页
+		}
+		else if ( g_curpage == var_pagenum )
+		{
+			g_menubody = %g_menubody%`nPageUp: 上一页
+		}
+		else
+		{
+			g_menubody = %g_menubody%`nPageUp: 上一页             PageDown: 下一页
+		}
+	}
+}
+
+;////////////////////////////////////////////////////////////////////////
+∑显示运行菜单(var_menu, X, Y )
+{
+	; 如果菜单为空，表明要清除之前tooltip的内容
+	if var_menu =
+	{
+		ToolTip , %var_tempmenu%, , , 12
+		return
+	}
+	global g_curiterm	; 当前选中的菜单项
+	var_count = 0		; 菜单项总数
+	Loop, Parse, var_menu, `n
+	{
+		if equal_first_char(a_loopfield, "F")
+		{
+			ifinstring a_loopfield, :
+			{
+				var_count++
+				var_index := StrMid2Sub( a_loopfield, "F", ":" )	; 得到菜单项的序号
+				if ( var_index == g_curiterm )
+				{
+					var_tempmenu = %var_tempmenu%◆					; 在当前选中的菜单项前, 添加◆符号
+				}
+				else
+				{
+					var_tempmenu = %var_tempmenu%　
+				}
+			}
+		}
+		var_tempmenu = %var_tempmenu%%a_loopfield%`n				; 其他的内容不变
+	}
+	; 调整当前菜单项指针在合法的范围( 0 ~ 当前菜单项总数 )
+	if ( g_curiterm < 0 )
+	{
+		g_curiterm := 1
+	}
+	else if ( g_curiterm > var_count )
+	{
+		g_curiterm := var_count
+	}
+	; 在菜单末尾显示当前菜单项指针所指的菜单项
+	var_tempmenu = %var_tempmenu% --------------------< %g_curiterm% >-------------------------
+	ToolTip , %var_tempmenu%, X, Y, 12
+}
+
+;////////////////////////////////////////////////////////////////////////
+∑选择了一个菜单项( var_iterm )
+{
+	global g_PageItems
+	global g_menukeys
+	global g_winTitle
+	global g_winPrompt
+
+	; 如果菜单有效, 且选择的菜单项合法, 则将该菜单项的命令输入到命令框中
+	If g_menukeys <> and var_iterm > 0 and var_iterm <= g_PageItems
+	{
+		Loop parse, g_menukeys, `n
+		{
+			if ( a_index == var_iterm )
+			{
+				ControlSetText, Edit1, %A_LoopField%, %g_winTitle%, %g_winPrompt%
+			}
+		}
+	}
+	send {end}
+
+}

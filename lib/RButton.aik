@@ -1,0 +1,107 @@
+/*
+ * 右键实现鼠标手势功能
+ */
+
+; g_bUseMouseGesture = ;; 控制是否启用鼠标手势
+
+RButton::
+	;; 如果没有开启右键鼠标手势功能，则直接点击右键
+	if not g_bUseMouseGesture
+	{
+		SendPlay {RButton}
+		Return
+	}
+	;; 开启了右键鼠标功能
+	MouseGetPos TX,TY,UMWID,UMC
+	Loop
+	{
+		MouseGetPos TXX,TYY
+		TR:=GetKeyState("RButton","P")
+		XX:=TXX-TX
+		YY:=TYY-TY
+		DS:=Sqrt(XX*XX+YY*YY)
+		If ((TR=0) And (DS<=20))
+		{
+			SendPlay {RButton}
+			Break
+		}
+		If ((DS>20) And (TR=1))
+		{
+			Gosub 【获取鼠标手势】
+			Break
+		}
+	}
+	∑执行鼠标指令( )
+	
+	GestureList=
+	;~ GroupAdd a
+Return
+
+
+【获取鼠标手势】:
+	Loop %Count%
+		Gesture%A_Index%=
+
+	GestureList=
+
+	Count:=1
+	lx:=TX
+	ly:=TY
+	Loop
+	{
+		Count2:=Count-1
+		lastGesture:=Gesture%lastcount%
+		TR:=GetKeyState("RButton","P")
+		If TR=0
+			Break
+
+		Sleep 20
+		MouseGetPos nx,ny
+		xx:=nx-lx
+		yy:=ny-ly
+		DS:=Sqrt(XX*XX+YY*YY)
+		If (ds<15)
+			Continue
+
+		identify()
+		lx:=nx
+		ly:=ny
+		lastcount:=count-1
+		If (Gesture%count%=Gesture%lastcount%)
+		{
+			Gesture%count%=
+			Continue
+		}
+		If Gesture%count%=
+		Continue
+		index:=Gesture%Count%
+		GestureList=%GestureList%%index%
+		StringReplace rsuser,GestureList,R,→%A_Space%,A
+		StringReplace rsuser,rsuser,L,←%A_Space%,A
+		StringReplace rsuser,rsuser,U,↑%A_Space%,A
+		StringReplace rsuser,rsuser,D,↓%A_Space%,A
+		Loop %n%
+		{
+			If (GestureList=Act%A_Index%)
+			{
+				act:=ActName%A_Index%
+				Break
+			}
+		}
+		If (count > 4)
+		noact=手势已取消
+		TrayTip ,AHK 鼠标手势%A_Tab%%noact%,%rsuser%%A_Tab%%act%
+		act=
+		noact=
+		count++
+	}
+	TrayTip
+
+Return
+
+
+∑执行鼠标指令( )
+{
+
+}
+

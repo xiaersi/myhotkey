@@ -1,0 +1,493 @@
+/*
+#include ..\
+#include .\inc\common.aik
+#include .\inc\tip.aik
+*/
+g_MouseInAwin =							;; 鼠标在窗口中的位置
+g_AWinMoved := false                    ;; 窗口是否已经发生变化
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 与右键相关的热键
+
+MButton::
+	WinGetActiveTitle, var_title
+	WinGetClass, var_class, A 
+	if var_class in Shell_TrayWnd, DV2ControlHost,
+	{
+		return
+	}
+	if var_title in Program Manager, 「开始」菜单,
+	{
+		return
+	}
+	WinGet, var_ahkid, ID, A
+	if ( is_full_screen( var_ahkid ) )
+	{
+		return
+	}
+	WinGetActiveStats, g_ATitle, g_AWidth, g_AHeight, g_AX, g_AY 
+	MouseGetRelaPos( g_MRX, g_MRY )
+	MouseGetPos g_mx, g_my
+	
+	if ( g_MRX <= 0 || g_MRY <= 0 || g_MRX >= g_AWidth || g_MRY >= g_AHeight )
+	{
+		return
+	}
+	g_MouseInAwin := ∑鼠标在窗口的方位( g_MRX, g_MRY, g_AWidth, g_AHeight )
+	if g_MouseInAwin = 中间
+		settimer [定时移动窗口], 100
+	else
+		settimer [定时调整窗口], 100
+	return
+
+;; Ctrl+中键，手动窗口中央移动窗口，手动四周整体缩放窗口
+^MButton::
+	WinGetActiveTitle, var_title
+	WinGetClass, var_class, A 
+	if var_class in Shell_TrayWnd, DV2ControlHost,
+	{
+		return
+	}
+	if var_title in Program Manager, 「开始」菜单,
+	{
+		return
+	}
+	WinGet var_MinMax, MinMax, A
+	if var_MinMax <> 0
+	{
+		return
+	}
+	;; 全屏时，Alt+右键 只点击右键，有利于玩全屏游戏
+	WinGet, var_ahkid, ID, A
+	if ( is_full_screen( var_ahkid ) )
+	{
+		return
+	}	
+	
+	WinGetActiveStats, g_ATitle, g_AWidth, g_AHeight, g_AX, g_AY 
+	MouseGetRelaPos( g_MRX, g_MRY )
+	MouseGetPos g_mx, g_my
+	
+	if ( g_MRX <= 0 || g_MRY <= 0 || g_MRX >= g_AWidth || g_MRY >= g_AHeight )
+	{
+		return
+	}
+	;; 如果当前窗口最大化，则鼠标所在的区域在中间，窗口内任意地方拖拽中键的效果都是滚动水平滚动条
+	WinGet var_MinMax, MinMax, A
+	if var_MinMax = 1
+		g_MouseInAwin = 中间
+	;; 如果当前窗口不是最大化，则调用 ∑鼠标在窗口的方位() 确定鼠标所在的区域
+	else 	
+		g_MouseInAwin := ∑鼠标在窗口的方位( g_MRX, g_MRY, g_AWidth, g_AHeight )
+		
+	if g_MouseInAwin = 中间
+		settimer [定时手动水平滚动条], 100
+	else
+		settimer [定时缩放窗口], 100
+	return
+
+;; Alt+中键，移动窗口
+!MButton::
+	WinGetActiveTitle, var_title
+	WinGetClass, var_class, A 
+	if var_class in Shell_TrayWnd, DV2ControlHost,
+	{
+		return
+	}
+	if var_title in Program Manager, 「开始」菜单,
+	{
+		return
+	}
+	WinGet var_MinMax, MinMax, A
+	if var_MinMax <> 0
+	{
+		return
+	}
+	;; 全屏时，Alt+右键 只点击右键，有利于玩全屏游戏
+	WinGet, var_ahkid, ID, A
+	if ( is_full_screen( var_ahkid ) )
+	{
+		return
+	}	
+	
+	WinGetActiveStats, g_ATitle, g_AWidth, g_AHeight, g_AX, g_AY 
+	MouseGetRelaPos( g_MRX, g_MRY )
+	MouseGetPos g_mx, g_my
+	
+	if ( g_MRX <= 0 || g_MRY <= 0 || g_MRX >= g_AWidth || g_MRY >= g_AHeight )
+	{
+		return
+	}
+	settimer [定时移动窗口], 100
+	return
+	
+	
+Mbutton up::
+	tooltip
+	∑重置窗口控制参数()	
+	settimer [定时调整窗口], off
+	settimer [定时缩放窗口], off
+	settimer [定时移动窗口], off
+	settimer [定时手动水平滚动条], off
+	return
+	
+!Mbutton up::
+^Mbutton up::
+	tooltip
+	∑重置窗口控制参数()	
+	settimer [定时缩放窗口], off
+	settimer [定时移动窗口], off
+	settimer [定时手动水平滚动条], off
+	return
+	
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 调整窗口的定时器
+
+[定时调整窗口]:
+	;; 
+	if g_ATitle =
+	{
+		∑重置窗口控制参数()
+		settimer [定时调整窗口], off
+		return
+	}
+	else ifwinnotexist %g_ATitle%
+	{
+		∑重置窗口控制参数()
+		settimer [定时调整窗口], off
+		return
+	}
+;	tooltip7("定时调整窗口, 鼠标右键按下")
+	CoordMode, Mouse, Screen
+	MouseGetPos m_x, m_y
+	if not g_AWinMoved 
+	{
+		;; 如果点击了鼠标右键，且有较大幅度的移动，则认为需要移动或改变当前窗口	g_AWinMoved := true
+		if ( g_mx - m_x < -10 || g_mx - m_x > 10 || g_my - m_y < -10 || g_my - m_y > 10)
+		{
+			g_AWinMoved := true
+		;	send {alt}
+		;	tooltip [%g_MouseInAwin%]
+		}
+	}
+;	tooltip (%g_mx%`, %g_my%) to (%m_x%`, %m_y%)
+	∑拖拽鼠标调整窗口( g_ATitle, g_MouseInAwin, m_x - g_mx, m_y - g_my )
+	return
+	
+[定时缩放窗口]:
+	if g_ATitle =
+	{
+		∑重置窗口控制参数()
+		settimer [定时调整窗口], off
+		return
+	}
+	else ifwinnotexist %g_ATitle%
+	{
+		∑重置窗口控制参数()
+		settimer [定时调整窗口], off
+		return
+	}
+;	tooltip7("定时调整窗口, 鼠标右键按下")
+	CoordMode, Mouse, Screen
+	MouseGetPos m_x, m_y
+	if not g_AWinMoved 
+	{
+		;; 如果点击了鼠标右键，且有较大幅度的移动，则认为需要移动或改变当前窗口	g_AWinMoved := true
+		if ( g_mx - m_x < -10 || g_mx - m_x > 10 || g_my - m_y < -10 || g_my - m_y > 10)
+		{
+			g_AWinResize := true
+;			tooltip [%g_MouseInAwin%]
+		}
+	}
+;	tooltip (%g_mx%`, %g_my%) to (%m_x%`, %m_y%)
+	∑拖拽鼠标缩放窗口( g_ATitle, g_MouseInAwin, m_x - g_mx, m_y - g_my )	
+	return
+
+[定时移动窗口]:
+	if g_ATitle =
+	{
+		∑重置窗口控制参数()
+		settimer [定时调整窗口], off
+		return
+	}
+	else ifwinnotexist %g_ATitle%
+	{
+		∑重置窗口控制参数()
+		settimer [定时调整窗口], off
+		return
+	}
+;	tooltip7("定时调整窗口, 鼠标右键按下")
+	CoordMode, Mouse, Screen
+	MouseGetPos m_x, m_y
+	if not g_AWinMoved 
+	{
+		;; 如果点击了鼠标右键，且有较大幅度的移动，则认为需要移动或改变当前窗口	g_AWinMoved := true
+		if ( g_mx - m_x < -10 || g_mx - m_x > 10 || g_my - m_y < -10 || g_my - m_y > 10)
+		{
+			g_AWinResize := true
+;			tooltip [%g_MouseInAwin%]
+		}
+	}
+	∑拖拽鼠标移动窗口( g_ATitle, m_x - g_mx, m_y - g_my )	
+	return
+	
+[定时手动水平滚动条]:
+	if g_ATitle =
+	{
+		∑重置窗口控制参数()
+		settimer [定时调整窗口], off
+		return
+	}
+	else ifwinnotexist %g_ATitle%
+	{
+		∑重置窗口控制参数()
+		settimer [定时调整窗口], off
+		return
+	}
+;	tooltip7("定时调整窗口, 鼠标右键按下")
+	CoordMode, Mouse, Screen
+	MouseGetPos m_x, m_y
+	if not g_AWinMoved 
+	{
+		;; 如果点击了鼠标右键，且有较大幅度的移动，则认为需要移动或改变当前窗口	g_AWinMoved := true
+		if ( g_mx - m_x < -10 || g_mx - m_x > 10 || g_my - m_y < -10 || g_my - m_y > 10)
+		{
+			g_AWinResize := true
+;			tooltip [%g_MouseInAwin%]
+		}
+	}
+	∑拖拽鼠标控制水平滚动条( g_ATitle, m_x - g_mx, m_y - g_my )	
+	return	
+	
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 函数
+∑重置窗口控制参数()
+{
+	global 
+	g_MouseInAwin =
+	g_ATitle = 0 
+	g_AWidth = 0
+	g_AHeight = 0
+	g_AX = 0
+	g_AY = 0
+	g_AWinMoved := false
+	g_AWinResize := false
+	tooltip
+}	
+
+∑拖拽鼠标调整窗口( ATitle, MouseInAwin, dx, dy )
+{
+	CoordMode, ToolTip, Screen 
+	global g_AWidth
+	global g_AHeight
+	global g_AX
+	global g_AY
+	global g_mx
+	global g_my
+	if ( g_AWinMoved == false || ATitle == "" || MouseInAwin == "" || ( dx == "" && dy == "" ) || ( dx == 0 && dy == 0) )
+		return
+	
+	if ( g_AWidth == 0 && g_AHeight == 0 && g_AX == 0 && g_AY == 0 )
+		return
+		
+	ifwinnotexist %ATitle%
+		return
+	
+	if MouseInAwin = 右边
+	{
+		WinMove, %ATitle%, , g_AX, g_AY, g_AWidth + dx, g_AHeight
+	}
+	else if MouseInAwin = 下边
+	{
+		WinMove, %ATitle%, , g_AX, g_AY, g_AWidth, g_AHeight+dy
+	}
+	else if MouseInAwin = 上边
+	{
+		WinMove, %ATitle%, , g_AX, g_AY + dy, g_AWidth, g_AHeight-dy
+	}
+	else if MouseInAwin = 左边
+	{
+		WinMove, %ATitle%, , g_AX+dx, g_AY, g_AWidth - dx, g_AHeight
+	}
+	else if MouseInAwin = 右下
+	{
+		WinMove, %ATitle%, , g_AX, g_AY, g_AWidth + dx, g_AHeight + dy
+	}
+	else if MouseInAwin = 右上
+	{
+		WinMove, %ATitle%, , g_AX, g_AY + dy, g_AWidth + dx, g_AHeight - dy
+	}
+	else if MouseInAwin = 左下
+	{
+		WinMove, %ATitle%, , g_AX+dx, g_AY, g_AWidth - dx, g_AHeight+dy
+	}
+	else if MouseInAwin = 左上
+	{
+		WinMove, %ATitle%, , g_AX+dx, g_AY + dy, g_AWidth - dx, g_AHeight - dy
+	}
+}
+
+∑拖拽鼠标缩放窗口( ATitle, MouseInAwin, dx, dy )
+{
+	CoordMode, ToolTip, Screen 
+	global g_AWidth
+	global g_AHeight
+	global g_AX
+	global g_AY
+	if ( g_AWinResize == false || ATitle == "" || MouseInAwin == "" || ( dx == "" && dy == "" ) || ( dx == 0 && dy == 0) )
+		return
+	
+	if ( g_AWidth == 0 && g_AHeight == 0 && g_AX == 0 && g_AY == 0 )
+		return
+		
+	ifwinnotexist %ATitle%
+		return
+		
+	if MouseInAwin = 右边
+	{
+		WinMove, %ATitle%, , g_AX - dx, g_AY, g_AWidth + dx + dx, g_AHeight
+	}
+	else if MouseInAwin = 下边
+	{
+		WinMove, %ATitle%, , g_AX, g_AY - dy, g_AWidth, g_AHeight+dy+dy
+	}
+	else if MouseInAwin = 上边
+	{
+		WinMove, %ATitle%, , g_AX, g_AY + dy, g_AWidth, g_AHeight-dy-dy
+	}
+	else if MouseInAwin = 左边
+	{
+		WinMove, %ATitle%, , g_AX+dx, g_AY, g_AWidth - dx - dx, g_AHeight
+	}
+	else if MouseInAwin = 右下
+	{
+		WinMove, %ATitle%, , g_AX -dx, g_AY -dy, g_AWidth + dx + dx, g_AHeight + dy +dy
+	}
+	else if MouseInAwin = 右上
+	{
+		WinMove, %ATitle%, , g_AX - dx, g_AY + dy, g_AWidth + dx +dx, g_AHeight - dy - dy
+	}
+	else if MouseInAwin = 左下
+	{
+		WinMove, %ATitle%, , g_AX +dx, g_AY - dy, g_AWidth - dx - dx, g_AHeight +dy +dy
+	}
+	else if MouseInAwin = 左上
+	{
+		WinMove, %ATitle%, , g_AX +dx, g_AY + dy, g_AWidth - dx - dx, g_AHeight - dy - dy
+	}
+}
+
+
+∑拖拽鼠标移动窗口( ATitle, dx, dy )
+{
+	CoordMode, ToolTip, Screen 
+	global g_AWidth
+	global g_AHeight
+	global g_AX
+	global g_AY
+	if ( g_AWinResize == false || ATitle == "" || ( dx == "" && dy == "" ) || ( dx == 0 && dy == 0) )
+		return
+	
+	if ( g_AWidth == 0 && g_AHeight == 0 && g_AX == 0 && g_AY == 0 )
+		return
+		
+	ifwinnotexist %ATitle%
+		return
+		
+	WinMove, %ATitle%, , g_AX + dx, g_AY + dy, g_AWidth, g_AHeight
+}
+
+∑拖拽鼠标控制水平滚动条( ATitle, dx, dy )
+{
+	CoordMode, ToolTip, Screen 
+	global g_AWidth
+	global g_AHeight
+	global g_AX
+	global g_AY
+	global g_mx
+	global g_my
+	if ( g_AWinMoved == false || ATitle == "" || ( dx == "" && dy == "" ) || ( dx == 0 && dy == 0) )
+		return
+	
+	if ( g_AWidth == 0 && g_AHeight == 0 && g_AX == 0 && g_AY == 0 )
+		return
+		
+	ifwinnotexist %ATitle%
+		return
+
+	ControlGetFocus, fcontrol, A
+	if dx > 10 
+	{
+		var_loop := 1 + dx // 50
+		if var_loop > 8
+		{
+			var_loop = 8
+		}
+		var_tip = 
+		loop %var_loop%
+			var_tip = %var_tip%>
+		loop %var_loop%
+		{
+			SendMessage, 0x114, 1, 0, %fcontrol%, A 
+			sleep 10
+		}
+		tooltip %var_tip%, g_mx, g_my
+		settimer [延时清理水平滚动速度提示], 300
+	}
+	else if dx < -10
+	{
+		var_loop := 1 - dx // 50
+		if var_loop > 8
+		{
+			var_loop = 8
+		}
+		var_tip = 
+		loop %var_loop%
+			var_tip = %var_tip%<
+		loop %var_loop%
+		{
+			SendMessage, 0x114, 0, 0, %fcontrol%, A 
+			sleep 10
+		}
+		tooltip %var_tip%, g_mx, g_my
+		settimer [延时清理水平滚动速度提示], 300
+	}
+}
+
+
+∑鼠标在窗口的方位(  RX, RY, AW, AH )
+{
+	if ( RX < AW / 4 )  ; left
+	{
+		if ( RY < AH / 4 ) ; lt
+			MouseInAwin = 左上
+		else if ( RY > AH * 3 / 4 ) ; lb
+			MouseInAwin = 左下
+		else
+			MouseInAwin = 左边
+	}
+	else if ( RX > AW * 3 / 4 ) ; right
+	{
+		if ( RY < AH / 4 ) ; rt
+			MouseInAwin = 右上
+		else if ( RY > AH * 3 / 4 ) ; rb
+			MouseInAwin = 右下
+		else
+			MouseInAwin = 右边
+	}
+	else ; center
+	{
+		if ( RY < AH / 4 ) ; mt
+			MouseInAwin = 上边
+		else if ( RY > AH * 3 / 4 ) ; mb
+			MouseInAwin = 下边
+		else
+			MouseInAwin = 中间
+	}
+	return MouseInAwin
+}
+
+[延时清理水平滚动速度提示]:
+	tooltip
+	settimer [延时清理水平滚动速度提示], off
+	return

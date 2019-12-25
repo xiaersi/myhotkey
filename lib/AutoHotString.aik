@@ -1,0 +1,204 @@
+;; 根据 AutoHotString.ini 配置的Hotkey和HotString，设置热键
+;; #Include inc/inifile.aik
+;; #Include inc/string.aik
+;; #include inc/Array.aik
+;; #include inc/cmdString.aik
+
+;; 设置图标
+
+Process Priority,,High
+
+;change_icon("..\Myhotkey1.ico")         ;; 设置图标
+
+IfNotExist AutoHotString.ini
+{
+	InitAutoHotStringIniFile()              ;; 配置文件不存在，则新建一个默认的配置文件
+}
+
+g_curSection =                          ;; 当前Section
+g_MouseGestureArray = 					;; 数组，保存鼠标手势
+
+g_GlobalHotkey_Section = 全局热键
+g_MouseGesture_Section = 画屏手势
+g_MouseGesture_ActiveWinGroup =         ;; 过滤鼠标手势的活动窗口组
+g_MouseGesture_ExistWinGroup =			;; 过滤鼠标手势的非活动窗口组
+
+g_GlobalSwitch_Section = 全局开关
+g_GlobalSwitch_LWin = 					;; 屏蔽单击左Windows徽标键
+g_GlobalSwitch_CapsLock = 				;; 屏蔽单击大写锁定键
+g_GlobalSwitch_HJKL =					;; Alt加HJKL快捷键模拟VIM风格
+g_GlobalSwitch_AltLRUD =				;; Alt加符号键模拟方向键
+g_GlobalSwitch_Gesture =				;; Win加方向键模拟画屏手势
+
+LoadAutoHotString()
+
+;; AutoLable.aik包含了g_$Hotkeys$Lables中声明的Lable的实现体
+;;#Include lib/AutoLable.aik
+
+LoadAutoHotString()
+{
+	Local var_temp, opt
+	Hotkey,  !pause, 【脚本控制子菜单_Suspend】, on
+	Hotkey,  #!F5, 【脚本控制子菜单_Suspend】, on
+	Hotkey,  !#F5, 【脚本控制子菜单_Suspend】, on
+	Hotkey,  #+F5, 【脚本控制子菜单_Pause】, on
+	Hotkey,  +#F5, 【脚本控制子菜单_Pause】, on
+
+	;; 读取 AutoHotkeyString.ini 到内存 g_AutoHotString（行与行之间以`n）分隔
+	g_AutoHotString := IniFileRead( "AutoHotString.ini" )
+	if g_AutoHotString <>
+	{
+		;; 先处理鼠标手势与鼠标中键拖拽窗口的功能
+		var_temp := FindFromIniMem( g_AutoHotString, g_GlobalHotkey_Section, "【开关画屏命令】", "" )
+		cmdStringSplit( var_temp, opt )
+		if InStrList( opt, "1", "|" )
+		{
+			Hotkey,  RButton, 【右键鼠标手势】, on
+			Hotkey, ^RButton, 【右键鼠标手势】, on
+			Hotkey, !RButton, 【右键鼠标手势】, on
+			Hotkey, +RButton, 【右键鼠标手势】, on
+			Hotkey, ^+RButton, 【右键鼠标手势】, on
+			Hotkey, !+RButton, 【右键鼠标手势】, on
+			Hotkey, ^!+RButton, 【右键鼠标手势】, on
+			Hotkey, ^!RButton, 【右键鼠标手势】, on
+			g_bUseMouseGesture := True
+
+			;; 获取鼠标手势命令
+			SecArrayFromIniMem( g_AutoHotString, g_MouseGesture_Section, "g_MouseGestureArray" )
+		}
+
+		;; 鼠标中键拖拽窗口
+		var_temp := FindFromIniMem( g_AutoHotString, g_GlobalHotkey_Section, "【开关鼠标拖拽窗口】", "" )
+		cmdStringSplit( var_temp, opt )
+		if InStrList( opt, "1", "|" )
+		{
+			Hotkey, MButton, 【中键拖拽窗口】, on
+			g_bMButtoneDragWindow := True
+		}
+
+		;; 获得鼠标手势的过滤窗口组
+		var_temp := FindFromIniMem( g_AutoHotString, g_MouseGesture_Section, "Active禁用列表", "" )
+		if var_temp <>
+		{
+			g_MouseGesture_ActiveWinGroup =
+			loop parse, var_temp, |
+			{
+				if a_loopfield <>
+				{
+					GroupAdd, g_MouseGesture_ActiveWinGroup, %a_loopfield%
+				}
+			}
+		}
+
+		var_temp := FindFromIniMem( g_AutoHotString, g_MouseGesture_Section, "Exist禁用列表", "" )
+		if var_temp <>
+		{
+			g_MouseGesture_ExistWinGroup =
+			loop parse, var_temp, |
+			{
+				if a_loopfield <>
+				{
+					GroupAdd, g_MouseGesture_ExistWinGroup, %a_loopfield%
+				}
+			}
+		}	
+
+		;; 读取全局热键开关设置
+		g_GlobalSwitch_LWin := FindFromIniMem( g_AutoHotString, g_GlobalSwitch_Section, "屏蔽单击左Windows徽标键", "1" )
+		∑屏蔽单击LWin键( g_GlobalSwitch_LWin )
+		
+		g_GlobalSwitch_CapsLock := FindFromIniMem( g_AutoHotString, g_GlobalSwitch_Section, "屏蔽单击大写锁定键", "0" )
+		∑屏蔽单击CapsLock键( g_GlobalSwitch_CapsLock )
+
+		g_GlobalSwitch_HJKL := FindFromIniMem( g_AutoHotString, g_GlobalSwitch_Section, "Alt加HJKL快捷键模拟VIM风格", "1" )
+		∑Alt加HJKL快捷键模拟VIM风格( g_GlobalSwitch_HJKL )
+
+		g_GlobalSwitch_AltLRUD := FindFromIniMem( g_AutoHotString, g_GlobalSwitch_Section, "Alt加符号键模拟方向键", "1" )
+		∑Alt加符号键模拟方向键( g_GlobalSwitch_AltLRUD )
+
+		g_GlobalSwitch_Gesture := FindFromIniMem( g_AutoHotString, g_GlobalSwitch_Section, "Win加方向键模拟画屏手势", "1" )
+		∑Win加方向键模拟画屏手势( g_GlobalSwitch_Gesture )
+
+		g_GlobalSwitch_WinAltMove := FindFromIniMem( g_AutoHotString, g_GlobalSwitch_Section, "WinAlt加方向键移动窗口至屏幕边框", "1" )
+		∑WinAlt加方向键移动窗口至屏幕边框( g_GlobalSwitch_WinAltMove )
+
+		g_GlobalSwitch_WinShiftMove := FindFromIniMem( g_AutoHotString, g_GlobalSwitch_Section, "WinShift加方向键移动当前窗口", "1" )
+		∑WinShift加方向键移动当前窗口( g_GlobalSwitch_WinShiftMove )
+
+		g_GlobalSwitch_xHotString := FindFromIniMem( g_AutoHotString, g_GlobalSwitch_Section, "启动飞扬个性输入", "1" )		
+
+		g_GlobalSwitch_GestureTooltip := FindFromIniMem( g_AutoHotString, g_GlobalSwitch_Section, "画屏命令当前手势提示", "1" )		
+
+		g_GlobalSwitch_GestureTraytip := FindFromIniMem( g_AutoHotString, g_GlobalSwitch_Section, "画屏命令气泡提示", "1" )		
+
+
+		;; 逐行处理
+		Loop parse, g_AutoHotString, `n
+		{
+			var_line := A_LoopField
+			;; 如果是[分节]
+			if ( RegExMatch( var_line, "^\[.+\]", var_match ) > 0 )
+			{
+				g_curSection := RegExReplace(var_match,"[\[\]]","")
+				; MsgBox g_curSection = %g_curSection%
+
+				;; g_GlobalHotkey_Section 全局热键
+				if ( g_curSection == g_GlobalHotkey_Section )
+				{
+					Hotkey, IfWinActive
+				}
+			}
+			;; 当前分节为[g_GlobalHotkey_Section]， 则自动产生Hotkey
+			else If ( g_curSection == g_GlobalHotkey_Section )
+			{
+				;; 分析行如 Alt_Tab切换窗口=0)!Tab
+				if ( StrSplit2sub( var_line, "=", var_keyName, var_keyValue ) )
+				{
+					var_Lable  = %var_keyName%
+
+					;; keyName后面如果有@n，取@n之前的，如此可实现多行多个快捷键来启动同一个Lable
+					IfInString var_Lable, @
+					{
+						var_Lable := StrLeft2Sub( var_lable,"@" )
+					}
+
+					;; 检查 var_Lable 标签是否在AutoLable中定义，如果定义则需要将该标签名称添加到g_$Hotkeys$Lables变量中
+					if IsLabel( var_Lable )
+					{
+						var_hotkey =
+						var_pos := instr( var_keyValue, ")" )
+						if var_pos = 0
+						{
+							Hotkey, %var_keyValue%, %var_Lable%
+						}
+						else
+						{
+							StringLeft var_options, var_keyValue, var_pos - 1
+							StringMid  var_hotkeyList, var_keyValue, var_pos + 1
+	                        if ( var_options <> 0 && var_hotkeyList <> "" )              	;; 1) 表示该Hotkey有效
+	                        {
+	                        	loop parse, var_hotkeyList, |
+	                        	{
+	                        		if a_loopfield <>
+									{
+	                        			Hotkey, %a_loopfield%, %var_Lable%, on
+										;; 添加热键之后，将该热键定义添加到数据g_HotkeyArray中
+										var_temp = %a_loopfield%:`t%var_Lable%
+										AppendArray( "g_HotkeyArray", var_temp )
+									}
+	                        	}
+							}
+						}
+					}
+				}
+			}
+			else if g_curSection = $HotStrings$
+			{
+				
+			}
+		}
+		
+	}
+}
+
+

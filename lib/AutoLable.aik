@@ -1,0 +1,386 @@
+/**
+ *@file    AutoLable.aik
+ *@author  teshorse
+ *@date    2011.09.15
+ *@brief   通用Lable，供其他热键、菜单、鼠标手势等调用
+ */
+
+;#include ./inc/MouseGesture.aik
+
+g_$Hotkeys$Lables =
+
+
+InitAutoHotStringIniFile()
+{
+	var_root := ∑获取根目录()
+	var_root = %var_root%/Users/AutoHotKey.ini
+	var_temp := IniFileRead( var_root )
+	FileAppend %var_temp%, AutoHotString.ini
+}
+
+
+GetHotkeyLables()
+{
+	global
+	if g_$Hotkeys$Lables =
+	{
+		g_$Hotkeys$Lables = 【启动我的小字典】|【启动飞扬命令窗口】|【Alt_Tab切换窗口】|【打开我的共享小字典】|【新建运行命令】|【复制编辑飞扬命令串】|【启动多屏幕】|【菜单调整当前窗口大小】|【重启脚本程序】|【复制无格式文本】|【粘贴无格式的文本】|【将选中文本保存为临时脚本文件并保持运行】|【将选中文本保存为一次性临时脚本文件并运行】|【金山词霸在线查询选中的内容】|【将窗口从左显示器移动到右显示器】|【将窗口从右显示器移动到左显示器】|【复制到行尾】|【调节音量】|【调节窗口透明度】|【自定义全局热键】|【菜单编辑选中文本】|【开关画屏命令】|【开关鼠标拖拽窗口】|【使用VIM编辑选中的文本】|【预设锁屏】|【设置锁屏密码】|【设密锁屏】|【复制并调整选中代码的空格】|【选择飞扬魔术键盘】
+	}
+	Return g_$Hotkeys$Lables
+}
+
+
+
+【启动飞扬小字典】:
+【启动我的小字典】:
+	var_root := ∑获取根目录()
+	var_file = %var_root%\bin\dict\dict.ahk
+	var_param = SubDir:Dict
+	run_ahk(var_file, var_param)
+	Return
+
+
+【打开我的共享小字典】:
+	var_root := ∑获取根目录()
+	var_file = %var_root%\bin\dict\dict.ahk
+	var_path = %var_root%\bin\dict
+	var_param = SubDir:Dict
+	;msgbox run_ahk(%var_file%, "", %var_path% )
+	run_ahk(var_file, var_param, var_path )
+	return
+
+
+【启动飞扬命令窗口】:
+【启动我的运行窗口】:
+	ifwinexist 飞扬命令窗口 ahk_class AutoHotkeyGUI
+	{
+		winclose
+	}
+	else
+	{
+		var_run := ∑获取根目录()
+		var_run = %var_run%\bin\run\run3.ahk	; 我的运行窗口.ahk
+		run_ahk( var_run )
+		var_run =
+	}
+	Return
+
+【Alt_Tab切换窗口】:
+	var_run := ∑获取根目录()
+	var_run = %var_run%\bin\Alt_Tab切换窗口\AltTab.ahk	; Alt + Tab 切换窗口
+	run_ahk( var_run )
+	var_run =
+	Return
+
+
+【缩略图切换窗口】:
+	var_run := ∑获取根目录()
+	var_run = %var_run%\bin\Alt_Tab切换窗口\缩略图切换窗口.ahk	; 通过窗口缩略图来切换窗口
+	run_ahk( var_run )
+	var_run =
+	return	
+
+【添加飞扬命令窗口】:
+【新建运行命令】:	;; 弹出窗口添加运行文件，供“运行”窗口使用
+	Send ^c
+	clipwait 0.5
+	var_run := ∑获取根目录()
+	var_run = %var_run%\bin\run\addrun.ahk
+	var_param := clipboard
+    StrAddQuot( var_param )             ;; 用双引号将参数引用起来
+	run_ahk( var_run, var_param, a_WorkingDir )
+	var_run =
+	return
+
+【启动多屏幕】:
+	var_run := ∑获取根目录()
+	var_run = %var_run%\bin\多屏幕切换\DesktopSwitch.ahk	; Alt + Tab 切换窗口
+	run_ahk( var_run )
+	var_run =
+	return
+
+^!+F5::
+【重启脚本程序】:
+	traytip , %a_ScriptName%, 重启脚本程序 Reload !, 2
+	sleep 300
+	reload
+	Return
+
+【复制无格式文本】:	;
+	clipboard =
+	sleep 50
+	send ^c
+	sleep 200
+	var_temp = %clipboard%
+	clipboard := var_temp
+	return
+
+【粘贴无格式的文本】:	;
+	sendbyclip(clipboard, 0 )
+	return
+
+
+【将选中文本保存为临时脚本文件并保持运行】:	;; 将剪贴板中的内容作为脚本代码运行, 运行之后不删除temp.ahk文件
+	msgbox 将剪贴板中的内容作为脚本代码运行`n`n你可以输入组合键win+alt+esc退出临时脚本
+	clipboard =
+	sleep 100
+	send ^c
+	sleep 400
+	run_with_temp_file(clipboard, true)
+	return
+
+
+【将选中文本保存为一次性临时脚本文件并运行】:	;; 将剪贴板中的内容作为脚本代码运行, 运行之后删除temp.ahk文件
+	var_oldclip := clipboard
+	clipboard =
+	tooltip 将剪贴板中的内容作为脚本代码运行
+	sleep 100
+	send ^c
+	sleep 400
+	if clipboard =
+	{
+		clipboard := var_oldclip
+	}
+	run_with_temp_file(clipboard)
+	return
+
+【金山词霸在线查询选中的内容】:
+	clipboard =
+	sleep 100
+	send ^c
+	sleep 100
+	IfWinExist  金山词霸 2005(暂停取词)(总在最上)
+	{
+		winactivate
+		sendinput %clipboard%
+		send {enter}
+	}
+	else
+	{
+		varurl = http://dict.iciba.com/%clipboard%/
+	;	run C:\Program Files\Internet Explorer\IEXPLORE.EXE %varurl%
+		run  %varurl%
+	}
+	return
+
+
+【将窗口从左显示器移动到右显示器】:
+	WinGet, mm, MinMax, A
+	WinRestore, A
+	WinGetPos, X, Y,,,A
+	WinMove, A,, X+A_ScreenWidth, Y
+	if(mm = 1){
+	    WinMaximize, A
+	}
+	return
+
+【将窗口从右显示器移动到左显示器】:
+	WinGet, mm, MinMax, A
+	WinRestore, A
+	WinGetPos, X, Y,,,A
+	WinMove, A,, X-A_ScreenWidth, Y
+	if(mm = 1){
+	    WinMaximize, A
+	}
+	return
+
+
+
+【复制到行尾】:
+	send {home}{shift down}{end}{shift up}
+	sendevent ^c
+	var_temp = 已经复制整行到剪贴板：`n%clipboard%
+	tooltip7( var_temp )
+	return
+
+
+
+【调节音量】:
+	var_root := ∑获取根目录()
+	var_file = %var_root%\bin\Slider调节\音量调节.ahk
+	run_ahk( var_file )
+	Return
+
+
+【调节窗口透明度】:
+	var_root := ∑获取根目录()
+	var_file = %var_root%\bin\Slider调节\窗口透明度调节.ahk
+	run_ahk( var_file )
+	Return
+
+【自定义全局热键】:
+	var_root := ∑获取根目录()
+	var_file = %var_root%\bin\setting\SettingHotkeys.ahk
+	run_ahk( var_file )
+	Return
+
+
+【复制并粘贴到鼠标下控件后返回】:
+	WinGet, active_id, ID, A
+	gosub 【复制后激活鼠标下窗口并粘贴】
+	sleep 500
+	winactivate ahk_id %active_id%
+	return
+
+【复制后激活鼠标下窗口并粘贴】:
+	clipboard =
+	send ^c
+	MouseGetPos,  ,  , UMWID, UMC
+	winactivate ahk_id %UMWID%
+	WinWaitActive ahk_id %UMWID%, , 0.5
+	clipwait 0.5, 1
+	IfWinActive ahk_id %UMWID%
+	{
+		send ^v
+	}
+	return
+
+【使用VIM编辑选中的文本】:
+	regread var_vimpath, HKEY_LOCAL_MACHINE, SOFTWARE\Vim\GVim, path
+	if var_vimpath <>
+	{
+		var_root := ∑获取根目录()
+		var_file = %var_root%\bin\文本文件处理\用指定工具编辑选中文本.ahk
+		var_param = `"%var_vimpath%`"
+		run_ahk( var_file, var_param )
+	}
+	return
+
+【使用外部编辑器编辑选中的文本】:
+	var_path =
+	if RegExMatch( g_cmdString, "i)(?<=runby:).*?(?=$|\)|\|)", var_file ) > 0
+	{
+		msgbox var_file = %var_file%
+		ifexist %var_file% 
+		{
+			var_path := var_file
+		}
+	}
+	else if RegExMatch( g_cmdString, "i)(?<=launchy:).*?(?=$|\)|\|)", var_martch ) > 0
+	{
+		var_read := read_ini( "launchy.ini", "file", var_martch, "" )
+		if var_read <>
+		{
+			;; var_file 可能的值为： abc.exe|exe|c:\work
+			loop parse, var_read, |
+			{
+				if a_loopfield <>
+				{
+					var_path := a_loopfield
+				}
+				break
+			}
+		}
+	}
+	if var_path <>
+	{
+		var_root := ∑获取根目录()
+		var_file = %var_root%\bin\文本文件处理\用指定工具编辑选中文本.ahk
+		var_param = `"%var_path%`"
+		run_ahk( var_file, var_param )
+	}
+	return
+
+
+【使用NotePad编辑选中的文本】:
+	var_root := ∑获取根目录()
+	var_file = %var_root%\bin\文本文件处理\用指定工具编辑选中文本.ahk
+	var_param = `"%a_windir%\notepad.exe`"
+	run_ahk( var_file, var_param )
+	return
+
+
+【借用NotePad输入文本】:
+	g_AWinID := WinExist("A") 
+	var_root := ∑获取根目录()
+	var_file = %var_root%\bin\文本文件处理\用指定工具编辑选中文本.ahk
+	var_param = 
+(
+editor:`"%a_windir%\notepad.exe`"
+bclip:false
+winsize:small
+winx:850
+winy:350
+activate:true
+)
+	run_ahk( var_file, var_param )
+	sleep 200
+	WinMinimize ahk_id %g_AWinID%	;; 最小化原窗口，方便抄写
+	return
+
+【设置锁屏密码】:
+	var_input := myinput("设置锁屏密码","请输入默认的锁屏密码！","")
+	if var_input <>
+	{
+	  	WriteTempIni("LockScreen", "pwd", var_input )
+	}
+	return
+
+【预设锁屏】:
+	var_root := ∑获取根目录()
+	var_file = %var_root%\bin\SysTools\模拟锁屏.ahk
+	var_param := readTempIni("LockScreen", "pwd", "123456" )
+	var_param = psw:%var_param%
+	run_ahk( var_file, var_param )
+	return
+
+∑预设锁屏并提示( _psw, _tip, _time = 0 )
+{
+	var_root := ∑获取根目录()
+	var_file = %var_root%\bin\SysTools\模拟锁屏.ahk
+
+	if _psw =
+		_psw := readTempIni("LockScreen", "pwd", "123456" )
+
+	var_param = psw:%_psw%
+
+	if _tip <>
+		var_param = %var_param%|tip:%_tip%
+
+	if _time > 0 
+		var_param = %var_param%|time:%_time%
+
+	run_ahk( var_file, var_param )
+}
+
+【设密锁屏】:
+	var_root := ∑获取根目录()
+	var_file = %var_root%\bin\SysTools\模拟锁屏.ahk
+	run_ahk( var_file )
+	return
+
+【编辑选中飞扬命令串】:
+	var_clip := clipboard 
+	clipboard =
+	send ^c
+	clipwait 0.5
+	gosub 【复制为飞扬命令串】
+	clipboard := var_clip
+	return
+
+
+
+【复制为飞扬命令串】:
+	var_root := ∑获取根目录()
+	var_file = %var_root%\bin\setting\编辑飞扬命令串.ahk
+	var_param := clipboard
+	run_ahk( var_file, var_param )	
+	return
+
+
+
+
+【复制并调整选中代码的空格】:
+	clipboard = 
+	send ^c
+	sleep 200
+	if clipboard <>
+	{
+		var_clip := clipboard
+		clipboard := ∑调整代码空格( clipboard )
+		if clipboard <>
+			send ^v
+		clipboard := var_clip
+	}
+	return	
+

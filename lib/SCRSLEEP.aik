@@ -1,0 +1,29 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  该文件用来定时强制用户休息,同时播放音乐
+;;  为了达到强制效果,锁定键盘和鼠标30秒
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+#include .\inc\functions.aik
+iniread,var_max,SCRwithBlockInput.ini,music,max
+;msgbox,%var_max%
+SLEEP 3000000
+XUNHUAN:
+Random,var_max,1,var_max
+;msgbox,%var_max%
+iniread,var_file,SCRwithBlockInput.ini,music,%var_max%
+run,%var_file%
+sleep,5000
+iniread,var_file,SCRwithBlockInput.ini,scr,f
+BlockInput,Mouse
+sleep,1000
+winrun(var_file)
+BlockInput,on
+sleep,30000
+BlockInput,off
+ifwinexist ahk_class Winamp v1.x
+{
+	sleep,30000
+	winclose
+}
+SLEEP 3000000
+GOTO XUNHUAN
