@@ -36,13 +36,20 @@ get_script_root()
 	Return False
 }
 
-∑获取根目录()
+
+get_root()
 {
 	global g_root
 	if g_root =
 		g_root := get_script_root()
 	return g_root
 }
+
+∑获取根目录()
+{
+	return get_root()
+}
+
 
 get_parent_dir(Path)
 {

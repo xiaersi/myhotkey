@@ -340,6 +340,21 @@ SplitRGB(colorstr, byref var_red, byref var_green, byref var_blue)
 	return false
 }
 
+;; windows10 
+switchime_win10(ime := "A")
+{
+        if (ime = 1){
+                DllCall("SendMessage", UInt, WinActive("A"), UInt, 80, UInt, 1, UInt, DllCall("LoadKeyboardLayout", Str,"00000804", UInt, 1))
+        }else if (ime = 0)
+        {
+                DllCall("SendMessage", UInt, WinActive("A"), UInt, 80, UInt, 1, UInt, DllCall("LoadKeyboardLayout", Str,, UInt, 1))
+        }else if (ime = "A")
+        {
+                ;ime_status:=DllCall("GetKeyboardLayout","int",0,UInt)
+                Send, #{Space}
+        }
+}
+
 ; 切换输入法的方法，dwLayout 指定键盘布局， 举例：switchime("E0210804")切换到QQ五笔， switchime("E0200804") 切换到搜狐五笔
 ; HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Keyboard Layouts\键盘布局（如：E0200804）\Ime File=SOGOUWB.IME
 SwitchIME_index(dwLayout)
@@ -357,6 +372,8 @@ SwitchIME(name)
 			RegRead,Value
 			IfInString,value,%name%
 			{
+				tempstr = %name% in %value% 
+				msgbox %tempstr%
 				RegExMatch(A_LoopRegSubKey,"[^\\]+$",dwLayout)
 				HKL:=DllCall("LoadKeyboardLayout", Str, dwLayout, UInt, 1)
 				ControlGetFocus,ctl,A
