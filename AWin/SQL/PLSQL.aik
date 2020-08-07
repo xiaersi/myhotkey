@@ -16,6 +16,7 @@ esc::
 	return
 
 ^+v::
+^#v::
 	Menu, plsqlMenu, add, &1.从日志提取SQL, 【粘贴日志SQL】
 	Menu, plsqlMenu, add, &2.提取字段, 【提取SQL字段】	
 	Menu, plsqlMenu, add, &3.字段加引号, 【给SQL字段加引号】	
@@ -323,12 +324,14 @@ F6::
 	var_out =
 	Loop, parse, clipboard, `n, `r
 	{
-		var_pos := RegExMatch(A_LoopField, "[^\s]+", var_line )
+		var_pos := RegExMatch(A_LoopField, "[^\t$]+", var_line )
 		if var_pos <= 0
 			continue
 
    	 	if var_line <>
+		{
 			var_out = %var_out%'%var_line%',%a_space%
+		}
 
 		if mod(a_index, 100) = 0
 		{
@@ -338,7 +341,7 @@ F6::
 
 	if var_out <>
 	{
-		var_out := RegExReplace(var_out, ",\s+$", "" )
+		var_out := RegExReplace(var_out, ",\s*$", "" )
 		clipboard := var_out
 		send ^v
 	}

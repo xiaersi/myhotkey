@@ -128,6 +128,20 @@ OnMessage( 0x06, "WM_ACTIVATE" )
 OnMessage("0x4E", "LVA_OnNotify")
 LoadIniFile()
 
+
+;; 切换英文输入法
+	if RegExMatch(A_OSVersion, "^10")
+	{
+		;; 如果是Win10
+	    SetCapsLockState,off
+        switchime_win10(0)
+	}
+	else
+	{
+	switchime("中文 (简体) - 美式键盘")
+	}
+
+
 return
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

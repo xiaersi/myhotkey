@@ -161,13 +161,14 @@ return
 	Menu, SettingEnable, Add, 屏蔽单击CapsLock键 (&p), 【SettingEnable_capslock】
 	Menu, SettingEnable, Add, AltHJKL模拟VIM风格 (&v), 【SettingEnable_vim】
 	Menu, SettingEnable, Add, Alt符号键模拟方向键 (&a), 【SettingEnable_alt】
+	Menu, SettingEnable, Add, 禁止锁屏 (&b), 【SettingEnable_LockScreen】
 
 	Menu, MyHotkeySettingMenu, Add, 设置全局热键 (&H), 【SettingMenu_GlobalHotkey】
 	Menu, MyHotkeySettingMenu, Add, 设置飞扬命令 (&F), 【SettingMenu_Launchy】
 	Menu, MyHotkeySettingMenu, Add, 设置快捷菜单 (&M), 【SettingMenu_ShortcutMenu】
 	Menu, MyHotkeySettingMenu, Add, 设置画屏手势 (&G), 【SettingMenu_Gesture】
 	Menu, MyHotkeySettingMenu, Add
-	Menu, MyHotkeySettingMenu, Add, 开关设置 (&E),  :SettingEnable
+	Menu, Tray, Add, 开关 (&V), :SettingEnable
 	Menu, Tray, Add, 设置 (&S), :MyHotkeySettingMenu
 
 	;; 判断鼠标手势是否开启
@@ -220,12 +221,23 @@ return
 	else
 		menu , SettingEnable, uncheck, 	开启飞扬个性输入 (&i)	
 
+	;; 判断是否允许锁屏
+	RegRead, v_DisableLockWorkstation,  HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Policies\System, DisableLockWorkstation
+	if v_DisableLockWorkstation = 00000000 or v_DisableLockWorkstation=
+	{
+		menu , SettingEnable, uncheck,  禁止锁屏 (&b)
+	} 
+	else
+	{
+		menu , SettingEnable, check,  禁止锁屏 (&b)
+	}
+
+
 	return
 
 【显示设置子菜单】:
 	menu, MyHotkeySettingMenu, show
 	return
-
 
 【SettingMenu_GlobalHotkey】:
 	gosub 【自定义全局热键】
@@ -306,7 +318,22 @@ return
 		g_bMButtoneDragWindow := true
 	}
 	Return	
-	
+
+
+【SettingEnable_LockScreen】:
+	RegRead, v_DisableLockWorkstation,  HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Policies\System, DisableLockWorkstation
+	if v_DisableLockWorkstation = 00000000
+	{
+		RegWrite, REG_DWORD, HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Policies\System, DisableLockWorkstation, 00000001
+		menu , SettingEnable, check,  禁止锁屏 (&b)
+	} 
+	else if v_DisableLockWorkstation = 00000001
+	{
+		RegWrite, REG_DWORD, HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Policies\System, DisableLockWorkstation, 00000000
+		menu , SettingEnable, uncheck,  禁止锁屏 (&b)
+	}
+	return
+
 
 ;; 屏蔽单击左Windows徽标键
 【SettingEnable_lwin】:
@@ -389,6 +416,7 @@ return
 	Menu, 控制电脑, Add, 关机, 【电脑关机】
 	Menu, 控制电脑, Add, 重启电脑, 【重启电脑】
 	Menu, 控制电脑, Add, 强制关机, 【强制关机】
+	Menu, 控制电脑, Add, 锁屏 (&b), 【锁屏】
 
 	var_禁用热键=禁用热键 (&S)  #!F5
 	var_重启程序=重启程序 (&R)  #F5
@@ -402,6 +430,31 @@ return
 	Menu, Tray, Add, 控制 (&C), :脚本控制子菜单
 	return
 
+::;lockwindows::
+::;lockwindow::
+::;lkwin;::
+【锁屏】:
+	RegRead, v_DisableLockWorkstation,  HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Policies\System, DisableLockWorkstation
+	tooltip 锁屏开关[ %v_DisableLockWorkstation% ]
+	if v_DisableLockWorkstation = 00000000
+	{
+    	Run rundll32.exe user32.dll`,LockWorkStation
+		; send >#l
+	} 
+	else if v_DisableLockWorkstation = 00000001
+	{
+		RegWrite, REG_DWORD, HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Policies\System, DisableLockWorkstation, 00000000
+		menu , SettingEnable, uncheck,  禁止锁屏 (&b)
+		tooltip #锁屏开关[ %v_DisableLockWorkstation% ]   >>>>>>> 
+		; Lock:
+    	Run rundll32.exe user32.dll`,LockWorkStation
+		sleep 500
+		RegWrite, REG_DWORD, HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Policies\System, DisableLockWorkstation, 00000001
+		menu , SettingEnable, check,  禁止锁屏 (&b)
+	}
+	sleep 500
+	tooltip
+	return 
 
 【脚本控制子菜单_Reload】:
 	reload
