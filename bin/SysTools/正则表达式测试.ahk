@@ -67,14 +67,6 @@ GuiContextMenu:  ; Launched in response to a right-click or press of the Apps ke
 	}
 	RETURN
 
-LButton::
-	if A_GuiControl <> _KeyListView  ; Display the menu only for clicks inside the ListView.
-	{
-		GuiControl, Hide, _KeyListView
-	}
-	click
-	RETURN
-
 
 GuiClose:
 ExitApp
@@ -130,13 +122,16 @@ ExitApp
 	if _search <>
 	{
 		MatchBuf =
+		
 		if _MatchByLine
 		{
 			Loop parse, _FileContent, `n
 			{
-				if ( !_OnlyRepalceMatch || RegExMatch( A_LoopField, _search ) > 0 )
+				StringReplace, var_replace, _replace, `%A_index`%, %A_index%, All
+				var_pos := RegExMatch( A_LoopField, _search, var_match_ )
+				if ( !_OnlyRepalceMatch || var_pos > 0 )
 				{
-					var_match := RegExReplace( A_LoopField, _search, _replace )
+					var_match := RegExReplace( A_LoopField, _search, var_replace )
 					{
 						MatchBuf = %MatchBuf%%var_match%`n
 					}
@@ -147,7 +142,7 @@ ExitApp
 		{
 			if ( !_OnlyRepalceMatch || RegExMatch( _FileContent, _search ) > 0 )
 			{
-				var_match := RegExReplace( _FileContent, _search, _replace )
+				var_match := RegExReplace( _FileContent, _search, var_replace )
 				{
 			;	msgbox  RegExReplace( _FileContent`, %_search%`, %_replace% )`n`n%var_match%
 					MatchBuf := var_match
@@ -155,6 +150,23 @@ ExitApp
 			}
 		}
 		GuiControl , , _NewContent, %MatchBuf%
+	}
+	else if (RegExMatch(_replace, "`{.*`}") > 0)
+	{
+		var_NewContent := _FileContent
+		var_replace := _replace
+		StrTrimLeft(var_replace, "{")
+		StrTrimRight(var_replace, "}")
+		Loop, parse, var_replace, `,
+		{
+
+			if (StrSplit2Sub(A_LoopField, ":", var_left, var_right))
+			{
+				StringReplace, var_NewContent, var_NewContent, %var_left%, %var_right%, All
+	;	msgbox var_left=%var_left%, var_right=%var_right%
+			}
+		}
+		GuiControl , , _NewContent, %var_NewContent%
 	}
 	Else
 		GuiControl , , _NewContent,
@@ -337,3 +349,18 @@ DecodeInteger( p_type, p_address, p_offset, p_hex=true )
    return, value
 }
 
+
+
+
+#ifwinactive 正则表达式测试 
+
++ESC::
+	if A_GuiControl <> _KeyListView  ; Display the menu only for clicks inside the ListView.
+	{
+		GuiControl, Hide, _KeyListView
+	}
+	click
+	RETURN
+
+
+#ifwinactive
